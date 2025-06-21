@@ -1,46 +1,52 @@
-name: Build Static FFmpeg for Windows
+name: Build FFmpeg Windows Static with fdk_aac + openh264
 
 on:
-  workflow_dispatch:
   push:
-    branches: [ master ]
+  workflow_dispatch:
 
 jobs:
-  static-windows:
+  build-ffmpeg:
     runs-on: windows-latest
 
-    defaults:
-      run:
-        shell: msys2 {0}
-
     steps:
-    - name: Checkout FFmpeg
-      uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v4
 
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW64
         update: true
-        install: >-
-          base-devel
-          git
-          mingw-w64-x86_64-toolchain
-          mingw-w64-x86_64-pkg-config
-          mingw-w64-x86_64-nasm
-          mingw-w64-x86_64-yasm
-          mingw-w64-x86_64-SDL2
-          mingw-w64-x86_64-libx264
-          mingw-w64-x86_64-libx265
-          mingw-w64-x86_64-lame
-          mingw-w64-x86_64-libvorbis
-          mingw-w64-x86_64-libvpx
-          mingw-w64-x86_64-libass
-          mingw-w64-x86_64-fontconfig
-          mingw-w64-x86_64-freetype
-          mingw-w64-x86_64-fribidi
-          mingw-w64-x86_64-libopusenc
-          mingw-w64-x86_64-vmaf
+
+    - name: Update MSYS2
+      shell: msys2 {0}
+      run: |
+        pacman -Syu --noconfirm
+
+    - name: Install dependencies
+      shell: msys2 {0}
+      run: |
+        pacman -S --noconfirm --needed \
+          mingw-w64-x86_64-toolchain \
+          base-devel \
+          git \
+          mingw-w64-x86_64-pkg-config \
+          mingw-w64-x86_64-nasm \
+          mingw-w64-x86_64-yasm \
+          mingw-w64-x86_64-SDL2 \
+          mingw-w64-x86_64-libx264 \
+          mingw-w64-x86_64-x265 \
+          mingw-w64-x86_64-lame \
+          mingw-w64-x86_64-libvorbis \
+          mingw-w64-x86_64-libvpx \
+          mingw-w64-x86_64-libass \
+          mingw-w64-x86_64-fontconfig \
+          mingw-w64-x86_64-freetype \
+          mingw-w64-x86_64-fribidi \
+          mingw-w64-x86_64-libopusenc \
+          mingw-w64-x86_64-vmaf \
+          mingw-w64-x86_64-fdk-aac \
+          mingw-w64-x86_64-openh264
 
     - name: Build fdk-aac (static)
       run: |
@@ -60,45 +66,56 @@ jobs:
         make OS=mingw64 ARCH=x86_64 -j$(nproc)
         make install PREFIX=/mingw64
 
-    - name: Configure and build FFmpeg (fully static)
+    - name: Clone FFmpeg
+      shell: msys2 {0}
       run: |
-        cd $GITHUB_WORKSPACE
+        git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg
+        cd ffmpeg
+        git checkout n6.1.1
 
+    - name: Configure FFmpeg
+      shell: msys2 {0}
+      run: |
+        cd ffmpeg
         ./configure \
-          --prefix=/mingw64 \
-          --pkg-config=pkg-config \
-          --pkg-config-flags="--static" \
-          --extra-cflags="-static -I/mingw64/include" \
-          --extra-ldflags="-static -L/mingw64/lib" \
-          --extra-libs="-lm -lz -pthread" \
+          --prefix="$HOME/ffmpeg-build" \
+          --target-os=mingw32 \
+          --arch=x86_64 \
+          --enable-gpl \
+          --enable-version3 \
           --enable-static \
           --disable-shared \
           --disable-debug \
-          --disable-w32threads \
-          --enable-gpl \
-          --enable-version3 \
-          --enable-nonfree \
+          --disable-doc \
           --enable-libx264 \
           --enable-libx265 \
-          --enable-libfdk_aac \
           --enable-libmp3lame \
-          --enable-libopus \
+          --enable-libvorbis \
           --enable-libvpx \
+          --enable-libopus \
           --enable-libass \
           --enable-fontconfig \
           --enable-libfreetype \
           --enable-libfribidi \
           --enable-libvmaf \
-          --enable-openh264 \
-          --enable-nvenc \
-          --disable-network \
-          --disable-doc
+          --enable-libfdk_aac \
+          --enable-libopenh264 \
+          --enable-nonfree
 
+    - name: Build FFmpeg
+      shell: msys2 {0}
+      run: |
+        cd ffmpeg
         make -j$(nproc)
-        cp ffmpeg.exe ffprobe.exe /mingw64/bin/
+        make install
 
-    - name: Upload static FFmpeg binaries
+    - name: Package Static Build
+      shell: bash
+      run: |
+        7z a ffmpeg-win64-static.zip $HOME/ffmpeg-build/*
+
+    - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ffmpeg-static-windows
-        path: C:\msys64\mingw64\bin\
+        name: ffmpeg-win64-static
+        path: ffmpeg-win64-static.zip
