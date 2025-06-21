@@ -1,0 +1,104 @@
+name: Build Static FFmpeg for Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+
+jobs:
+  static-windows:
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: Checkout FFmpeg
+      uses: actions/checkout@v3
+
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          base-devel
+          git
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-pkg-config
+          mingw-w64-x86_64-nasm
+          mingw-w64-x86_64-yasm
+          mingw-w64-x86_64-SDL2
+          mingw-w64-x86_64-libx264
+          mingw-w64-x86_64-libx265
+          mingw-w64-x86_64-libmp3lame
+          mingw-w64-x86_64-libvorbis
+          mingw-w64-x86_64-libvpx
+          mingw-w64-x86_64-libass
+          mingw-w64-x86_64-fontconfig
+          mingw-w64-x86_64-freetype
+          mingw-w64-x86_64-fribidi
+          mingw-w64-x86_64-libvmaf
+          mingw-w64-x86_64-libopus
+
+    - name: Build fdk-aac (static)
+      run: |
+        cd /tmp
+        git clone --depth 1 https://github.com/mstorsjo/fdk-aac
+        cd fdk-aac
+        autoreconf -fiv
+        ./configure --prefix=/mingw64 --disable-shared
+        make -j$(nproc)
+        make install
+
+    - name: Build OpenH264 (static)
+      run: |
+        cd /tmp
+        git clone --depth 1 https://github.com/cisco/openh264.git
+        cd openh264
+        make OS=mingw64 ARCH=x86_64 -j$(nproc)
+        make install PREFIX=/mingw64
+
+    - name: Configure and build FFmpeg (fully static)
+      run: |
+        cd $GITHUB_WORKSPACE
+
+        ./configure \
+          --prefix=/mingw64 \
+          --pkg-config=pkg-config \
+          --pkg-config-flags="--static" \
+          --extra-cflags="-static -I/mingw64/include" \
+          --extra-ldflags="-static -L/mingw64/lib" \
+          --extra-libs="-lm -lz -pthread" \
+          --enable-static \
+          --disable-shared \
+          --disable-debug \
+          --disable-w32threads \
+          --enable-gpl \
+          --enable-version3 \
+          --enable-nonfree \
+          --enable-libx264 \
+          --enable-libx265 \
+          --enable-libfdk_aac \
+          --enable-libmp3lame \
+          --enable-libopus \
+          --enable-libvpx \
+          --enable-libass \
+          --enable-fontconfig \
+          --enable-libfreetype \
+          --enable-libfribidi \
+          --enable-libvmaf \
+          --enable-openh264 \
+          --enable-nvenc \
+          --disable-network \
+          --disable-doc
+
+        make -j$(nproc)
+        cp ffmpeg.exe ffprobe.exe /mingw64/bin/
+
+    - name: Upload static FFmpeg binaries
+      uses: actions/upload-artifact@v4
+      with:
+        name: ffmpeg-static-windows
+        path: C:\msys64\mingw64\bin\
