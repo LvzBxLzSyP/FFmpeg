@@ -45,11 +45,12 @@ jobs:
         cd ..
 
         # x265
-        git clone --depth 1 https://bitbucket.org/multicoreware/x265_git.git x265
-        cd x265/build/linux
-        cmake -DCMAKE_SYSTEM_NAME=Windows -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DCMAKE_INSTALL_PREFIX=/mingw64/static ../../source
-        make -j$(nproc) && make install
-        cd /tmp
+        curl -LO https://bitbucket.org/multicoreware/x265_git/downloads/x265_3.5.tar.gz
+        tar -xzf x265_3.5.tar.gz
+        cd x265_3.5/build/make-mingw64
+        cmake -G "MSYS Makefiles" ../../source -DENABLE_SHARED=off -DENABLE_CLI=off
+        make -j$(nproc)
+        make install
 
         # fdk-aac
         git clone --depth 1 https://github.com/mstorsjo/fdk-aac.git
