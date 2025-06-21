@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-static-ffmpeg:
@@ -50,7 +50,7 @@ jobs:
         cd x265_3.5/source
         mkdir -p ../build
         cd ../build
-        cmake -G "MSYS Makefiles" ../source -DENABLE_SHARED=off -DENABLE_CLI=off -DCMAKE_INSTALL_PREFIX=/mingw64/static
+        cmake -G "MSYS Makefiles" ../source -DENABLE_SHARED=off -DENABLE_CLI=off -DCMAKE_INSTALL_PREFIX=/mingw64/static -DCMAKE_POLICY_VERSION_MINIMUM=3.5
         make -j$(nproc)
         make install
 
