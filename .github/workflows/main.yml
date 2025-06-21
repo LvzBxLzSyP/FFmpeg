@@ -32,15 +32,15 @@ jobs:
           mingw-w64-x86_64-SDL2
           mingw-w64-x86_64-libx264
           mingw-w64-x86_64-libx265
-          mingw-w64-x86_64-libmp3lame
+          mingw-w64-x86_64-lame
           mingw-w64-x86_64-libvorbis
           mingw-w64-x86_64-libvpx
           mingw-w64-x86_64-libass
           mingw-w64-x86_64-fontconfig
           mingw-w64-x86_64-freetype
           mingw-w64-x86_64-fribidi
-          mingw-w64-x86_64-libvmaf
-          mingw-w64-x86_64-libopus
+          mingw-w64-x86_64-libopusenc
+          mingw-w64-x86_64-vmaf
 
     - name: Build fdk-aac (static)
       run: |
