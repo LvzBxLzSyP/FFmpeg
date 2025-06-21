@@ -48,26 +48,6 @@ jobs:
           mingw-w64-x86_64-fdk-aac \
           mingw-w64-x86_64-openh264
 
-    - name: Build fdk-aac (static)
-      shell: msys2 {0}
-      run: |
-        cd /tmp
-        git clone --depth 1 https://github.com/mstorsjo/fdk-aac
-        cd fdk-aac
-        autoreconf -fiv
-        ./configure --prefix=/mingw64 --disable-shared
-        make -j$(nproc)
-        make install
-
-    - name: Build OpenH264 (static)
-      shell: msys2 {0}
-      run: |
-        cd /tmp
-        git clone --depth 1 https://github.com/cisco/openh264.git
-        cd openh264
-        make OS=mingw64 ARCH=x86_64 -j$(nproc)
-        make install PREFIX=/mingw64
-
     - name: Clone FFmpeg
       shell: msys2 {0}
       run: |
