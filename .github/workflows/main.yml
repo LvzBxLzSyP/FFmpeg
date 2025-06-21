@@ -49,6 +49,7 @@ jobs:
           mingw-w64-x86_64-openh264
 
     - name: Build fdk-aac (static)
+      shell: msys2 {0}
       run: |
         cd /tmp
         git clone --depth 1 https://github.com/mstorsjo/fdk-aac
@@ -59,6 +60,7 @@ jobs:
         make install
 
     - name: Build OpenH264 (static)
+      shell: msys2 {0}
       run: |
         cd /tmp
         git clone --depth 1 https://github.com/cisco/openh264.git
