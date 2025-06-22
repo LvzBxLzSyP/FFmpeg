@@ -73,7 +73,7 @@ jobs:
         cd ..
 
         # Build mp3lame
-        curl -LO https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+        curl -LO https://downloads.sourceforge.net/project/lame/lame/3.99/lame-3.99.5.tar.gz
         tar -xzf lame-3.100.tar.gz && cd lame-3.100 && ./configure --prefix=/mingw64/static --enable-static --disable-shared && make -j$(nproc) && make install
         cd ..
 
