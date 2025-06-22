@@ -91,6 +91,14 @@ jobs:
         make -j$(nproc) && make install
         cd ..
 
+        # freetype2
+        git clone https://gitlab.freedesktop.org/freetype/freetype.git
+        cd freetype
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --host=x86_64-w64-mingw32 --enable-static --disable-shared
+        make -j$(nproc)
+        make install
+
         # libfdk-aac
         git clone --depth=1 https://github.com/mstorsjo/fdk-aac && cd fdk-aac
         autoreconf -fiv
