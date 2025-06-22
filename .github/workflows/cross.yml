@@ -63,9 +63,9 @@ jobs:
 
         # rav1e
         git clone --depth=1 https://github.com/xiph/rav1e.git && cd rav1e
-        cargo build --release --target x86_64-pc-windows-gnu
-        mkdir -p $PREFIX/lib
-        cp target/x86_64-pc-windows-gnu/release/librav1e.a $PREFIX/lib
+        cargo install cargo-c
+        cargo cinstall --release --target x86_64-pc-windows-gnu \
+        --prefix="$PREFIX"
         cd ..
 
         # libaom
