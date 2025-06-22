@@ -69,11 +69,11 @@ jobs:
         cd ..
 
         # libaom
-        git clone --depth=1 https://aomedia.googlesource.com/aom.git
+        git clone --depth=1 https://aomedia.googlesource.com/aom.git aom/aom
         cd aom
         rm -rf build
         mkdir build && cd build
-        cmake .. -G Ninja \
+        cmake ../aom -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=$PREFIX \
         -DENABLE_SHARED=OFF \
