@@ -32,7 +32,7 @@ jobs:
 
         # Install rust for rav1e
         curl https://sh.rustup.rs -sSf | sh -s -- -y
-        source $HOME/.cargo/env
+        . $HOME/.cargo/env
         rustup target add x86_64-pc-windows-gnu
 
         # x264
