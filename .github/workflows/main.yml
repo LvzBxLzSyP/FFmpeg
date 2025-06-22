@@ -2,7 +2,7 @@ name: Build Static FFmpeg on Windows
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
