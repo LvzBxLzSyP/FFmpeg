@@ -107,7 +107,7 @@ jobs:
 
         # openh264
         git clone --depth=1 https://github.com/cisco/openh264.git && cd openh264
-        make ARCH=x86_64 OS=mingw64 CC=$CROSS_PREFIX-gcc CXX=$CROSS_PREFIX-g++ PREFIX=$PREFIX STATIC=Yes
+        make ARCH=x86_64 OS=mingw_nt CC=$CROSS_PREFIX-gcc CXX=$CROSS_PREFIX-g++ PREFIX=$PREFIX STATIC=Yes
         make install PREFIX=$PREFIX
         cd ..
 
