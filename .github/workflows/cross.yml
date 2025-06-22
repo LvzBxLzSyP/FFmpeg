@@ -69,15 +69,13 @@ jobs:
         cd ..
 
         # libaom
-        git clone --depth=1 https://aomedia.googlesource.com/aom && cd aom
+        git clone --depth=1 https://aomedia.googlesource.com/aom.git
+        cd aom
+        rm -rf build
         mkdir build && cd build
-        cmake -G "Unix Makefiles" -DCMAKE_SYSTEM_NAME=Windows \
-          -DCMAKE_C_COMPILER=$CROSS_PREFIX-gcc \
-          -DCMAKE_CXX_COMPILER=$CROSS_PREFIX-g++ \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX \
-          -DENABLE_SHARED=OFF -DBUILD_SHARED_LIBS=OFF ..
-        make -j$(nproc) && make install
-        cd ../../
+        cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PREFIX -DENABLE_SHARED=OFF -DENABLE_NASM=ON
+        mingw32-make
+        mingw32-make install
 
         # libvpx
         git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git && cd libvpx
