@@ -1,0 +1,144 @@
+name: Build Ultimate Static Windows FFmpeg
+
+on: workflow_dispatch:
+
+jobs: build-ffmpeg-win64: runs-on: ubuntu-latest container: image: ubuntu:24.04 steps: - name: Install dependencies run: | apt update && apt install -y 
+autoconf automake build-essential cmake 
+git libtool pkg-config texinfo 
+yasm nasm curl unzip wget 
+mingw-w64 ninja-build zlib1g-dev libssl-dev
+
+- name: Set env vars
+  run: |
+    echo "CROSS_PREFIX=x86_64-w64-mingw32" >> $GITHUB_ENV
+    echo "PREFIX=/opt/ffmpeg-win64" >> $GITHUB_ENV
+    mkdir -p /opt/ffmpeg-win64
+
+- name: Build all libraries
+  run: |
+    export PATH="/root/.cargo/bin:$PATH"
+    export CROSS_PREFIX=${{ env.CROSS_PREFIX }}
+    export PREFIX=${{ env.PREFIX }}
+    export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+
+    # Install rust for rav1e
+    curl https://sh.rustup.rs -sSf | sh -s -- -y
+    source $HOME/.cargo/env
+    rustup target add x86_64-pc-windows-gnu
+
+    # x264
+    git clone --depth=1 https://code.videolan.org/videolan/x264.git && cd x264
+    ./configure --host=$CROSS_PREFIX --cross-prefix=$CROSS_PREFIX- --enable-static --disable-opencl --prefix=$PREFIX
+    make -j$(nproc) && make install
+    cd ..
+
+    # x265
+    git clone --branch stable --depth=1 https://bitbucket.org/multicoreware/x265_git x265 && cd x265/build/linux
+    cmake -G "Unix Makefiles" -DCMAKE_SYSTEM_NAME=Windows \
+      -DCMAKE_C_COMPILER=$CROSS_PREFIX-gcc \
+      -DCMAKE_CXX_COMPILER=$CROSS_PREFIX-g++ \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DENABLE_SHARED=OFF ../../source
+    make -j$(nproc) && make install
+    cd ../../../
+
+    # SVT-AV1
+    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git && cd SVT-AV1
+    cmake -G "Unix Makefiles" -DCMAKE_SYSTEM_NAME=Windows \
+      -DCMAKE_C_COMPILER=$CROSS_PREFIX-gcc \
+      -DCMAKE_CXX_COMPILER=$CROSS_PREFIX-g++ \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DBUILD_SHARED_LIBS=OFF .
+    make -j$(nproc) && make install
+    cd ..
+
+    # rav1e
+    git clone --depth=1 https://github.com/xiph/rav1e.git && cd rav1e
+    cargo build --release --target x86_64-pc-windows-gnu
+    mkdir -p $PREFIX/lib
+    cp target/x86_64-pc-windows-gnu/release/librav1e.a $PREFIX/lib
+    cd ..
+
+    # libaom
+    git clone --depth=1 https://aomedia.googlesource.com/aom && cd aom
+    mkdir build && cd build
+    cmake -G "Unix Makefiles" -DCMAKE_SYSTEM_NAME=Windows \
+      -DCMAKE_C_COMPILER=$CROSS_PREFIX-gcc \
+      -DCMAKE_CXX_COMPILER=$CROSS_PREFIX-g++ \
+      -DCMAKE_INSTALL_PREFIX=$PREFIX \
+      -DENABLE_SHARED=OFF -DBUILD_SHARED_LIBS=OFF ..
+    make -j$(nproc) && make install
+    cd ../../
+
+    # libvpx
+    git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git && cd libvpx
+    ./configure --target=x86_64-win64-gcc --prefix=$PREFIX --disable-examples --disable-unit-tests --enable-vp9-highbitdepth --as=yasm --enable-static --disable-shared
+    make -j$(nproc) && make install
+    cd ..
+
+    # libfdk-aac
+    git clone --depth=1 https://github.com/mstorsjo/fdk-aac && cd fdk-aac
+    autoreconf -fiv
+    ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
+    make -j$(nproc) && make install
+    cd ..
+
+    # libmp3lame
+    wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+    tar xzf lame-3.100.tar.gz && cd lame-3.100
+    ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
+    make -j$(nproc) && make install
+    cd ..
+
+    # openh264
+    git clone --depth=1 https://github.com/cisco/openh264.git && cd openh264
+    make ARCH=x86_64 OS=mingw64 CC=$CROSS_PREFIX-gcc CXX=$CROSS_PREFIX-g++ PREFIX=$PREFIX STATIC=Yes
+    make install PREFIX=$PREFIX
+    cd ..
+
+    # libass
+    git clone --depth=1 https://github.com/libass/libass.git && cd libass
+    ./autogen.sh
+    ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
+    make -j$(nproc) && make install
+    cd ..
+
+    # opus
+    git clone --depth=1 https://github.com/xiph/opus.git && cd opus
+    ./autogen.sh
+    ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
+    make -j$(nproc) && make install
+    cd ..
+
+- name: Build FFmpeg
+  run: |
+    git clone --depth=1 https://github.com/FFmpeg/FFmpeg ffmpeg && cd ffmpeg
+    export PKG_CONFIG_PATH=${{ env.PREFIX }}/lib/pkgconfig
+    ./configure \
+      --target-os=mingw32 \
+      --arch=x86_64 \
+      --cross-prefix=${{ env.CROSS_PREFIX }}- \
+      --prefix=${{ env.PREFIX }} \
+      --pkg-config=pkg-config \
+      --enable-static --disable-shared \
+      --enable-gpl --enable-version3 --enable-nonfree \
+      --enable-libx264 --enable-libx265 \
+      --enable-librav1e --enable-libsvtav1 \
+      --enable-libmp3lame --enable-libfdk-aac \
+      --enable-libvpx --enable-libopenh264 \
+      --enable-libopus --enable-libass \
+      --enable-libaom --enable-nvenc \
+      --disable-doc --disable-debug
+    make -j$(nproc)
+    make install
+
+- name: Package binary
+  run: |
+    cd ${{ env.PREFIX }}
+    zip -r ffmpeg-win64-static.zip bin
+
+- name: Upload artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: ffmpeg-win64-static
+    path: /opt/ffmpeg-win64/ffmpeg-win64-static.zip
