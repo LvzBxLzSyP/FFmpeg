@@ -54,7 +54,7 @@ jobs:
 
         # Build x265
         git clone --depth 1 https://github.com/videolan/x265.git
-        cd x265/build/linux && cmake -G "Unix Makefiles" -DENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=/mingw64/static ../../source && make -j$(nproc) && make install
+        cd x265/build/linux && cmake -G "Unix Makefiles" -DCMAKE_POLICY_VERSION_MINIMUM=3.3 -DENABLE_SHARED=OFF -DCMAKE_INSTALL_PREFIX=/mingw64/static ../../source && make -j$(nproc) && make install
         cd ../../../
 
         # Build fdk-aac
