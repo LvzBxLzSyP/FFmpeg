@@ -2,7 +2,7 @@ name: Build Static FFmpeg on Windows
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -20,7 +20,25 @@ jobs:
           git
           base-devel
           mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-binutils
+          mingw-w64-x86_64-crt-git
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-gdb
+          mingw-w64-x86_64-gdb-multiarch
+          mingw-w64-x86_64-headers-git
+          mingw-w64-x86_64-libmangle-git
+          mingw-w64-x86_64-libwinpthread
+          mingw-w64-x86_64-make
+          mingw-w64-x86_64-pkgconf
+          mingw-w64-x86_64-tools-git
+          mingw-w64-x86_64-winpthreads
+          mingw-w64-x86_64-winstorecompat-git
           mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-yasm
+          mingw-w64-x86_64-nasm
+          autoconf
+          automake
+          libtool
           unzip
 
     - name: Build static dependencies
