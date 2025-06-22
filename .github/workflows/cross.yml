@@ -91,6 +91,15 @@ jobs:
         make -j$(nproc) && make install
         cd ..
 
+        # libzlib
+        curl -LO https://zlib.net/zlib1213.zip
+        unzip zlib1213.zip && cd zlib-1.2.13
+        CROSS_PREFIX=$CROSS_PREFIX \
+        CC=${CROSS_PREFIX}-gcc AR=${CROSS_PREFIX}-ar RANLIB=${CROSS_PREFIX}-ranlib \
+        ./configure --prefix=$PREFIX --static
+        make
+        make install
+
         # freetype2
         git clone https://gitlab.freedesktop.org/freetype/freetype.git
         cd freetype
