@@ -123,6 +123,13 @@ jobs:
         make -j$(nproc) && make install
         cd ..
 
+        # fribidi (required by libass)
+        git clone --depth=1 https://github.com/fribidi/fribidi.git && cd fribidi
+        ./autogen.sh
+        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static --disable-docs
+        make -j$(nproc) && make install
+        cd ..
+
         # libass
         git clone --depth=1 https://github.com/libass/libass.git && cd libass
         ./autogen.sh
