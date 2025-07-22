@@ -89,8 +89,14 @@ jobs:
 
         # libvpx
         git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git && cd libvpx
+        export CC=${CROSS_PREFIX}-gcc
+        export CXX=${CROSS_PREFIX}-g++
+        export AR=${CROSS_PREFIX}-ar
+        export LD=${CROSS_PREFIX}-ld
+        export STRIP=${CROSS_PREFIX}-strip
+        export RANLIB=${CROSS_PREFIX}-ranlib
         ./configure \
-          --target=x86_64-w64-mingw32-gcc \
+          --target=x86_64-win64-gcc \
           --prefix=$PREFIX \
           --disable-examples \
           --disable-unit-tests \
@@ -102,7 +108,9 @@ jobs:
           --enable-static \
           --disable-shared \
           --as=yasm
-        make -j$(nproc) && make install
+        make -j$(nproc)
+        make install
+        cd ..
 
         # Check decoder symbols exist
         nm $PREFIX/lib/libvpx.a | grep vpx_codec_vp8_dx || echo "vp8 decoder symbol NOT found"
