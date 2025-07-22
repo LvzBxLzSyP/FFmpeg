@@ -130,6 +130,13 @@ jobs:
         make -j$(nproc) && make install
         cd ..
 
+        # harfbuzz (required by libass)
+        wget https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
+        tar xf harfbuzz-8.3.0.tar.xz && cd harfbuzz-8.3.0
+        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static --with-freetype --with-glib=no --with-gobject=no --with-cairo=no --with-fontconfig=no --with-icu=no
+        make -j$(nproc) && make install
+        cd ..
+
         # libass
         git clone --depth=1 https://github.com/libass/libass.git && cd libass
         ./autogen.sh
