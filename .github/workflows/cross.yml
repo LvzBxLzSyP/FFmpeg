@@ -177,6 +177,13 @@ jobs:
         ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
         make -j$(nproc) && make install
         cd ..
+        
+        # NVENC
+        git clone https://github.com/FFmpeg/nv-codec-headers.git
+        cd nv-codec-headers
+        make PREFIX=$PREFIX
+        make install PREFIX=$PREFIX
+        cd ..
 
     - name: Build FFmpeg
       run: |
