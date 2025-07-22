@@ -151,7 +151,7 @@ jobs:
           --enable-libx264 --enable-libx265 \
           --enable-librav1e --enable-libsvtav1 \
           --enable-libmp3lame --enable-libfdk-aac \
-          --enable-libvpx --enable-libopenh264 \
+          --enable-libvpx \
           --enable-libopus --enable-libass \
           --enable-libaom --enable-nvenc \
           --disable-doc --disable-debug
