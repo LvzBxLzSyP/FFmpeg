@@ -88,7 +88,19 @@ jobs:
 
         # libvpx
         git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git && cd libvpx
-        ./configure --target=x86_64-win64-gcc --prefix=$PREFIX --disable-examples --disable-unit-tests --enable-vp9-highbitdepth --as=yasm --enable-static --disable-shared
+        ./configure \
+          --target=x86_64-win64-gcc \
+          --prefix=$PREFIX \
+          --disable-examples \
+          --disable-unit-tests \
+          --disable-tools \
+          --disable-docs \
+          --enable-vp8 \
+          --enable-vp9 \
+          --enable-vp9-highbitdepth \
+          --enable-static \
+          --disable-shared \
+          --as=yasm
         make -j$(nproc) && make install
         cd ..
 
