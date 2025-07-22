@@ -209,8 +209,7 @@ jobs:
           --enable-libmp3lame --enable-libfdk-aac \
           --enable-libvpx --enable-libopus --enable-libass \
           --enable-libaom --enable-nvenc \
-          --extra-cflags="-I${{ env.PREFIX }}/include" \
-          --extra-ldflags="-L${{ env.PREFIX }}/lib" \
+          --extra-cflags="-I${{ env.PREFIX }}/include" \--extra-ldflags="-L${{ env.PREFIX }}/lib -static-libgcc -static-libstdc++ -static -lpthread" \
           --disable-doc --disable-debug \
           > configure.log 2>&1 || (cat configure.log && false)
 
