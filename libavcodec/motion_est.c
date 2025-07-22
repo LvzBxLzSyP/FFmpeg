@@ -91,12 +91,12 @@ static inline void init_ref(MotionEstContext *c, uint8_t *const src[3],
     };
     int i;
     for(i=0; i<3; i++){
-        c->src[0][i]= src [i] + offset[i];
-        c->ref[0][i]= ref [i] + offset[i];
+        c->src[0][i]= src[i] ? FF_PTR_ADD(src[i], offset[i]) : NULL;
+        c->ref[0][i]= ref[i] ? FF_PTR_ADD(ref[i], offset[i]) : NULL;
     }
     if(ref_index){
         for(i=0; i<3; i++){
-            c->ref[ref_index][i]= ref2[i] + offset[i];
+            c->ref[ref_index][i]= ref2[i] ? FF_PTR_ADD(ref2[i], offset[i]) : NULL;
         }
     }
 }
@@ -551,7 +551,7 @@ static inline void get_limits(MPVEncContext *const s, int x, int y, int bframe)
     if(c->avctx->me_range) c->range= c->avctx->me_range >> 1;
     else                   c->range= 16;
 */
-    if (s->c.unrestricted_mv) {
+    if (c->unrestricted_mv) {
         c->xmin = - x - 16;
         c->ymin = - y - 16;
         c->xmax = - x + s->c.width;
@@ -600,7 +600,7 @@ static inline int h263_mv4_search(MPVEncContext *const s, int mx, int my, int sh
     int same=1;
     const int stride= c->stride;
     const uint8_t *mv_penalty = c->current_mv_penalty;
-    int safety_clipping = s->c.unrestricted_mv && (s->c.width&15) && (s->c.height&15);
+    int safety_clipping = c->unrestricted_mv && (s->c.width&15) && (s->c.height&15);
 
     init_mv4_ref(c);
 
