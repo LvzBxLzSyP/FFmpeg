@@ -18,7 +18,7 @@ jobs:
           mingw-w64 mingw-w64-x86-64-dev ninja-build zlib1g-dev libssl-dev \
           python3 python3-pip xz-utils
 
-    - name: Set env vars
+    - name: Set environment variables
       run: |
         echo "CROSS_PREFIX=x86_64-w64-mingw32" >> $GITHUB_ENV
         echo "PREFIX=/opt/ffmpeg-win64" >> $GITHUB_ENV
@@ -31,7 +31,7 @@ jobs:
         export PREFIX=${{ env.PREFIX }}
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
 
-        # Install rust for rav1e
+        # Install Rust (for rav1e)
         curl https://sh.rustup.rs -sSf | sh -s -- -y
         . $HOME/.cargo/env
         rustup target add x86_64-pc-windows-gnu
@@ -85,11 +85,12 @@ jobs:
         -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres
         ninja
         ninja install
+        cd ../..
 
         # libvpx
         git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git && cd libvpx
         ./configure \
-          --target=x86_64-win64-gcc \
+          --target=x86_64-w64-mingw32-gcc \
           --prefix=$PREFIX \
           --disable-examples \
           --disable-unit-tests \
@@ -102,12 +103,15 @@ jobs:
           --disable-shared \
           --as=yasm
         make -j$(nproc) && make install
+
+        # Check decoder symbols exist
+        nm $PREFIX/lib/libvpx.a | grep vpx_codec_vp8_dx || echo "vp8 decoder symbol NOT found"
+        nm $PREFIX/lib/libvpx.a | grep vpx_codec_vp9_dx || echo "vp9 decoder symbol NOT found"
         cd ..
 
-        # libzlib
+        # zlib
         wget https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz
         tar xzf zlib-1.3.1.tar.gz && cd zlib-1.3.1
-        CROSS_PREFIX=$CROSS_PREFIX \
         CC=${CROSS_PREFIX}-gcc AR=${CROSS_PREFIX}-ar RANLIB=${CROSS_PREFIX}-ranlib \
         ./configure --prefix=$PREFIX --static
         make
@@ -118,9 +122,10 @@ jobs:
         git clone https://gitlab.freedesktop.org/freetype/freetype.git
         cd freetype
         ./autogen.sh
-        ./configure --prefix=$PREFIX --host=x86_64-w64-mingw32 --enable-static --disable-shared
+        ./configure --prefix=$PREFIX --host=$CROSS_PREFIX --enable-static --disable-shared
         make -j$(nproc)
         make install
+        cd ..
 
         # libfdk-aac
         git clone --depth=1 https://github.com/mstorsjo/fdk-aac && cd fdk-aac
@@ -136,14 +141,14 @@ jobs:
         make -j$(nproc) && make install
         cd ..
 
-        # fribidi (required by libass)
+        # fribidi
         wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
         tar xf fribidi-1.0.13.tar.xz && cd fribidi-1.0.13
         ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static --disable-docs
         make -j$(nproc) && make install
         cd ..
 
-        # harfbuzz (required by libass)
+        # harfbuzz
         wget https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
         tar xf harfbuzz-8.3.0.tar.xz && cd harfbuzz-8.3.0
         ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static --with-freetype --with-glib=no --with-gobject=no --with-cairo=no --with-fontconfig=no --with-icu=no
@@ -170,12 +175,9 @@ jobs:
         export PKG_CONFIG_PATH=${{ env.PREFIX }}/lib/pkgconfig
         export LDFLAGS="-L${{ env.PREFIX }}/lib"
         export CPPFLAGS="-I${{ env.PREFIX }}/include"
-        
-        # Debug: Check if libvpx was installed correctly
-        ls -la ${{ env.PREFIX }}/lib/libvpx*
-        ls -la ${{ env.PREFIX }}/lib/pkgconfig/vpx.pc || echo "vpx.pc not found"
+
         pkg-config --exists --print-errors vpx && echo "vpx pkg-config OK" || echo "vpx pkg-config FAILED"
-        
+
         ./configure \
           --target-os=mingw32 \
           --arch=x86_64 \
@@ -188,12 +190,13 @@ jobs:
           --enable-libx264 --enable-libx265 \
           --enable-librav1e --enable-libsvtav1 \
           --enable-libmp3lame --enable-libfdk-aac \
-          --enable-libvpx \
-          --enable-libopus --enable-libass \
+          --enable-libvpx --enable-libopus --enable-libass \
           --enable-libaom --enable-nvenc \
           --extra-cflags="-I${{ env.PREFIX }}/include" \
           --extra-ldflags="-L${{ env.PREFIX }}/lib" \
-          --disable-doc --disable-debug
+          --disable-doc --disable-debug \
+          > configure.log 2>&1 || (cat configure.log && false)
+
         make -j$(nproc)
         make install
 
