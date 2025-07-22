@@ -110,6 +110,7 @@ jobs:
           --as=yasm
         make -j$(nproc)
         make install
+        unset CC CXX AR LD STRIP RANLIB
         cd ..
 
         # Check decoder symbols exist
