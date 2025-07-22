@@ -16,7 +16,7 @@ jobs:
           git libtool pkg-config texinfo \
           yasm nasm curl unzip wget \
           mingw-w64 mingw-w64-x86-64-dev ninja-build zlib1g-dev libssl-dev \
-          python3 python3-pip xz-utils
+          python3 python3-pip xz-utils zip
 
     - name: Set environment variables
       run: |
