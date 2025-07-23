@@ -173,15 +173,26 @@ jobs:
     - name: Build harfbuzz
       run: |
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
-        wget -q https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
-        tar xf harfbuzz-8.3.0.tar.xz && cd harfbuzz-8.3.0
-        CFLAGS="$CFLAGS -Wa,-mbig-obj" CXXFLAGS="$CXXFLAGS -Wa,-mbig-obj" ./configure \
-          --host=$CROSS_PREFIX --prefix=$PREFIX \
-          --disable-subset --disable-shared --enable-static \
-          --with-freetype --with-glib=no --with-gobject=no \
-          --with-cairo=no --with-fontconfig=no --with-icu=no
+        wget -q https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
+        tar xf harfbuzz-11.3.2.tar.xz && cd harfbuzz-11.3.2
+        cmake .. -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS="$CFLAGS -Wa,-mbig-obj" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS -Wa,-mbig-obj" \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DHB_HAVE_FREETYPE=ON \
+          -DHB_HAVE_GLIB=OFF \
+          -DHB_HAVE_GOBJECT=OFF \
+          -DHB_HAVE_CAIRO=OFF \
+          -DHB_HAVE_FONTCONFIG=OFF \
+          -DHB_HAVE_ICU=OFF \
+          -DCMAKE_SYSTEM_NAME=Windows \
+          -DCMAKE_C_COMPILER=${CROSS_PREFIX}-gcc \
+          -DCMAKE_CXX_COMPILER=${CROSS_PREFIX}-g++
+
         make && make install
-        cd .. && rm -rf harfbuzz-8.3.0*
+        cd .. && rm -rf harfbuzz-11.3.2*
 
     - name: Build libass
       run: |
