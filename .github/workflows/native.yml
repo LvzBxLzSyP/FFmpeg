@@ -61,83 +61,14 @@ jobs:
         make install
         cd ..
 
-    - name: Build x265 (Optional)
-      continue-on-error: true
+    - name: Download x265
       shell: msys2 {0}
       run: |
-        echo "Attempting to build x265..."
-
-        git clone --branch stable --depth=1 https://bitbucket.org/multicoreware/x265_git x265
+        git clone https://github.com/LvzBxLzSyP/x265.git
         cd x265
-
-        mkdir -p build-msys2 && cd build-msys2
-
-        echo "Configuring x265 with CMake..."
-        cmake -G "Ninja" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_VERBOSE_MAKEFILE=ON \
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-          -DENABLE_SHARED=OFF \
-          -DENABLE_CLI=OFF \
-          -DENABLE_TESTS=OFF \
-          -DENABLE_DOCS=OFF \
-          -DSTATIC_LINK_CRT=ON \
-          -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++" \
-          -DCMAKE_C_FLAGS="-static-libgcc" \
-          --trace-expand \
-          --debug-output \
-          -Wdev \
-          ../source 2>&1 | tee cmake_output.log
-
-
-        CMAKE_EXIT_CODE=${PIPESTATUS[0]}
-
-        if [ "$CMAKE_EXIT_CODE" -ne 0 ]; then
-          echo "❌ CMake configuration failed with exit code $CMAKE_EXIT_CODE"
-
-          echo "===== cmake_config.log ====="
-          cat ../cmake_config.log || echo "cmake_config.log not found"
-
-          echo "===== CMakeOutput.log ====="
-          cat CMakeFiles/CMakeOutput.log 2>/dev/null || echo "CMakeOutput.log not found"
-
-          echo "===== CMakeError.log ====="
-          cat CMakeFiles/CMakeError.log 2>/dev/null || echo "CMakeError.log not found"
-
-          echo "Trying fallback build method..."
-
-          cd ..
-          rm -rf build-msys2
-          mkdir -p build-simple && cd build-simple
-
-          cmake -G "Unix Makefiles" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=$PREFIX \
-            -DENABLE_SHARED=OFF \
-            -DENABLE_CLI=OFF \
-            -DENABLE_TESTS=OFF \
-            ../source
-
-          if [ $? -eq 0 ]; then
-            make -j$(nproc) && make install
-          else
-            echo "❌ All x265 build attempts failed. Continuing without x265."
-            exit 0
-          fi
-
-        else
-          echo "CMake configuration succeeded, building with Ninja..."
-          ninja && ninja install
-        fi
-
-        cd ../..
-
-        if [ -f "$PREFIX/lib/libx265.a" ]; then
-          echo "✅ x265 successfully built and installed."
-        else
-          echo "❌ x265 build failed or static library not found."
-        fi
-
+        cp -r ./include $PREFIX/include
+        cp -r ./lib $PREFIX/lib
+        
     - name: Build SVT-AV1
       run: |
         git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
