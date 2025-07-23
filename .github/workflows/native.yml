@@ -46,6 +46,12 @@ jobs:
         echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
         echo "PATH=$PREFIX/bin:$PATH" >> $GITHUB_ENV
 
+    - name: Use MSYS2 Rust
+      shell: msys2 {0}
+      run: |
+        which cargo
+        cargo --version
+
     - name: Build x264
       run: |
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
