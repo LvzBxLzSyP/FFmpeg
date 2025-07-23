@@ -257,7 +257,7 @@ jobs:
         cp ${{ env.PREFIX }}/bin/ffplay.exe ./ffplay-static.exe
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ffmpeg-static-windows
         path: |
