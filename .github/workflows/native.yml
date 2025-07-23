@@ -60,15 +60,18 @@ jobs:
         make -j$(nproc)
         make install
         cd ..
-
-    - name: Download x265
+    - name: Install prebuilt x265
       shell: msys2 {0}
       run: |
         git clone https://github.com/LvzBxLzSyP/x265.git
         cd x265
-        cp -r ./include $PREFIX/include
-        cp -r ./lib $PREFIX/lib
         
+        mkdir -p $PREFIX/include
+        mkdir -p $PREFIX/lib
+        
+        cp -r ./include/* $PREFIX/include/
+        cp -r ./lib/* $PREFIX/lib/
+    
     - name: Build SVT-AV1
       run: |
         git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
