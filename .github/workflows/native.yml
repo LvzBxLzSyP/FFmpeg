@@ -182,9 +182,16 @@ jobs:
         tar xf harfbuzz-11.3.2.tar.xz
         PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
         cd harfbuzz-11.3.2
-        ./configure --prefix=$PREFIX --disable-shared --enable-static \
-          --with-freetype --with-glib=no --with-gobject=no \
-          --with-cairo=no --with-fontconfig=no --with-icu=no
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DHB_HAVE_FREETYPE=ON \
+          -DHB_HAVE_GLIB=OFF \
+          -DHB_HAVE_GOBJECT=OFF \
+          -DHB_HAVE_CAIRO=OFF \
+          -DHB_HAVE_FONTCONFIG=OFF \
+          -DHB_HAVE_ICU=OFF
         make -j$(nproc)
         make install
         cd ..
