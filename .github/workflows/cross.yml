@@ -209,6 +209,7 @@ jobs:
           --enable-libmp3lame --enable-libfdk-aac \
           --enable-libvpx --enable-libopus --enable-libass \
           --enable-libaom \
+          --enable-cuda --enable-nvenc \
           --disable-doc --disable-debug \
           --extra-cflags="-I${{ env.PREFIX }}/include" \
           --extra-ldflags="-L${{ env.PREFIX }}/lib -static -static-libgcc -static-libstdc++ -Wl,-Bstatic -lpthread -lm -lz -Wl,-Bdynamic" \
