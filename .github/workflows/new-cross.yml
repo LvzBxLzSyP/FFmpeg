@@ -46,7 +46,7 @@ jobs:
     - name: Install Rust for rav1e
       run: |
         curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
-        source $HOME/.cargo/env
+        . $HOME/.cargo/env
         rustup target add x86_64-pc-windows-gnu
         cargo install cargo-c
         echo "PATH=$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
