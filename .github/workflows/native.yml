@@ -66,6 +66,7 @@ jobs:
           -DENABLE_SHARED=OFF \
           -DENABLE_CLI=OFF \
           -DENABLE_TESTS=OFF \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           ../../source
         ninja
         ninja install
