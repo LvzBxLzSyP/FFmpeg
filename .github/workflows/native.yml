@@ -328,7 +328,7 @@ jobs:
           --enable-libass \
           --enable-libfreetype \
           --enable-nvenc \
-          --enable-cuda-llvm \
+          --enable-cuda \
           --extra-cflags="-I$PREFIX/include" \
           --extra-ldflags="-L$PREFIX/lib -static"
         
