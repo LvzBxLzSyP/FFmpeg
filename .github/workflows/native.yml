@@ -57,12 +57,15 @@ jobs:
       run: |
         git clone --branch stable --depth=1 https://bitbucket.org/multicoreware/x265_git x265
         cd x265/build/linux
+        # 修補 CMakeLists.txt 以支援新版 CMake
+        sed -i 's/cmake_minimum_required(VERSION 2.8.8)/cmake_minimum_required(VERSION 3.5)/' ../../source/CMakeLists.txt
+        
         cmake -G "Ninja" \
-          -DCMAKE_POLICY_CMP0025=NEW \
+          -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DENABLE_SHARED=OFF \
           -DENABLE_CLI=OFF \
-          -DCMAKE_BUILD_TYPE=Release \
+          -DENABLE_TESTS=OFF \
           ../../source
         ninja
         ninja install
