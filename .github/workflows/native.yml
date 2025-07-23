@@ -1,0 +1,281 @@
+name: Build Ultimate Static Windows FFmpeg with MSYS2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ffmpeg-win64:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-nasm
+          mingw-w64-x86_64-yasm
+          mingw-w64-x86_64-pkg-config
+          mingw-w64-x86_64-zlib
+          mingw-w64-x86_64-rust
+          autoconf
+          automake
+          libtool
+          make
+          git
+          curl
+          wget
+          unzip
+          zip
+          tar
+          xz
+
+    - name: Set environment variables
+      run: |
+        export PREFIX="/d/ffmpeg-build"
+        echo "PREFIX=$PREFIX" >> $GITHUB_ENV
+        mkdir -p $PREFIX
+        echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
+        echo "PATH=$PREFIX/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Build x264
+      run: |
+        git clone --depth=1 https://code.videolan.org/videolan/x264.git
+        cd x264
+        ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build x265
+      run: |
+        git clone --branch stable --depth=1 https://bitbucket.org/multicoreware/x265_git x265
+        cd x265/build/linux
+        cmake -G "Ninja" \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_CLI=OFF \
+          ../../source
+        ninja
+        ninja install
+        cd ../../../
+
+    - name: Build SVT-AV1
+      run: |
+        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+        cd SVT-AV1
+        cmake -G "Ninja" \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_APPS=OFF \
+          -DBUILD_DEC=OFF \
+          .
+        ninja
+        ninja install
+        cd ..
+
+    - name: Build rav1e
+      run: |
+        git clone --depth=1 https://github.com/xiph/rav1e.git
+        cd rav1e
+        cargo install cargo-c
+        cargo cinstall --release \
+          --library-type staticlib \
+          --prefix="$PREFIX"
+        cd ..
+
+    - name: Build libaom
+      run: |
+        git clone --depth=1 https://aomedia.googlesource.com/aom.git
+        cd aom
+        mkdir build && cd build
+        cmake .. -G "Ninja" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_NASM=ON \
+          -DENABLE_TOOLS=OFF \
+          -DENABLE_EXAMPLES=OFF \
+          -DENABLE_DOCS=OFF \
+          -DENABLE_TESTS=OFF
+        ninja
+        ninja install
+        cd ../..
+
+    - name: Build libvpx
+      run: |
+        git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git
+        cd libvpx
+        ./configure \
+          --prefix=$PREFIX \
+          --disable-examples \
+          --disable-unit-tests \
+          --disable-tools \
+          --disable-docs \
+          --enable-vp8 \
+          --enable-vp9 \
+          --enable-vp9-highbitdepth \
+          --enable-static \
+          --disable-shared
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build freetype2
+      run: |
+        git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git
+        cd freetype
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --enable-static --disable-shared --without-bzip2 --without-png
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build libfdk-aac
+      run: |
+        git clone --depth=1 https://github.com/mstorsjo/fdk-aac
+        cd fdk-aac
+        autoreconf -fiv
+        ./configure --prefix=$PREFIX --disable-shared --enable-static
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build libmp3lame
+      run: |
+        wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+        tar xzf lame-3.100.tar.gz
+        cd lame-3.100
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build fribidi
+      run: |
+        wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
+        tar xf fribidi-1.0.13.tar.xz
+        cd fribidi-1.0.13
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-docs
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build harfbuzz
+      run: |
+        wget https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
+        tar xf harfbuzz-8.3.0.tar.xz
+        cd harfbuzz-8.3.0
+        ./configure --prefix=$PREFIX --disable-shared --enable-static \
+          --with-freetype --with-glib=no --with-gobject=no \
+          --with-cairo=no --with-fontconfig=no --with-icu=no
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build libass
+      run: |
+        git clone --depth=1 https://github.com/libass/libass.git
+        cd libass
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --disable-shared --enable-static
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build opus
+      run: |
+        git clone --depth=1 https://github.com/xiph/opus.git
+        cd opus
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --disable-shared --enable-static
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Install NVENC headers
+      run: |
+        git clone --depth=1 https://github.com/FFmpeg/nv-codec-headers.git
+        cd nv-codec-headers
+        make PREFIX=$PREFIX
+        make install PREFIX=$PREFIX
+        cd ..
+
+    - name: Build FFmpeg
+      run: |
+        git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+        cd ffmpeg
+        
+        # 設置編譯選項
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        export CPPFLAGS="-I$PREFIX/include"
+        export LDFLAGS="-L$PREFIX/lib"
+        
+        ./configure \
+          --prefix=$PREFIX \
+          --pkg-config-flags="--static" \
+          --enable-static \
+          --disable-shared \
+          --disable-debug \
+          --disable-doc \
+          --enable-gpl \
+          --enable-version3 \
+          --enable-nonfree \
+          --enable-libx264 \
+          --enable-libx265 \
+          --enable-librav1e \
+          --enable-libsvtav1 \
+          --enable-libaom \
+          --enable-libvpx \
+          --enable-libmp3lame \
+          --enable-libfdk-aac \
+          --enable-libopus \
+          --enable-libass \
+          --enable-libfreetype \
+          --enable-nvenc \
+          --enable-cuda-llvm \
+          --extra-cflags="-I$PREFIX/include" \
+          --extra-ldflags="-L$PREFIX/lib -static"
+        
+        make -j$(nproc)
+        make install
+
+    - name: Test FFmpeg build
+      run: |
+        $PREFIX/bin/ffmpeg.exe -version
+        $PREFIX/bin/ffmpeg.exe -encoders | grep -E "(264|265|av1|vp9|aac|mp3)"
+
+    - name: Package binary
+      run: |
+        cd $PREFIX
+        # 只打包可執行文件和必要的 DLL
+        mkdir -p package/bin
+        cp bin/*.exe package/bin/
+        
+        # 檢查依賴並複製必要的 DLL
+        ldd bin/ffmpeg.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp {} package/bin/ || true
+        
+        cd package
+        zip -r ../ffmpeg-win64-static-msys2.zip .
+        cd ..
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ffmpeg-win64-static-msys2
+        path: /d/ffmpeg-build/ffmpeg-win64-static-msys2.zip
+
+    - name: Upload build logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-logs
+        path: |
+          /d/ffmpeg-build/ffmpeg/config.log
+          /d/ffmpeg-build/ffmpeg/ffbuild/config.log
