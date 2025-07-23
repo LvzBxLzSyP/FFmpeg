@@ -182,8 +182,8 @@ jobs:
         cd ..
 
         # harfbuzz
-        export CFLAGS="-static-libgcc -static -Wa, -mbig-obj"
-        export CXXFLAGS="-static-libgcc -static-libstdc++ -static -Wa, -mbig-obj"
+        export CFLAGS="-static-libgcc -static -O2 -fno-function-sections -fno-data-sections"
+        export CXXFLAGS="-static-libgcc -static-libstdc++ -static -O2 -fno-function-sections -fno-data-sections"
         wget https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
         tar xf harfbuzz-8.3.0.tar.xz && cd harfbuzz-8.3.0
         CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
