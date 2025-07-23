@@ -73,9 +73,10 @@ jobs:
         mkdir -p build-msys2 && cd build-msys2
 
         echo "Configuring x265 with CMake..."
-        cmake -G "Ninja" \
+        cmake --trace-expand -G "Ninja" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DCMAKE_VERBOSE_MAKEFILE=ON \
           -DENABLE_SHARED=OFF \
           -DENABLE_CLI=OFF \
           -DENABLE_TESTS=OFF \
