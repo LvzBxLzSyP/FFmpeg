@@ -71,7 +71,8 @@ jobs:
         cd x265
 
         echo "Patching CMakeLists.txt..."
-        sed -i 's/cmake_minimum_required(VERSION 2.8.8)/cmake_minimum_required(VERSION 3.10)/' source/CMakeLists.txt
+        # 確保 cmake_minimum_required 在 project() 之前
+        sed -i '0,/project/s/project/cmake_minimum_required(VERSION 3.16)\nproject/' source/CMakeLists.txt
 
         mkdir -p build-msys2 && cd build-msys2
 
