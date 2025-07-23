@@ -94,7 +94,7 @@ jobs:
       run: |
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         git clone --depth=1 https://aomedia.googlesource.com/aom.git && cd aom
-        mkdir build && cd build
+        cd build
         cmake .. -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
