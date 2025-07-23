@@ -142,7 +142,7 @@ jobs:
       run: |
         unset CC CXX AR RANLIB STRIP CFLAGS CXXFLAGS LDFLAGS
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
-        source $HOME/.cargo/env
+        . $HOME/.cargo/env
         git clone --depth=1 https://github.com/xiph/rav1e.git && cd rav1e
         cargo cinstall --release --target x86_64-pc-windows-gnu \
           --library-type staticlib --prefix="$PREFIX"
