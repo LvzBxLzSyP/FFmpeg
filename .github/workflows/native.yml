@@ -262,6 +262,7 @@ jobs:
       run: |
         git clone --depth=1 https://github.com/libass/libass.git
         cd libass
+        PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
         ./autogen.sh
         ./configure --prefix=$PREFIX --disable-shared --enable-static
         make -j$(nproc)
