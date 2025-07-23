@@ -214,10 +214,14 @@ jobs:
           --extra-cflags="-I${{ env.PREFIX }}/include" \
           --extra-ldflags="-L${{ env.PREFIX }}/lib -L/usr/x86_64-w64-mingw32/lib -L/usr/lib/gcc/x86_64-w64-mingw32/13-posix -static-libgcc -static-libstdc++ -Wl,-Bstatic -lpthread -lm -lz -lstdc++ -lwinpthread -Wl,-Bdynamic" \
           --extra-libs="-lstdc++ -lpthread -lm -lz" \
+          --cc=x86_64-w64-mingw32-gcc \
+          --cxx=x86_64-w64-mingw32-g++ \
+          --ld=x86_64-w64-mingw32-g++ \
           > configure.log 2>&1 || (cat configure.log && false)
 
         make -j$(nproc)
         make install
+        x86_64-w64-mingw32-objdump -p ffmpeg.exe | grep DLL
 
     - name: Package binary
       run: |
