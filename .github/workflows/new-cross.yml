@@ -45,6 +45,7 @@ jobs:
 
     - name: Install Rust for rav1e
       run: |
+        unset CC CXX AR RANLIB STRIP CFLAGS CXXFLAGS LDFLAGS
         curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
         . $HOME/.cargo/env
         rustup target add x86_64-pc-windows-gnu
@@ -139,6 +140,7 @@ jobs:
 
     - name: Build rav1e
       run: |
+        unset CC CXX AR RANLIB STRIP CFLAGS CXXFLAGS LDFLAGS
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         source $HOME/.cargo/env
         git clone --depth=1 https://github.com/xiph/rav1e.git && cd rav1e
