@@ -172,7 +172,9 @@ jobs:
       run: |
         git clone --depth=1 https://aomedia.googlesource.com/aom.git
         cd aom
+        pwd
         mkdir build && cd build
+        pwd
         cmake .. -G "Ninja" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
