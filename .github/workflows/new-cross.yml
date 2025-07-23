@@ -82,6 +82,14 @@ jobs:
         make -j$(nproc) && make install
         cd ..
 
+        # OpenSSL
+        git clone https://github.com/openssl/openssl.git
+        cd openssl
+        ./Configure mingw64 no-shared no-dso no-tests --prefix=$PREFIX
+        make -j$(nproc)
+        make install
+        cd ..
+
         # rav1e
         git clone --depth=1 https://github.com/xiph/rav1e.git && cd rav1e
         cargo install cargo-c
