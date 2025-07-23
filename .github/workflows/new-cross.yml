@@ -182,17 +182,13 @@ jobs:
         cd ..
 
         # harfbuzz
-        export CFLAGS="-static-libgcc -static -O2 -fno-function-sections -fno-data-sections"
-        export CXXFLAGS="-static-libgcc -static-libstdc++ -static -O2 -fno-function-sections -fno-data-sections"
         wget https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
         tar xf harfbuzz-8.3.0.tar.xz && cd harfbuzz-8.3.0
         CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
-        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static \
+        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-subset --disable-shared --enable-static \
           --with-freetype --with-glib=no --with-gobject=no --with-cairo=no --with-fontconfig=no --with-icu=no
         make -j$(nproc) && make install
         cd ..
-        export CFLAGS="-static-libgcc -static"
-        export CXXFLAGS="-static-libgcc -static-libstdc++ -static"
 
         # libass
         git clone --depth=1 https://github.com/libass/libass.git && cd libass
