@@ -178,10 +178,10 @@ jobs:
 
     - name: Build harfbuzz
       run: |
-        wget https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
-        tar xf harfbuzz-8.3.0.tar.xz
+        wget https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
+        tar xf harfbuzz-11.3.2.tar.xz
         PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
-        cd harfbuzz-8.3.0
+        cd harfbuzz-11.3.2
         ./configure --prefix=$PREFIX --disable-shared --enable-static \
           --with-freetype --with-glib=no --with-gobject=no \
           --with-cairo=no --with-fontconfig=no --with-icu=no
@@ -282,20 +282,11 @@ jobs:
         ldd bin/ffmpeg.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp {} package/bin/ || true
         
         cd package
-        zip -r /d/ffmpeg-build/ffmpeg-win64-static-msys2.zip .
+        zip -r ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip .
         cd ..
-
-    - name: Upload artifact
+        
+    - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ffmpeg-win64-static-msys2
-        path: /d/ffmpeg-build/ffmpeg-win64-static-msys2.zip
-
-    - name: Upload build logs
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: build-logs
-        path: |
-          /d/ffmpeg-build/ffmpeg/config.log
-          /d/ffmpeg-build/ffmpeg/ffbuild/config.log
+        path: ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip
