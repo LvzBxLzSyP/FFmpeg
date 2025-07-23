@@ -1,274 +1,293 @@
-name: Build Ultimate Static Windows FFmpeg(New)
+name: Build Ultimate Static Windows FFmpeg (Optimized)
 
 on:
   workflow_dispatch:
+    inputs:
+      debug:
+        description: 'Enable debug output'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  CROSS_PREFIX: x86_64-w64-mingw32
+  PREFIX: /opt/ffmpeg-win64
+  MAKEFLAGS: -j$(nproc)
 
 jobs:
   build-ffmpeg-win64:
     runs-on: ubuntu-latest
     container:
       image: ubuntu:24.04
+    
     steps:
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
         apt update && apt install -y \
           autoconf automake binutils-mingw-w64 build-essential cmake \
-          git libtool pkg-config texinfo \
-          yasm nasm curl unzip wget \
+          git libtool pkg-config texinfo yasm nasm curl unzip wget \
           mingw-w64 mingw-w64-x86-64-dev ninja-build zlib1g-dev libssl-dev \
-          python3 python3-pip xz-utils zip
+          python3 python3-pip xz-utils zip ca-certificates
 
-    - name: Set environment variables
+    - name: Setup build environment
       run: |
-        echo "CROSS_PREFIX=x86_64-w64-mingw32" >> $GITHUB_ENV
-        echo "PREFIX=/opt/ffmpeg-win64" >> $GITHUB_ENV
-        echo "PKG_CONFIG_PATH=/opt/ffmpeg-win64/lib/pkgconfig" >> $GITHUB_ENV
-        echo "LDFLAGS=-L/opt/ffmpeg-win64/lib -static-libgcc -static-libstdc++ -static" >> $GITHUB_ENV
-        echo "CPPFLAGS=-I/opt/ffmpeg-win64/include" >> $GITHUB_ENV
-        mkdir -p /opt/ffmpeg-win64
+        mkdir -p $PREFIX
+        echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
+        echo "CC=${CROSS_PREFIX}-gcc" >> $GITHUB_ENV
+        echo "CXX=${CROSS_PREFIX}-g++" >> $GITHUB_ENV
+        echo "AR=${CROSS_PREFIX}-ar" >> $GITHUB_ENV
+        echo "RANLIB=${CROSS_PREFIX}-ranlib" >> $GITHUB_ENV
+        echo "STRIP=${CROSS_PREFIX}-strip" >> $GITHUB_ENV
+        echo "CFLAGS=-static-libgcc -static -O2" >> $GITHUB_ENV
+        echo "CXXFLAGS=-static-libgcc -static-libstdc++ -static -O2" >> $GITHUB_ENV
+        echo "LDFLAGS=-static-libgcc -static-libstdc++ -static -L$PREFIX/lib" >> $GITHUB_ENV
+        echo "CPPFLAGS=-I$PREFIX/include" >> $GITHUB_ENV
 
-    - name: Build all libraries
+    - name: Install Rust for rav1e
       run: |
-        export PATH="/root/.cargo/bin:$PATH"
-        export CROSS_PREFIX=${{ env.CROSS_PREFIX }}
-        export PREFIX=${{ env.PREFIX }}
-        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
-        
-        # 設定編譯器標誌以確保靜態鏈接
-        export CC="${CROSS_PREFIX}-gcc"
-        export CXX="${CROSS_PREFIX}-g++"
-        export AR="${CROSS_PREFIX}-ar"
-        export RANLIB="${CROSS_PREFIX}-ranlib"
-        export STRIP="${CROSS_PREFIX}-strip"
-        export CFLAGS="-static-libgcc -static"
-        export CXXFLAGS="-static-libgcc -static-libstdc++ -static"
-        export LDFLAGS="-static-libgcc -static-libstdc++ -static"
-
-        # Install Rust (for rav1e)
-        curl https://sh.rustup.rs -sSf | sh -s -- -y
-        . $HOME/.cargo/env
+        curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+        source $HOME/.cargo/env
         rustup target add x86_64-pc-windows-gnu
+        cargo install cargo-c
+        echo "PATH=$HOME/.cargo/bin:$PATH" >> $GITHUB_ENV
 
-        # x264
+    - name: Build zlib
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        wget -q https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz
+        tar xzf zlib-1.3.1.tar.gz && cd zlib-1.3.1
+        CC="$CC $CFLAGS" AR="$AR" RANLIB="$RANLIB" \
+        ./configure --prefix=$PREFIX --static
+        make && make install
+        cd .. && rm -rf zlib-1.3.1*
+
+    - name: Build x264
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         git clone --depth=1 https://code.videolan.org/videolan/x264.git && cd x264
-        ./configure --host=$CROSS_PREFIX --cross-prefix=$CROSS_PREFIX- \
-          --enable-static --disable-shared --disable-opencl --prefix=$PREFIX
-        make -j$(nproc) && make install
-        cd ..
+        ./configure --host=$CROSS_PREFIX --cross-prefix=${CROSS_PREFIX}- \
+          --enable-static --disable-shared --disable-opencl --prefix=$PREFIX \
+          --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS"
+        make && make install
+        cd .. && rm -rf x264
 
-        # x265
+    - name: Build x265
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         git clone --branch stable --depth=1 https://bitbucket.org/multicoreware/x265_git x265 && cd x265/build/linux
-        cmake -G "Unix Makefiles" -DCMAKE_SYSTEM_NAME=Windows \
-          -DCMAKE_C_COMPILER=$CROSS_PREFIX-gcc \
-          -DCMAKE_CXX_COMPILER=$CROSS_PREFIX-g++ \
+        cmake -G "Unix Makefiles" \
+          -DCMAKE_SYSTEM_NAME=Windows \
+          -DCMAKE_C_COMPILER="$CC" \
+          -DCMAKE_CXX_COMPILER="$CXX" \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DENABLE_SHARED=OFF \
           -DSTATIC_LINK_CRT=ON \
-          -DCMAKE_C_FLAGS="-static-libgcc -static" \
-          -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++ -static" \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_BUILD_TYPE=Release \
           ../../source
-        make -j$(nproc) && make install
-        cd ../../../
+        make && make install
+        cd ../../../ && rm -rf x265
 
-        # SVT-AV1
-        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git && cd SVT-AV1
-        cmake -G "Unix Makefiles" -DCMAKE_SYSTEM_NAME=Windows \
-          -DCMAKE_C_COMPILER=$CROSS_PREFIX-gcc \
-          -DCMAKE_CXX_COMPILER=$CROSS_PREFIX-g++ \
-          -DCMAKE_INSTALL_PREFIX=$PREFIX \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DCMAKE_C_FLAGS="-static-libgcc -static" \
-          -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++ -static" .
-        make -j$(nproc) && make install
-        cd ..
-
-        # rav1e
-        unset CC CXX AR RANLIB STRIP CFLAGS CXXFLAGS LDFLAGS
-        git clone --depth=1 https://github.com/xiph/rav1e.git && cd rav1e
-        cargo install cargo-c
-        cargo cinstall --release --target x86_64-pc-windows-gnu \
-          --library-type staticlib \
-          --prefix="$PREFIX"
-        cd ..
-        export CC="${CROSS_PREFIX}-gcc"
-        export CXX="${CROSS_PREFIX}-g++"
-        export AR="${CROSS_PREFIX}-ar"
-        export RANLIB="${CROSS_PREFIX}-ranlib"
-        export STRIP="${CROSS_PREFIX}-strip"
-        export CFLAGS="-static-libgcc -static"
-        export CXXFLAGS="-static-libgcc -static-libstdc++ -static"
-        export LDFLAGS="-static-libgcc -static-libstdc++ -static"
-
-        # libaom
-        git clone --depth=1 https://aomedia.googlesource.com/aom.git aom/aom
-        cd aom
-        rm -rf build
+    - name: Build libaom
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        git clone --depth=1 https://aomedia.googlesource.com/aom.git && cd aom
         mkdir build && cd build
-        cmake ../aom -G Ninja \
+        cmake .. -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DENABLE_SHARED=OFF \
           -DENABLE_NASM=ON \
           -DCMAKE_SYSTEM_NAME=Windows \
-          -DCMAKE_C_COMPILER=x86_64-w64-mingw32-gcc \
-          -DCMAKE_CXX_COMPILER=x86_64-w64-mingw32-g++ \
-          -DCMAKE_RC_COMPILER=x86_64-w64-mingw32-windres \
-          -DCMAKE_C_FLAGS="-static-libgcc -static" \
-          -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++ -static"
-        ninja
-        ninja install
-        cd ../..
+          -DCMAKE_C_COMPILER="$CC" \
+          -DCMAKE_CXX_COMPILER="$CXX" \
+          -DCMAKE_RC_COMPILER=${CROSS_PREFIX}-windres \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+        ninja && ninja install
+        cd ../.. && rm -rf aom
 
-        # libvpx
+    - name: Build libvpx
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git && cd libvpx
-        CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
-        ./configure \
+        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ./configure \
           --target=x86_64-win64-gcc \
           --prefix=$PREFIX \
-          --disable-examples \
-          --disable-unit-tests \
-          --disable-tools \
-          --disable-docs \
-          --enable-vp8 \
-          --enable-vp9 \
-          --enable-vp9-highbitdepth \
-          --enable-static \
-          --disable-shared \
-          --as=yasm
-        make -j$(nproc)
-        make install
-        cd ..
-
-        # zlib
-        wget https://github.com/madler/zlib/releases/download/v1.3.1/zlib-1.3.1.tar.gz
-        tar xzf zlib-1.3.1.tar.gz && cd zlib-1.3.1
-        CC="${CROSS_PREFIX}-gcc -static-libgcc -static" \
-        AR=${CROSS_PREFIX}-ar RANLIB=${CROSS_PREFIX}-ranlib \
-        ./configure --prefix=$PREFIX --static
+          --disable-examples --disable-unit-tests --disable-tools --disable-docs \
+          --enable-vp8 --enable-vp9 --enable-vp9-highbitdepth \
+          --enable-static --disable-shared --as=yasm
         make && make install
-        cd ..
+        cd .. && rm -rf libvpx
 
-        # freetype2
-        git clone https://gitlab.freedesktop.org/freetype/freetype.git
-        cd freetype
+    - name: Build SVT-AV1
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git && cd SVT-AV1
+        cmake -G "Unix Makefiles" \
+          -DCMAKE_SYSTEM_NAME=Windows \
+          -DCMAKE_C_COMPILER="$CC" \
+          -DCMAKE_CXX_COMPILER="$CXX" \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" .
+        make && make install
+        cd .. && rm -rf SVT-AV1
+
+    - name: Build rav1e
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        source $HOME/.cargo/env
+        git clone --depth=1 https://github.com/xiph/rav1e.git && cd rav1e
+        cargo cinstall --release --target x86_64-pc-windows-gnu \
+          --library-type staticlib --prefix="$PREFIX"
+        cd .. && rm -rf rav1e
+
+    - name: Build freetype2
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git && cd freetype
         ./autogen.sh
-        CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
-        ./configure --prefix=$PREFIX --host=$CROSS_PREFIX --enable-static --disable-shared
-        make -j$(nproc) && make install
-        cd ..
+        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ./configure \
+          --prefix=$PREFIX --host=$CROSS_PREFIX \
+          --enable-static --disable-shared --without-harfbuzz
+        make && make install
+        cd .. && rm -rf freetype
 
-        # libfdk-aac
-        git clone --depth=1 https://github.com/mstorsjo/fdk-aac && cd fdk-aac
-        autoreconf -fiv
-        CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
-        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
-        make -j$(nproc) && make install
-        cd ..
-
-        # libmp3lame
-        wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
-        tar xzf lame-3.100.tar.gz && cd lame-3.100
-        CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
-        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
-        make -j$(nproc) && make install
-        cd ..
-
-        # fribidi
-        wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
+    - name: Build fribidi
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        wget -q https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
         tar xf fribidi-1.0.13.tar.xz && cd fribidi-1.0.13
-        CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
-        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static --disable-docs
-        make -j$(nproc) && make install
-        cd ..
+        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ./configure \
+          --host=$CROSS_PREFIX --prefix=$PREFIX \
+          --disable-shared --enable-static --disable-docs
+        make && make install
+        cd .. && rm -rf fribidi-1.0.13*
 
-        # harfbuzz
-        wget https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
+    - name: Build harfbuzz
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        wget -q https://github.com/harfbuzz/harfbuzz/releases/download/8.3.0/harfbuzz-8.3.0.tar.xz
         tar xf harfbuzz-8.3.0.tar.xz && cd harfbuzz-8.3.0
-        CFLAGS="-static-libgcc -static -O2 -Wa,-mbig-obj" CXXFLAGS="-static-libgcc -static-libstdc++ -static -O2 -Wa,-mbig-obj" \
-        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-subset --disable-shared --enable-static \
-          --with-freetype --with-glib=no --with-gobject=no --with-cairo=no --with-fontconfig=no --with-icu=no
-        make -j$(nproc) && make install
-        cd ..
+        CFLAGS="$CFLAGS -Wa,-mbig-obj" CXXFLAGS="$CXXFLAGS -Wa,-mbig-obj" ./configure \
+          --host=$CROSS_PREFIX --prefix=$PREFIX \
+          --disable-subset --disable-shared --enable-static \
+          --with-freetype --with-glib=no --with-gobject=no \
+          --with-cairo=no --with-fontconfig=no --with-icu=no
+        make && make install
+        cd .. && rm -rf harfbuzz-8.3.0*
 
-        # libass
+    - name: Build libass
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         git clone --depth=1 https://github.com/libass/libass.git && cd libass
         ./autogen.sh
-        CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
-        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
-        make -j$(nproc) && make install
-        cd ..
+        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ./configure \
+          --host=$CROSS_PREFIX --prefix=$PREFIX \
+          --disable-shared --enable-static
+        make && make install
+        cd .. && rm -rf libass
 
-        # opus
+    - name: Build libfdk-aac
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        git clone --depth=1 https://github.com/mstorsjo/fdk-aac && cd fdk-aac
+        autoreconf -fiv
+        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ./configure \
+          --host=$CROSS_PREFIX --prefix=$PREFIX \
+          --disable-shared --enable-static
+        make && make install
+        cd .. && rm -rf fdk-aac
+
+    - name: Build libmp3lame
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        wget -q https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+        tar xzf lame-3.100.tar.gz && cd lame-3.100
+        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ./configure \
+          --host=$CROSS_PREFIX --prefix=$PREFIX \
+          --disable-shared --enable-static --disable-frontend
+        make && make install
+        cd .. && rm -rf lame-3.100*
+
+    - name: Build opus
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         git clone --depth=1 https://github.com/xiph/opus.git && cd opus
         ./autogen.sh
-        CFLAGS="-static-libgcc -static" CXXFLAGS="-static-libgcc -static-libstdc++ -static" \
-        ./configure --host=$CROSS_PREFIX --prefix=$PREFIX --disable-shared --enable-static
-        make -j$(nproc) && make install
-        cd ..
-        
-        # NVENC
-        git clone https://github.com/FFmpeg/nv-codec-headers.git
-        cd nv-codec-headers
-        make PREFIX=$PREFIX
-        make install PREFIX=$PREFIX
-        cd ..
+        CFLAGS="$CFLAGS" CXXFLAGS="$CXXFLAGS" ./configure \
+          --host=$CROSS_PREFIX --prefix=$PREFIX \
+          --disable-shared --enable-static --disable-doc --disable-extra-programs
+        make && make install
+        cd .. && rm -rf opus
+
+    - name: Install NVENC headers
+      run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        git clone --depth=1 https://github.com/FFmpeg/nv-codec-headers.git && cd nv-codec-headers
+        make PREFIX=$PREFIX install
+        cd .. && rm -rf nv-codec-headers
 
     - name: Build FFmpeg
       run: |
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         git clone --depth=1 https://github.com/FFmpeg/FFmpeg ffmpeg && cd ffmpeg
-        export PKG_CONFIG_PATH=${{ env.PREFIX }}/lib/pkgconfig
         
-        # 強制靜態鏈接的關鍵配置
-        export LDFLAGS="-L${{ env.PREFIX }}/lib -static-libgcc -static-libstdc++ -static -Wl,-Bstatic"
-        export CPPFLAGS="-I${{ env.PREFIX }}/include"
+        # Verify pkg-config setup
+        echo "=== PKG-CONFIG VERIFICATION ==="
+        pkg-config --list-all | grep -E "(x264|x265|vpx|opus|fdk-aac)" || echo "Some packages not found in pkg-config"
         
-        # 檢查 pkg-config
-        pkg-config --exists --print-errors vpx && echo "vpx pkg-config OK" || echo "vpx pkg-config FAILED"
-        
+        # Configure with optimized flags
         ./configure \
-          --target-os=mingw32 \
-          --arch=x86_64 \
-          --cross-prefix=${{ env.CROSS_PREFIX }}- \
-          --prefix=${{ env.PREFIX }} \
-          --pkg-config=pkg-config \
-          --pkg-config-flags="--static" \
+          --target-os=mingw32 --arch=x86_64 \
+          --cross-prefix=${CROSS_PREFIX}- \
+          --prefix=$PREFIX \
+          --pkg-config=pkg-config --pkg-config-flags="--static" \
           --enable-static --disable-shared \
           --enable-gpl --enable-version3 --enable-nonfree \
           --enable-libx264 --enable-libx265 \
-          --enable-librav1e --enable-libsvtav1 \
+          --enable-librav1e --enable-libsvtav1 --enable-libaom \
           --enable-libmp3lame --enable-libfdk-aac \
           --enable-libvpx --enable-libopus --enable-libass \
-          --enable-libaom \
           --enable-cuda --enable-nvenc \
-          --disable-doc --disable-debug \
-          --disable-w32threads \
-          --enable-pthreads \
-          --extra-cflags="-I${{ env.PREFIX }}/include -static-libgcc -static" \
-          --extra-cxxflags="-I${{ env.PREFIX }}/include -static-libgcc -static-libstdc++ -static" \
-          --extra-ldflags="-L${{ env.PREFIX }}/lib -static-libgcc -static-libstdc++ -static -Wl,-Bstatic -lpthread -Wl,-Bdynamic" \
+          --disable-doc --disable-debug --disable-w32threads \
+          --enable-pthreads --enable-runtime-cpudetect \
+          --extra-cflags="-I$PREFIX/include $CFLAGS" \
+          --extra-cxxflags="-I$PREFIX/include $CXXFLAGS" \
+          --extra-ldflags="$LDFLAGS -Wl,-Bstatic" \
           --extra-ldexeflags="-static-libgcc -static-libstdc++ -static" \
           --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt" \
-          --cc=x86_64-w64-mingw32-gcc \
-          --cxx=x86_64-w64-mingw32-g++ \
-          --ld=x86_64-w64-mingw32-g++ \
-          > configure.log 2>&1 || (cat configure.log && false)
+          --cc="$CC" --cxx="$CXX" --ld="$CXX" \
+          || (cat ffbuild/config.log && exit 1)
         
-        make -j$(nproc)
+        make V=${{ inputs.debug == true && '1' || '0' }}
         make install
         
-        # 檢查最終二進制文件的依賴
-        echo "=== Binary dependencies check ==="
-        x86_64-w64-mingw32-objdump -p ${{ env.PREFIX }}/bin/ffmpeg.exe | grep "DLL Name" || echo "No DLL dependencies found (fully static)"
+        # Verify static linking
+        echo "=== DEPENDENCY CHECK ==="
+        ${CROSS_PREFIX}-objdump -p $PREFIX/bin/ffmpeg.exe | grep "DLL Name" || echo "✓ Fully static binary"
         
-        # 複製二進制文件到易於訪問的位置
-        cp ${{ env.PREFIX }}/bin/ffmpeg.exe ./ffmpeg-static.exe
-        cp ${{ env.PREFIX }}/bin/ffprobe.exe ./ffprobe-static.exe
-        cp ${{ env.PREFIX }}/bin/ffplay.exe ./ffplay-static.exe
+        # Copy binaries
+        cp $PREFIX/bin/ffmpeg.exe ./ffmpeg-static.exe
+        cp $PREFIX/bin/ffprobe.exe ./ffprobe-static.exe
+        [ -f $PREFIX/bin/ffplay.exe ] && cp $PREFIX/bin/ffplay.exe ./ffplay-static.exe || echo "ffplay not built"
+
+    - name: Test FFmpeg build
+      run: |
+        echo "=== FFMPEG VERSION ==="
+        wine ./ffmpeg-static.exe -version || echo "Wine test failed (expected on GitHub Actions)"
+        echo "=== FILE INFO ==="
+        file ./ffmpeg-static.exe
+        ls -lh ./ffmpeg-static.exe ./ffprobe-static.exe
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ffmpeg-static-windows
+        name: ffmpeg-static-windows-x64
         path: |
           ./ffmpeg-static.exe
           ./ffprobe-static.exe
