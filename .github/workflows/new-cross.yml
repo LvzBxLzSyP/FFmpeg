@@ -191,7 +191,7 @@ jobs:
           -DCMAKE_C_COMPILER=${CROSS_PREFIX}-gcc \
           -DCMAKE_CXX_COMPILER=${CROSS_PREFIX}-g++
 
-        make && make install
+        ninja && ninja install
         cd .. && rm -rf harfbuzz-11.3.2*
 
     - name: Build libass
