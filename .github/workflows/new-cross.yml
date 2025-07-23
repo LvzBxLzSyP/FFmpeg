@@ -12,7 +12,7 @@ jobs:
     - name: Install dependencies
       run: |
         apt update && apt install -y \
-          autoconf automake build-essential cmake \
+          autoconf automake binutils-mingw-w64 build-essential cmake \
           git libtool pkg-config texinfo \
           yasm nasm curl unzip wget \
           mingw-w64 mingw-w64-x86-64-dev ninja-build zlib1g-dev libssl-dev \
