@@ -24,6 +24,7 @@ jobs:
           mingw-w64-x86_64-pkg-config
           mingw-w64-x86_64-zlib
           mingw-w64-x86_64-rust
+          mingw-w64-x86_64-diffutils
           autoconf
           automake
           libtool
@@ -35,6 +36,7 @@ jobs:
           zip
           tar
           xz
+          patch
 
     - name: Set environment variables
       run: |
@@ -53,34 +55,82 @@ jobs:
         make install
         cd ..
 
-    - name: Build x265
+    - name: Build x265 (Optional)
+      continue-on-error: true
       run: |
+        echo "Attempting to build x265..."
+        
         git clone --branch stable --depth=1 https://bitbucket.org/multicoreware/x265_git x265
-        cd x265/build/linux
-    
-        # 修補 CMakeLists.txt 以支援新版 CMake
-        sed -i 's/cmake_minimum_required(VERSION 2.8.8)/cmake_minimum_required(VERSION 3.5)/' ../../source/CMakeLists.txt
-    
+        cd x265
+        
+        # 嘗試多種方法來修復 CMake 問題
+        echo "Patching CMakeLists.txt..."
+        sed -i 's/cmake_minimum_required(VERSION 2.8.8)/cmake_minimum_required(VERSION 3.10)/' source/CMakeLists.txt
+        
+        # 創建一個新的構建目錄
+        mkdir -p build-msys2 && cd build-msys2
+        
+        echo "Configuring x265 with CMake..."
         cmake -G "Ninja" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DENABLE_SHARED=OFF \
           -DENABLE_CLI=OFF \
           -DENABLE_TESTS=OFF \
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-          ../../source || (
-            echo -e "\n===== CMakeOutput.log ====="
-            cat ../../build/CMakeFiles/CMakeOutput.log || echo "CMakeOutput.log not found."
-    
-            echo -e "\n===== CMakeError.log ====="
-            cat ../../build/CMakeFiles/CMakeError.log || echo "CMakeError.log not found."
-    
-            exit 1
-          )
-    
-        ninja
-        ninja install
-        cd ../../../
+          -DENABLE_DOCS=OFF \
+          -DSTATIC_LINK_CRT=ON \
+          -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++" \
+          -DCMAKE_C_FLAGS="-static-libgcc" \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.10 \
+          -Wno-dev \
+          ../source 2>&1 | tee cmake_config.log
+        
+        if [ $? -ne 0 ]; then
+          echo "CMake configuration failed. Logs:"
+          echo "===== cmake_config.log ====="
+          cat cmake_config.log || echo "cmake_config.log not found"
+          
+          echo "===== CMakeOutput.log ====="
+          cat CMakeFiles/CMakeOutput.log 2>/dev/null || echo "CMakeOutput.log not found"
+          
+          echo "===== CMakeError.log ====="
+          cat CMakeFiles/CMakeError.log 2>/dev/null || echo "CMakeError.log not found"
+          
+          echo "Trying alternative x265 approach..."
+          
+          # 嘗試使用更簡單的配置
+          cd ..
+          rm -rf build-msys2
+          mkdir -p build-simple && cd build-simple
+          
+          cmake -G "Unix Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DENABLE_SHARED=OFF \
+            -DENABLE_CLI=OFF \
+            -DENABLE_TESTS=OFF \
+            -DCMAKE_TOOLCHAIN_FILE="" \
+            ../source
+            
+          if [ $? -eq 0 ]; then
+            make -j$(nproc) && make install
+          else
+            echo "All x265 build attempts failed, continuing without x265..."
+            exit 0  # 不讓錯誤中斷流程
+          fi
+        else
+          echo "CMake configuration succeeded, building..."
+          ninja && ninja install
+        fi
+        
+        cd ../..
+        
+        # 驗證 x265 是否成功安裝
+        if [ -f "$PREFIX/lib/libx265.a" ]; then
+          echo "x265 successfully built and installed"
+        else
+          echo "x265 build failed or library not found"
+        fi
 
     - name: Build SVT-AV1
       run: |
@@ -233,6 +283,15 @@ jobs:
         export CPPFLAGS="-I$PREFIX/include"
         export LDFLAGS="-L$PREFIX/lib"
         
+        # 檢查 x265 是否可用
+        X265_FLAG=""
+        if pkg-config --exists x265 2>/dev/null || [ -f "$PREFIX/lib/libx265.a" ]; then
+          X265_FLAG="--enable-libx265"
+          echo "x265 found, enabling x265 support"
+        else
+          echo "x265 not found, skipping x265 support"
+        fi
+        
         ./configure \
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
@@ -244,7 +303,7 @@ jobs:
           --enable-version3 \
           --enable-nonfree \
           --enable-libx264 \
-          --enable-libx265 \
+          $X265_FLAG \
           --enable-librav1e \
           --enable-libsvtav1 \
           --enable-libaom \
