@@ -351,7 +351,7 @@ jobs:
         ldd bin/ffmpeg.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp {} package/bin/ || true
         
         cd package
-        zip -r ../ffmpeg-win64-static-msys2.zip .
+        zip -r /d/ffmpeg-build/ffmpeg-win64-static-msys2.zip .
         cd ..
 
     - name: Upload artifact
