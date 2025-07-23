@@ -73,6 +73,11 @@ jobs:
         echo "Patching CMakeLists.txt..."
         sed -i 's/cmake_minimum_required(VERSION [0-9.]\+)/cmake_minimum_required(VERSION 3.5...3.25)/' source/CMakeLists.txt
 
+        line=$(grep -n 'project(' source/CMakeLists.txt | head -n1 | cut -d: -f1)
+        if [ -n "$line" ]; then
+          sed -i "${line}i cmake_minimum_required(VERSION 3.5...3.25)" source/CMakeLists.txt
+        fi
+
         mkdir -p build-msys2 && cd build-msys2
 
         echo "Configuring x265 with CMake..."
