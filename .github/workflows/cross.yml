@@ -17,8 +17,9 @@ jobs:
           yasm nasm curl unzip wget \
           mingw-w64 mingw-w64-x86-64-dev ninja-build zlib1g-dev libssl-dev \
           python3 python3-pip xz-utils zip
-        dpkg -L mingw-w64-x86-64-dev | grep libstdc++.a
-        dpkg -L mingw-w64-x86-64-dev | grep winpthread
+        dpkg -S libstdc++.a | grep x86_64
+        dpkg -S libwinpthread.a | grep x86_64
+
 
 
     - name: Set environment variables
