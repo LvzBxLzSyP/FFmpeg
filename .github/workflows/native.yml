@@ -271,6 +271,12 @@ jobs:
           X265_FLAG="--enable-libx265"
           echo "x265 found, enabling x265 support"
         fi
+
+        OPENH264_FLAG=""
+        if pkg-config --exists openh264 || [ -f "$PREFIX/lib/libopenh264.a" ]; then
+          OPENH264_FLAG="--enable-libopenh264"
+          echo "OpenH264 found, enabling OpenH264 support"
+        fi
         
         ./configure \
           --prefix=$PREFIX \
@@ -288,7 +294,7 @@ jobs:
           --enable-version3 \
           --enable-nonfree \
           --enable-libx264 \
-          --enable-libopenh264 \
+          $OPENH264_FLAG \
           $X265_FLAG \
           --enable-librav1e \
           --enable-libsvtav1 \
