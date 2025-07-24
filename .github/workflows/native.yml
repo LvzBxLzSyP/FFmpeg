@@ -196,8 +196,8 @@ jobs:
           -DHB_HAVE_CAIRO=OFF \
           -DHB_HAVE_FONTCONFIG=OFF \
           -DHB_HAVE_ICU=OFF
-        make -j$(nproc)
-        make install
+        ninja -j$(nproc)
+        ninja install
         cd ..
 
     - name: Build libass
