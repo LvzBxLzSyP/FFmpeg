@@ -282,7 +282,7 @@ jobs:
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
           --extra-cflags="-I$PREFIX/include -static-libgcc -static -O2" \
-          --extra-cxxflags="-I$PREFIX/include -static-libgcc -static-libstdc++ -static -O2" \
+          --extra-cxxflags="-I$PREFIX/include -static-libgcc -static-libstdc++ -static -std=c++17 -O2" \
           --extra-ldflags="-L$PREFIX/lib -static-libgcc -static-libstdc++ -static -Wl,-Bstatic" \
           --extra-ldexeflags="-static-libgcc -static-libstdc++ -static" \
           --extra-libs="-lpthread -lwinpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt" \
