@@ -18,6 +18,7 @@ jobs:
         install: >-
           mingw-w64-x86_64-toolchain
           mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-meson
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-nasm
           mingw-w64-x86_64-yasm
@@ -60,6 +61,7 @@ jobs:
         make -j$(nproc)
         make install
         cd ..
+    
     - name: Install prebuilt x265
       shell: msys2 {0}
       run: |
@@ -71,6 +73,14 @@ jobs:
         
         cp -r ./include/* $PREFIX/include/
         cp -r ./lib/* $PREFIX/lib/
+
+    - name: Build OpenH264
+      run: |
+        git clone https://github.com/cisco/openh264.git
+        cd openh264
+        meson setup builddir --buildtype=release --prefix=$PREFIX
+        meson compile -C builddir
+        meson install -C builddir
     
     - name: Build SVT-AV1
       run: |
