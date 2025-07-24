@@ -249,8 +249,11 @@ jobs:
         ./configure \
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
-          --extra-cflags="-I$PREFIX/include" \
-          --extra-ldflags="-L$PREFIX/lib -static -static-libgcc -static-libstdc++ -Wl,-Bstatic -lpthread -lz -lwinmm -lavicap32 -lws2_32" \
+          --extra-cflags="-I$PREFIX/include -static-libgcc -static -O2" \
+          --extra-cxxflags="-I$PREFIX/include -static-libgcc -static-libstdc++ -static -O2" \
+          --extra-ldflags="-static-libgcc -static-libstdc++ -static -Wl,-Bstatic" \
+          --extra-ldexeflags="-static-libgcc -static-libstdc++ -static" \
+          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt" \
           --enable-static \
           --disable-shared \
           --disable-debug \
