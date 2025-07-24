@@ -6,6 +6,7 @@ on:
 jobs:
   build-ffmpeg-win64:
     runs-on: windows-latest
+
     steps:
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
@@ -42,6 +43,12 @@ jobs:
         export PREFIX="/d/ffmpeg-build"
         echo "PREFIX=$PREFIX" >> $GITHUB_ENV
         mkdir -p $PREFIX
+
+        STATIC_FLAGS="-O2 -static -static-libgcc -static-libstdc++ -D_WIN32_WINNT=0x0601"
+        echo "CFLAGS=$STATIC_FLAGS -I$PREFIX/include" >> $GITHUB_ENV
+        echo "CXXFLAGS=$STATIC_FLAGS -std=c++17 -I$PREFIX/include" >> $GITHUB_ENV
+        echo "LDFLAGS=$STATIC_FLAGS -L$PREFIX/lib" >> $GITHUB_ENV
+
         echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
         echo "PATH=$PREFIX/bin:$PATH" >> $GITHUB_ENV
 
@@ -60,16 +67,14 @@ jobs:
         make -j$(nproc)
         make install
         cd ..
-    
+
     - name: Install prebuilt x265
       shell: msys2 {0}
       run: |
         git clone https://github.com/LvzBxLzSyP/x265.git
         cd x265
-        
         mkdir -p $PREFIX/include
         mkdir -p $PREFIX/lib
-        
         cp -r ./include/* $PREFIX/include/
         cp -r ./lib/* $PREFIX/lib/
 
@@ -83,15 +88,14 @@ jobs:
           --prefix=$PREFIX \
           -Ddefault_library=static \
           -Dcpp_std=c++17 \
-          -Dc_args="-O2 -static-libgcc -static" \
-          -Dcpp_args="-std=c++17 -O2 -static-libstdc++ -static"
+          -Dc_args="$CFLAGS" \
+          -Dcpp_args="$CXXFLAGS"
         meson compile -C builddir
         meson install -C builddir
         sed -i 's|^prefix=.*|prefix='$PREFIX'|' $PREFIX/lib/pkgconfig/openh264.pc
-        cat $PREFIX/lib/pkgconfig/openh264.pc
-        export PKG_CONFIG_PATH=/d/ffmpeg-build/lib/pkgconfig
+        export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
         pkg-config --modversion openh264
-    
+
     - name: Build SVT-AV1
       shell: msys2 {0}
       run: |
@@ -102,33 +106,31 @@ jobs:
           -DBUILD_SHARED_LIBS=OFF \
           -DBUILD_APPS=OFF \
           -DBUILD_DEC=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
           .
         ninja
         ninja install
         cd ..
 
-    - name: Build rav1e (GNU)
+    - name: Build rav1e
       shell: msys2 {0}
       run: |
         export PATH="/mingw64/bin:$PATH"
-        export PREFIX="/d/ffmpeg-build"
-        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
-        mkdir -p "$PREFIX"
         export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
         git clone --depth=1 https://github.com/xiph/rav1e.git
         cd rav1e
-        
         cargo install cargo-c --force
         cargo cinstall --release --target x86_64-pc-windows-gnu \
           --library-type staticlib \
           --prefix="$PREFIX"
-      
+
     - name: Build libaom
       shell: msys2 {0}
       run: |
         git clone --depth=1 https://aomedia.googlesource.com/aom.git
-        cd aom
-        cd build
+        mkdir -p aom/build && cd aom/build
         cmake .. -G "Ninja" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
@@ -137,7 +139,9 @@ jobs:
           -DENABLE_TOOLS=OFF \
           -DENABLE_EXAMPLES=OFF \
           -DENABLE_DOCS=OFF \
-          -DENABLE_TESTS=OFF
+          -DENABLE_TESTS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS"
         ninja
         ninja install
         cd ../..
@@ -157,7 +161,9 @@ jobs:
           --enable-vp9 \
           --enable-vp9-highbitdepth \
           --enable-static \
-          --disable-shared
+          --disable-shared \
+          --extra-cflags="$CFLAGS" \
+          --extra-ldflags="$LDFLAGS"
         make -j$(nproc)
         make install
         cd ..
@@ -168,7 +174,7 @@ jobs:
         git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git
         cd freetype
         ./autogen.sh
-        ./configure --prefix=$PREFIX --enable-static --disable-shared --without-bzip2 --without-png
+        ./configure --prefix=$PREFIX --enable-static --disable-shared --without-bzip2 --without-png CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
         make -j$(nproc)
         make install
         cd ..
@@ -179,7 +185,7 @@ jobs:
         git clone --depth=1 https://github.com/mstorsjo/fdk-aac
         cd fdk-aac
         autoreconf -fiv
-        ./configure --prefix=$PREFIX --disable-shared --enable-static
+        ./configure --prefix=$PREFIX --disable-shared --enable-static CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
         make -j$(nproc)
         make install
         cd ..
@@ -190,7 +196,7 @@ jobs:
         wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
         tar xzf lame-3.100.tar.gz
         cd lame-3.100
-        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
         make -j$(nproc)
         make install
         cd ..
@@ -201,7 +207,7 @@ jobs:
         wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
         tar xf fribidi-1.0.13.tar.xz
         cd fribidi-1.0.13
-        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-docs
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-docs CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
         make -j$(nproc)
         make install
         cd ..
@@ -211,7 +217,6 @@ jobs:
       run: |
         wget https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
         tar xf harfbuzz-11.3.2.tar.xz
-        PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
         cd harfbuzz-11.3.2
         mkdir build && cd build
         cmake .. -G Ninja \
@@ -223,19 +228,21 @@ jobs:
           -DHB_HAVE_GOBJECT=OFF \
           -DHB_HAVE_CAIRO=OFF \
           -DHB_HAVE_FONTCONFIG=OFF \
-          -DHB_HAVE_ICU=OFF
+          -DHB_HAVE_ICU=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
         ninja -j$(nproc)
         ninja install
-        cd ..
+        cd ../..
 
     - name: Build libass
       shell: msys2 {0}
       run: |
         git clone --depth=1 https://github.com/libass/libass.git
         cd libass
-        PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
         ./autogen.sh
-        ./configure --prefix=$PREFIX --disable-shared --enable-static
+        ./configure --prefix=$PREFIX --disable-shared --enable-static CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
         make -j$(nproc)
         make install
         cd ..
@@ -246,7 +253,7 @@ jobs:
         git clone --depth=1 https://github.com/xiph/opus.git
         cd opus
         ./autogen.sh
-        ./configure --prefix=$PREFIX --disable-shared --enable-static
+        ./configure --prefix=$PREFIX --disable-shared --enable-static CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
         make -j$(nproc)
         make install
         cd ..
@@ -265,33 +272,27 @@ jobs:
       run: |
         git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
         cd ffmpeg
-        
-        # 強制使用 MINGW64 工具鏈（避開 MSYS2）
         export PATH="/mingw64/bin:$PATH"
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
-        export CPPFLAGS="-I$PREFIX/include"
-        export LDFLAGS="-L$PREFIX/lib"
-        
+
         X265_FLAG=""
         if pkg-config --exists x265 || [ -f "$PREFIX/lib/libx265.a" ]; then
           X265_FLAG="--enable-libx265"
-          echo "x265 found, enabling x265 support"
         fi
 
         OPENH264_FLAG=""
         if pkg-config --exists openh264 || [ -f "$PREFIX/lib/libopenh264.a" ]; then
           OPENH264_FLAG="--enable-libopenh264"
-          echo "OpenH264 found, enabling OpenH264 support"
         fi
-        
+
         ./configure \
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
-          --extra-cflags="-I$PREFIX/include -static-libgcc -static -O2" \
-          --extra-cxxflags="-I$PREFIX/include -static-libgcc -static-libstdc++ -static -std=c++17 -O2" \
-          --extra-ldflags="-L$PREFIX/lib -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -static-libgcc -static -Wl,-Bstatic" \
-          --extra-ldexeflags="-static-libgcc -static-libstdc++ -static" \
-          --extra-libs="-lpthread -lwinpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt" \
+          --extra-cflags="$CFLAGS" \
+          --extra-cxxflags="$CXXFLAGS" \
+          --extra-ldflags="$LDFLAGS" \
+          --extra-ldexeflags="$LDFLAGS" \
+          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt" \
           --enable-static \
           --disable-shared \
           --disable-debug \
@@ -299,9 +300,11 @@ jobs:
           --enable-gpl \
           --enable-version3 \
           --enable-nonfree \
+          --disable-w32threads \
+          --enable-pthreads \
           --enable-libx264 \
-          $OPENH264_FLAG \
           $X265_FLAG \
+          $OPENH264_FLAG \
           --enable-librav1e \
           --enable-libsvtav1 \
           --enable-libaom \
@@ -312,9 +315,8 @@ jobs:
           --enable-libass \
           --enable-libfreetype \
           --enable-nvenc \
-          --enable-cuda \
-          || cat ffbuild/config.log
-          
+          --enable-cuda || cat ffbuild/config.log
+
         make -j$(nproc)
         make install
 
@@ -328,17 +330,19 @@ jobs:
       shell: msys2 {0}
       run: |
         cd $PREFIX
-        # 只打包可執行文件和必要的 DLL
         mkdir -p package/bin
         cp bin/*.exe package/bin/
-        
-        # 檢查依賴並複製必要的 DLL
-        ldd bin/ffmpeg.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp {} package/bin/ || true
-        
+
+        if ldd bin/ffmpeg.exe | grep -q '\.dll'; then
+          echo "Copying required DLLs..."
+          ldd bin/ffmpeg.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp -u {} package/bin/
+        else
+          echo "No DLLs detected. Fully static build."
+        fi
+
         cd package
         zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-msys2.zip .
-        cd ..
-        
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
