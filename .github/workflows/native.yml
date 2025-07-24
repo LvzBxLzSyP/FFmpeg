@@ -234,23 +234,23 @@ jobs:
         git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
         cd ffmpeg
         
-        # 設置編譯選項
+        # 強制使用 MINGW64 工具鏈（避開 MSYS2）
+        export PATH="/mingw64/bin:$PATH"
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         export CPPFLAGS="-I$PREFIX/include"
         export LDFLAGS="-L$PREFIX/lib"
         
-        # 檢查 x265 是否可用
         X265_FLAG=""
-        if pkg-config --exists x265 2>/dev/null || [ -f "$PREFIX/lib/libx265.a" ]; then
+        if pkg-config --exists x265 || [ -f "$PREFIX/lib/libx265.a" ]; then
           X265_FLAG="--enable-libx265"
           echo "x265 found, enabling x265 support"
-        else
-          echo "x265 not found, skipping x265 support"
         fi
         
         ./configure \
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
+          --extra-cflags="-I$PREFIX/include" \
+          --extra-ldflags="-L$PREFIX/lib -static -static-libgcc -static-libstdc++ -Wl,-Bstatic -lpthread -lz -lwinmm -lavicap32 -lws2_32" \
           --enable-static \
           --disable-shared \
           --disable-debug \
@@ -270,10 +270,8 @@ jobs:
           --enable-libass \
           --enable-libfreetype \
           --enable-nvenc \
-          --enable-cuda \
-          --extra-cflags="-I$PREFIX/include" \
-          --extra-ldflags="-L$PREFIX/lib -static"
-        
+          --enable-cuda
+          
         make -j$(nproc)
         make install
 
