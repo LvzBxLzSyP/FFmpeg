@@ -84,7 +84,7 @@ jobs:
           -Ddefault_library=static \
           -Dcpp_std=c++17 \
           -Dc_args="-O2 -static-libgcc -static" \
-          -Dcxx_args="-std=c++17 -O2 -static-libstdc++ -static"
+          -Dcpp_args="-std=c++17 -O2 -static-libstdc++ -static"
         meson compile -C builddir
         meson install -C builddir
         sed -i 's|^prefix=.*|prefix='$PREFIX'|' $PREFIX/lib/pkgconfig/openh264.pc
