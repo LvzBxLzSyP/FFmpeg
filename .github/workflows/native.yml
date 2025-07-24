@@ -289,7 +289,7 @@ jobs:
           --pkg-config-flags="--static" \
           --extra-cflags="-I$PREFIX/include -static-libgcc -static -O2" \
           --extra-cxxflags="-I$PREFIX/include -static-libgcc -static-libstdc++ -static -std=c++17 -O2" \
-          --extra-ldflags="-L$PREFIX/lib -static-libgcc -static-libstdc++ -static -Wl,-Bstatic" \
+          --extra-ldflags="-L$PREFIX/lib -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -static-libgcc -static -Wl,-Bstatic" \
           --extra-ldexeflags="-static-libgcc -static-libstdc++ -static" \
           --extra-libs="-lpthread -lwinpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt" \
           --enable-static \
