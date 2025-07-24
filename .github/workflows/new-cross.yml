@@ -296,23 +296,23 @@ jobs:
         mkdir -p ${{ GITHUB_WORKSPACE }}/binary
         
         # Copy binaries
-        cp $PREFIX/bin/ffmpeg.exe ${{ GITHUB_WORKSPACE }}/binary/ffmpeg-static.exe
-        cp $PREFIX/bin/ffprobe.exe ${{ GITHUB_WORKSPACE }}/binary/ffprobe-static.exe
-        [ -f $PREFIX/bin/ffplay.exe ] && cp $PREFIX/bin/ffplay.exe ${{ GITHUB_WORKSPACE }}/binary/ffplay-static.exe || echo "ffplay not built"
+        cp $PREFIX/bin/ffmpeg.exe ${{ github.workspace }}/binary/ffmpeg-static.exe
+        cp $PREFIX/bin/ffprobe.exe ${{ github.workspace }}/binary/ffprobe-static.exe
+        [ -f $PREFIX/bin/ffplay.exe ] && cp $PREFIX/bin/ffplay.exe ${{ github.workspace }}/binary/ffplay-static.exe || echo "ffplay not built"
 
     - name: Test FFmpeg build
       run: |
         echo "=== FFMPEG VERSION ==="
-        wine ./ffmpeg-static.exe -version || echo "Wine test failed (expected on GitHub Actions)"
+        wine ${{ github.workspace }}/binary/ffmpeg-static.exe -version || echo "Wine test failed (expected on GitHub Actions)"
         echo "=== FILE INFO ==="
-        file ./ffmpeg-static.exe
-        ls -lh ${{ GITHUB_WORKSPACE }}/binary/ffmpeg-static.exe ${{ GITHUB_WORKSPACE }}/binary/ffprobe-static.exe
+        file ${{ github.workspace }}/binary/ffmpeg-static.exe
+        ls -lh ${{ github.workspace }}/binary/ffmpeg-static.exe ${{ GITHUB_WORKSPACE }}/binary/ffprobe-static.exe
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ffmpeg-static-windows-x64
         path: |
-          ${{ GITHUB_WORKSPACE }}/binary/ffmpeg-static.exe
-          ${{ GITHUB_WORKSPACE }}/binary/ffprobe-static.exe
-          ${{ GITHUB_WORKSPACE }}/binary/ffplay-static.exe
+          ${{ github.workspace }}/binary/ffmpeg-static.exe
+          ${{ github.workspace }}/binary/ffprobe-static.exe
+          ${{ github.workspace }}/binary/ffplay-static.exe
