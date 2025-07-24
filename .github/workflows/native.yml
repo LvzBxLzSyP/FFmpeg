@@ -83,6 +83,8 @@ jobs:
         meson install -C builddir
         sed -i 's|^prefix=.*|prefix='$PREFIX'|' $PREFIX/lib/pkgconfig/openh264.pc
         cat $PREFIX/lib/pkgconfig/openh264.pc
+        export PKG_CONFIG_PATH=/d/ffmpeg-build/lib/pkgconfig
+        pkg-config --modversion openh264
     
     - name: Build SVT-AV1
       run: |
