@@ -306,7 +306,7 @@ jobs:
         wine ${{ github.workspace }}/binary/ffmpeg-static.exe -version || echo "Wine test failed (expected on GitHub Actions)"
         echo "=== FILE INFO ==="
         file ${{ github.workspace }}/binary/ffmpeg-static.exe
-        ls -lh ${{ github.workspace }}/binary/ffmpeg-static.exe ${{ GITHUB_WORKSPACE }}/binary/ffprobe-static.exe
+        ls -lh ${{ github.workspace }}/binary/ffmpeg-static.exe ${{ github.workspace }}/binary/ffprobe-static.exe
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
