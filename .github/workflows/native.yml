@@ -151,7 +151,7 @@ jobs:
       run: |
         git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git
         cd libvpx
-        ./configure \
+        LDFLAGS="$LDFLAGS" ./configure \
           --prefix=$PREFIX \
           --disable-examples \
           --disable-unit-tests \
@@ -163,7 +163,6 @@ jobs:
           --enable-static \
           --disable-shared \
           --extra-cflags="$CFLAGS" \
-          --extra-ldflags="$LDFLAGS"
         make -j$(nproc)
         make install
         cd ..
