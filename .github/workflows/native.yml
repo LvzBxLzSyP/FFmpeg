@@ -82,6 +82,7 @@ jobs:
         meson compile -C builddir
         meson install -C builddir
         sed -i 's|^prefix=.*|prefix='$PREFIX'|' $PREFIX/lib/pkgconfig/openh264.pc
+        cat $PREFIX/lib/pkgconfig/openh264.pc
     
     - name: Build SVT-AV1
       run: |
