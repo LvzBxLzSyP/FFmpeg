@@ -8,12 +8,13 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        shell: msys2 {0}
+        shell: mingw64
     steps:
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
         msystem: MINGW64
+        shell: mingw64
         update: true
         install: >-
           mingw-w64-x86_64-toolchain
@@ -63,7 +64,6 @@ jobs:
         cd ..
     
     - name: Install prebuilt x265
-      shell: msys2 {0}
       run: |
         git clone https://github.com/LvzBxLzSyP/x265.git
         cd x265
