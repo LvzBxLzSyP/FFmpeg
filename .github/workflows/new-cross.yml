@@ -307,8 +307,10 @@ jobs:
         echo "=== FILE INFO ==="
         file ${{ github.workspace }}/binary/ffmpeg-static.exe
         ls -lh ${{ github.workspace }}/binary/ffmpeg-static.exe ${{ github.workspace }}/binary/ffprobe-static.exe
+        zip -r ${{ env.PREFIX }}/ffmpeg-static.zip ${{ github.workspace }}/binary 
+        
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ffmpeg-static-windows-x64
-        path: binary/*.exe
+        path: /opt/ffmpeg-win64/ffmpeg-static.zip
