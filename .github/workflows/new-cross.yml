@@ -25,9 +25,17 @@ jobs:
       run: |
         apt update && apt install -y \
           autoconf automake binutils-mingw-w64 build-essential cmake \
-          git libtool pkg-config texinfo yasm nasm curl unzip wget \
+          git gnupg libtool pkg-config texinfo yasm nasm curl unzip wget \
           mingw-w64 mingw-w64-x86-64-dev ninja-build zlib1g-dev libssl-dev \
           python3 python3-pip xz-utils zip ca-certificates
+ 
+    - name: Setting Wine
+      run: |
+        dpkg --add-architecture i386
+        mkdir -pm755 /etc/apt/keyrings
+        wget -O - https://dl.winehq.org/wine-builds/winehq.key | gpg --dearmor -o /etc/apt/keyrings/winehq-archive.key
+        wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources
+        apt update && apt install --install-recommends winehq-stable
 
     - name: Setup build environment
       run: |
