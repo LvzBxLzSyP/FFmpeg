@@ -78,7 +78,13 @@ jobs:
       run: |
         git clone https://github.com/cisco/openh264.git
         cd openh264
-        meson setup builddir --buildtype=release --prefix=$PREFIX -Ddefault_library=static -Dcpp_std=c++17
+        meson setup builddir \
+          --buildtype=release \
+          --prefix=$PREFIX \
+          -Ddefault_library=static \
+          -Dcpp_std=c++17 \
+          -Dc_args="-O2 -static-libgcc -static" \
+          -Dcxx_args="-std=c++17 -O2 -static-libstdc++ -static"
         meson compile -C builddir
         meson install -C builddir
         sed -i 's|^prefix=.*|prefix='$PREFIX'|' $PREFIX/lib/pkgconfig/openh264.pc
