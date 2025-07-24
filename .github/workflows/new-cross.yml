@@ -311,4 +311,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ffmpeg-static-windows-x64
-        path: ${{ github.workspace }}/binary/*.exe
+        path: binary/*.exe
