@@ -78,7 +78,7 @@ jobs:
       run: |
         git clone https://github.com/cisco/openh264.git
         cd openh264
-        meson setup builddir --buildtype=release --prefix=$PREFIX
+        meson setup builddir --buildtype=release --prefix=$PREFIX -Ddefault_library=static
         meson compile -C builddir
         meson install -C builddir
     
@@ -272,6 +272,7 @@ jobs:
           --enable-version3 \
           --enable-nonfree \
           --enable-libx264 \
+          --enable-libopenh264 \
           $X265_FLAG \
           --enable-librav1e \
           --enable-libsvtav1 \
