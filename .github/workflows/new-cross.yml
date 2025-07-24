@@ -293,7 +293,7 @@ jobs:
         echo "=== DEPENDENCY CHECK ==="
         ${CROSS_PREFIX}-objdump -p $PREFIX/bin/ffmpeg.exe | grep "DLL Name" || echo "✓ Fully static binary"
 
-        mkdir -p ${{ GITHUB_WORKSPACE }}/binary
+        mkdir -p ${{ github.workspace }}/binary
         
         # Copy binaries
         cp $PREFIX/bin/ffmpeg.exe ${{ github.workspace }}/binary/ffmpeg-static.exe
