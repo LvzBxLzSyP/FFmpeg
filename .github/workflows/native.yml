@@ -292,7 +292,7 @@ jobs:
           --extra-cflags="$CFLAGS" \
           --extra-cxxflags="$CXXFLAGS" \
           --extra-ldflags="$LDFLAGS" \
-          --extra-ldexeflags="$LDFLAGS" \
+          --extra-ldexeflags="$LDFLAGS -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
           --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt" \
           --enable-static \
           --disable-shared \
