@@ -185,7 +185,7 @@ jobs:
         tar xf harfbuzz-11.3.2.tar.xz
         PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
         cd harfbuzz-11.3.2
-        cmake .. -G Ninja \
+        cmake -G Ninja \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
