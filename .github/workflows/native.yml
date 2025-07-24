@@ -328,19 +328,15 @@ jobs:
         $PREFIX/bin/ffmpeg.exe -encoders | grep -E "(264|265|av1|vp9|aac|mp3)"
 
     - name: Package binary
-      shell: msys2 {0}
       run: |
         cd $PREFIX
+        # 只打包可執行文件和必要的 DLL
         mkdir -p package/bin
         cp bin/*.exe package/bin/
-
-        if ldd bin/ffmpeg.exe | grep -q '\.dll'; then
-          echo "Copying required DLLs..."
-          ldd bin/ffmpeg.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp -u {} package/bin/
-        else
-          echo "No DLLs detected. Fully static build."
-        fi
-
+        
+        # 檢查依賴並複製必要的 DLL
+        ldd bin/ffmpeg.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp {} package/bin/ || true
+        
         cd package
         zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-msys2.zip .
 
