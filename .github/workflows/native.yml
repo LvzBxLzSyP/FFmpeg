@@ -81,6 +81,7 @@ jobs:
         meson setup builddir --buildtype=release --prefix=$PREFIX -Ddefault_library=static
         meson compile -C builddir
         meson install -C builddir
+        sed -i 's|^prefix=.*|prefix='$PREFIX'|' $PREFIX/lib/pkgconfig/openh264.pc
     
     - name: Build SVT-AV1
       run: |
