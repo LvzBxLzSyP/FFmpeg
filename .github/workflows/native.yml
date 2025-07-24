@@ -162,7 +162,7 @@ jobs:
           --enable-vp9-highbitdepth \
           --enable-static \
           --disable-shared \
-          --extra-cflags="$CFLAGS" \
+          --extra-cflags="$CFLAGS" 
         make -j$(nproc)
         make install
         cd ..
