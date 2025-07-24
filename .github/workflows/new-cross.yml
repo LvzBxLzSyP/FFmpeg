@@ -175,7 +175,8 @@ jobs:
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
         wget -q https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
         tar xf harfbuzz-11.3.2.tar.xz && cd harfbuzz-11.3.2
-        cmake -G Ninja \
+        mkdir build && cd build
+        cmake .. -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DCMAKE_C_FLAGS="$CFLAGS -Wa,-mbig-obj" \
