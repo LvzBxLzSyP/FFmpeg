@@ -332,24 +332,61 @@ jobs:
       run: |
         cd "$PREFIX"
         mkdir -p package/bin
-        cp bin/*.exe package/bin/
-        
-        dlls=$(objdump -p bin/ffmpeg.exe | grep 'DLL Name:' | awk '{print $3}')
-        
-        if [[ -n "$dlls" ]]; then
-          echo "Copying required DLLs..."
-          for dll in $dlls; do
-            dll_path=$(which $dll || find /mingw64/bin -name $dll | head -n1)
-            if [[ -f "$dll_path" ]]; then
-              cp -u "$dll_path" package/bin/
-            else
-              echo "Warning: $dll not found in PATH"
-            fi
-          done
-        else
-          echo "No DLLs detected. Fully static build."
+        cp bin/ffmpeg.exe package/bin/
+        cp bin/ffprobe.exe package/bin
+        if [ -e bin/ffplay.exe ]; then
+          cp bin/ffplay.exe package/bin
         fi
         
+        echo "Collecting DLL dependencies for ffmpeg.exe..."
+        dlls=$(objdump -p bin/ffmpeg.exe | grep 'DLL Name:' | awk '{print $3}' | sort -u)
+    
+        # 系統 DLL 白名單，不要打包這些
+        skip_list=(
+          "KERNEL32.dll"
+          "USER32.dll"
+          "GDI32.dll"
+          "ADVAPI32.dll"
+          "SHELL32.dll"
+          "OLE32.dll"
+          "OLEAUT32.dll"
+          "WS2_32.dll"
+          "CRYPT32.dll"
+          "NTDLL.dll"
+          "MSVCRT.dll"
+          "Secur32.dll"
+          "SHLWAPI.dll"
+          "api-ms-win-core.*"
+        )
+    
+        function should_skip() {
+          local dll="$1"
+          for skip in "${skip_list[@]}"; do
+            if [[ "$dll" =~ ^$skip$ || "$dll" =~ $skip ]]; then
+              return 0  # skip
+            fi
+          done
+          return 1  # don't skip
+        }
+    
+        echo "Copying required DLLs..."
+        for dll in $dlls; do
+          if should_skip "$dll"; then
+            echo "Skipping system DLL: $dll"
+            continue
+          fi
+    
+          dll_path=$(which "$dll" 2>/dev/null || find /mingw64/bin -iname "$dll" | head -n1)
+    
+          if [[ -f "$dll_path" ]]; then
+            cp -u "$dll_path" package/bin/
+            echo "Added: $dll"
+          else
+            echo "Warning: $dll not found"
+          fi
+        done
+    
+        echo "Zipping package..."
         cd package
         zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-msys2.zip .
         
