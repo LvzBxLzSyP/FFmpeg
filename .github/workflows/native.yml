@@ -201,7 +201,7 @@ jobs:
           -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
           -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
-          -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
+          -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
           -G Ninja
         ninja -j$(nproc)
         ninja install
