@@ -189,8 +189,8 @@ jobs:
       shell: msys2 {0}
       run: |
         git clone --depth=1 https://github.com/fraunhoferhhi/vvdec
-        export CFLAGS="-O2 -static -static-libgcc -I$PREFIX/include"
-        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -std=c++17 -I$PREFIX/include"
+        export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
+        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
         cd vvdec
         cmake \
           -DBUILD_SHARED_LIBS=OFF \
