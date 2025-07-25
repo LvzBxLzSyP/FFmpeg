@@ -175,11 +175,13 @@ jobs:
         export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
         cd vvenc
         cmake \
+          -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-          -DCMAKE_C_FLAGS="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
           -G Ninja
         ninja -j$(nproc)
         ninja install
@@ -193,11 +195,13 @@ jobs:
         export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
         cd vvdec
         cmake \
+          -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-          -DCMAKE_C_FLAGS="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
           -G Ninja
         ninja -j$(nproc)
         ninja install
