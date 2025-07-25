@@ -328,6 +328,7 @@ jobs:
         $PREFIX/bin/ffmpeg.exe -encoders | grep -E "(264|265|av1|vp9|aac|mp3)"
 
     - name: Package binary
+      shell: msys2 {0}
       run: |
         cd "$PREFIX"
         mkdir -p package/bin
