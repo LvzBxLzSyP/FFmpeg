@@ -357,6 +357,8 @@ jobs:
           "Secur32.dll"
           "SHLWAPI.dll"
           "api-ms-win-core.*"
+          "ncrypt.dll"
+          "AVICAP32.dll"
         )
     
         function to_lower() {
