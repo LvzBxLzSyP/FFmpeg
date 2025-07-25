@@ -344,7 +344,6 @@ jobs:
           --enable-libaom \
           --enable-libvpx \
           --enable-libvvenc \
-          --enable-libvvdec \
           --enable-libmp3lame \
           --enable-libfdk-aac \
           --enable-libopus \
@@ -360,7 +359,7 @@ jobs:
       shell: msys2 {0}
       run: |
         $PREFIX/bin/ffmpeg.exe -version
-        $PREFIX/bin/ffmpeg.exe -encoders | grep -E "(264|265|av1|vp9|aac|mp3|vvenc|vvdec)"
+        $PREFIX/bin/ffmpeg.exe -encoders | grep -E "(264|265|av1|vp9|aac|mp3|vvc)"
 
     - name: Package binary
       shell: msys2 {0}
