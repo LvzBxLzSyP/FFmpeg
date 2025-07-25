@@ -329,17 +329,29 @@ jobs:
 
     - name: Package binary
       run: |
-        cd $PREFIX
-        # 只打包可執行文件和必要的 DLL
+        cd "$PREFIX"
         mkdir -p package/bin
         cp bin/*.exe package/bin/
         
-        # 檢查依賴並複製必要的 DLL
-        ldd bin/ffmpeg.exe | grep mingw64 | cut -d' ' -f3 | xargs -I {} cp {} package/bin/ || true
+        dlls=$(objdump -p bin/ffmpeg.exe | grep 'DLL Name:' | awk '{print $3}')
+        
+        if [[ -n "$dlls" ]]; then
+          echo "Copying required DLLs..."
+          for dll in $dlls; do
+            dll_path=$(which $dll || find /mingw64/bin -name $dll | head -n1)
+            if [[ -f "$dll_path" ]]; then
+              cp -u "$dll_path" package/bin/
+            else
+              echo "Warning: $dll not found in PATH"
+            fi
+          done
+        else
+          echo "No DLLs detected. Fully static build."
+        fi
         
         cd package
         zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-msys2.zip .
-
+        
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
