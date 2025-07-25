@@ -359,14 +359,19 @@ jobs:
           "api-ms-win-core.*"
         )
     
+        function to_lower() {
+          echo "$1" | tr '[:upper:]' '[:lower:]'
+        }
+
         function should_skip() {
-          local dll="$1"
+          local dll_lc=$(to_lower "$1")
           for skip in "${skip_list[@]}"; do
-            if [[ "$dll" =~ ^$skip$ || "$dll" =~ $skip ]]; then
-              return 0  # skip
+            skip_lc=$(to_lower "$skip")
+            if [[ "$dll_lc" == "$skip_lc" || "$dll_lc" =~ $skip_lc ]]; then
+              return 0
             fi
           done
-          return 1  # don't skip
+          return 1
         }
     
         echo "Copying required DLLs..."
