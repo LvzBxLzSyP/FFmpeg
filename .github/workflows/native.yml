@@ -184,6 +184,22 @@ jobs:
         ninja install
         cd ..
 
+    - name: Build VVdeC
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvdec
+        export CFLAGS="-O2 -static -static-libgcc -I$PREFIX/include"
+        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -std=c++17 -I$PREFIX/include"
+        cd vvdec
+        cmake \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -G Ninja
+        ninja -j$(nproc)
+        ninja install
+
     - name: Build freetype2
       shell: msys2 {0}
       run: |
@@ -327,6 +343,8 @@ jobs:
           --enable-libsvtav1 \
           --enable-libaom \
           --enable-libvpx \
+          --enable-libvvenc \
+          --enable-libvvdec \
           --enable-libmp3lame \
           --enable-libfdk-aac \
           --enable-libopus \
@@ -342,7 +360,7 @@ jobs:
       shell: msys2 {0}
       run: |
         $PREFIX/bin/ffmpeg.exe -version
-        $PREFIX/bin/ffmpeg.exe -encoders | grep -E "(264|265|av1|vp9|aac|mp3)"
+        $PREFIX/bin/ffmpeg.exe -encoders | grep -E "(264|265|av1|vp9|aac|mp3|vvenc|vvdec)"
 
     - name: Package binary
       shell: msys2 {0}
