@@ -352,8 +352,7 @@ jobs:
           --enable-libass \
           --enable-libfreetype \
           --enable-nvenc \
-          --enable-cuda \
-          --disable-lto || cat ffbuild/config.log
+          --enable-cuda || cat ffbuild/config.log
 
         make -j$(nproc)
         make install
