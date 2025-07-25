@@ -44,7 +44,7 @@ jobs:
         echo "PREFIX=$PREFIX" >> $GITHUB_ENV
         mkdir -p $PREFIX
 
-        STATIC_FLAGS="-O2 -static -static-libgcc -static-libstdc++ -D_WIN32_WINNT=0x0601"
+        STATIC_FLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
         echo "CFLAGS=$STATIC_FLAGS -I$PREFIX/include" >> $GITHUB_ENV
         echo "CXXFLAGS=$STATIC_FLAGS -std=c++17 -I$PREFIX/include" >> $GITHUB_ENV
         echo "LDFLAGS=$STATIC_FLAGS -L$PREFIX/lib" >> $GITHUB_ENV
@@ -171,8 +171,8 @@ jobs:
       shell: msys2 {0}
       run: |
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc
-        export CFLAGS="-O2 -static -static-libgcc -I$PREFIX/include"
-        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -std=c++17 -I$PREFIX/include"
+        export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
+        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
         cd vvenc
         cmake \
           -DBUILD_SHARED_LIBS=OFF \
