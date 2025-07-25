@@ -167,6 +167,21 @@ jobs:
         make install
         cd ..
 
+    - name: Build VVenC
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc
+        cd vvenc
+        cmake \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -G Ninja
+        ninja -j$(nproc)
+        ninja install
+        cd ..
+
     - name: Build freetype2
       shell: msys2 {0}
       run: |
