@@ -179,6 +179,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
           -G Ninja
         ninja -j$(nproc)
         ninja install
@@ -196,6 +197,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
           -G Ninja
         ninja -j$(nproc)
         ninja install
@@ -350,7 +352,8 @@ jobs:
           --enable-libass \
           --enable-libfreetype \
           --enable-nvenc \
-          --enable-cuda || cat ffbuild/config.log
+          --enable-cuda \
+          --disable-lto || cat ffbuild/config.log
 
         make -j$(nproc)
         make install
