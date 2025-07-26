@@ -25,7 +25,6 @@ jobs:
           mingw-w64-x86_64-rust
           mingw-w64-x86_64-diffutils
           mingw-w64-x86_64-libvpl
-          mingw-w64-x86_64-libva
           mingw-w64-x86_64-SDL2
           autoconf
           automake
@@ -335,7 +334,7 @@ jobs:
           --extra-cxxflags="$CXXFLAGS" \
           --extra-ldflags="$LDFLAGS" \
           --extra-ldexeflags="$LDFLAGS -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
-          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lva -lva-drm -lva-x11 -lwinmm -ldxguid" \
+          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lwinmm -ldxguid" \
           --enable-static \
           --disable-shared \
           --disable-debug \
