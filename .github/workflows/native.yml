@@ -361,7 +361,9 @@ jobs:
           --enable-cuda \
           --enable-libvpl \
           --enable-sdl2 \
-          --enable-ffplay || cat ffbuild/config.log
+          --enable-ffplay \
+          --enable-dxva2 \
+          --enable-d3d11va || cat ffbuild/config.log
 
         make -j$(nproc)
         make install
