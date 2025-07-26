@@ -24,6 +24,10 @@ jobs:
           mingw-w64-x86_64-zlib
           mingw-w64-x86_64-rust
           mingw-w64-x86_64-diffutils
+          mingw-w64-x86_64-libvpl
+          mingw-w64-x86_64-libva
+          mingw-w64-x86_64-SDL2
+          mingw-w64-x86_64-SDL2-static
           autoconf
           automake
           libtool
@@ -313,7 +317,7 @@ jobs:
         git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
         cd ffmpeg
         export PATH="/mingw64/bin:$PATH"
-        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
 
         X265_FLAG=""
         if pkg-config --exists x265 || [ -f "$PREFIX/lib/libx265.a" ]; then
@@ -332,7 +336,7 @@ jobs:
           --extra-cxxflags="$CXXFLAGS" \
           --extra-ldflags="$LDFLAGS" \
           --extra-ldexeflags="$LDFLAGS -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
-          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt" \
+          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lva -lva-drm -lva-x11 -lwinmm -ldxguid" \
           --enable-static \
           --disable-shared \
           --disable-debug \
@@ -356,7 +360,10 @@ jobs:
           --enable-libass \
           --enable-libfreetype \
           --enable-nvenc \
-          --enable-cuda || cat ffbuild/config.log
+          --enable-cuda \
+          --enable-libvpl \
+          --enable-sdl2 \
+          --enable-ffplay || cat ffbuild/config.log
 
         make -j$(nproc)
         make install
