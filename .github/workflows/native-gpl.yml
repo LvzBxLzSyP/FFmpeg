@@ -39,6 +39,7 @@ jobs:
           patch
 
     - name: Set UTC datetime tag & release name
+      shell: msys2 {0}
       id: tagger
       run: |
         DATE=$(date -u +"%Y-%m-%d-%H-%M-%S")
