@@ -38,6 +38,13 @@ jobs:
           xz
           patch
 
+    - name: Set UTC datetime tag & release name
+      id: tagger
+      run: |
+        DATE=$(date -u +"%Y-%m-%d-%H-%M-%S")
+        echo "tag_name=autobuild-${DATE}" >> $GITHUB_OUTPUT
+        echo "release_name=FFmpeg Auto Build ${DATE}" >> $GITHUB_OUTPUT
+
     - name: Set environment variables
       shell: msys2 {0}
       run: |
@@ -455,3 +462,18 @@ jobs:
       with:
         name: ffmpeg-win64-static-msys2
         path: ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip
+    - name: Create Git Tag
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+        git tag ${{ steps.tagger.outputs.tag_name }}
+        git push origin ${{ steps.tagger.outputs.tag_name }}
+
+    - name: Upload to GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.tagger.outputs.tag_name }}
+        name: ${{ steps.tagger.outputs.release_name }}
+        files: ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
