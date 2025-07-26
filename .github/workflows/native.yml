@@ -27,7 +27,6 @@ jobs:
           mingw-w64-x86_64-libvpl
           mingw-w64-x86_64-libva
           mingw-w64-x86_64-SDL2
-          mingw-w64-x86_64-SDL2-static
           autoconf
           automake
           libtool
