@@ -458,7 +458,9 @@ jobs:
       with:
         name: ffmpeg-win64-static-msys2
         path: ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip
+        
     - name: Create Git Tag
+      shell: msys2 {0}
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
