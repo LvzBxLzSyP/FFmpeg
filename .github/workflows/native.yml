@@ -172,7 +172,7 @@ jobs:
     - name: Build VVenC
       shell: msys2 {0}
       run: |
-        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
         export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
         export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
         cd vvenc
@@ -192,7 +192,7 @@ jobs:
     - name: Build VVdeC
       shell: msys2 {0}
       run: |
-        git clone --depth=1 https://github.com/fraunhoferhhi/vvdec
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
         export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
         export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
         cd vvdec
@@ -207,6 +207,23 @@ jobs:
           -G Ninja
         ninja -j$(nproc)
         ninja install
+
+    - name: Build libxeve
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/mpeg5/xeve.git
+        cd xeve
+        cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+          .
+        ninja
+        cmake --install . --component Development
 
     - name: Build freetype2
       shell: msys2 {0}
