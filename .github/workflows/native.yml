@@ -387,7 +387,7 @@ jobs:
           --enable-libaom \
           --enable-libvpx \
           --enable-libvvenc \
-          --enable-libvvend
+          --enable-libvvdec \
           --enable-libxeve \
           --enable-libxevd \
           --enable-libmp3lame \
