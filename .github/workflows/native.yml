@@ -218,7 +218,22 @@ jobs:
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+          .
+        ninja
+        cmake --install . --component Development
+
+    - name: Build libxeve
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/mpeg5/xevd.git
+        cd xevd
+        cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
           .
@@ -344,6 +359,9 @@ jobs:
           OPENH264_FLAG="--enable-libopenh264"
         fi
 
+        wget -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
+        git apply libvvdec.patch
+
         ./configure \
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
@@ -369,6 +387,9 @@ jobs:
           --enable-libaom \
           --enable-libvpx \
           --enable-libvvenc \
+          --enable-libvvend
+          --enable-libxeve \
+          --enable-libxevd \
           --enable-libmp3lame \
           --enable-libfdk-aac \
           --enable-libopus \
