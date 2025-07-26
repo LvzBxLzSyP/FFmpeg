@@ -375,6 +375,7 @@ jobs:
         
         if grep -qi 'nonfree' ffbuild/config.log; then
           echo "❌ nonfree detected"
+          cat ffbuild/config.log
           exit 1
         fi
 
