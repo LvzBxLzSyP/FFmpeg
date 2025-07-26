@@ -1,0 +1,457 @@
+name: Build Ultimate Static Windows FFmpeg with MSYS2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ffmpeg-win64:
+    runs-on: windows-latest
+
+    steps:
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-nasm
+          mingw-w64-x86_64-yasm
+          mingw-w64-x86_64-pkg-config
+          mingw-w64-x86_64-zlib
+          mingw-w64-x86_64-rust
+          mingw-w64-x86_64-diffutils
+          mingw-w64-x86_64-libvpl
+          mingw-w64-x86_64-SDL2
+          autoconf
+          automake
+          libtool
+          make
+          git
+          curl
+          wget
+          unzip
+          zip
+          tar
+          xz
+          patch
+
+    - name: Set environment variables
+      shell: msys2 {0}
+      run: |
+        export PREFIX="/d/ffmpeg-build"
+        echo "PREFIX=$PREFIX" >> $GITHUB_ENV
+        mkdir -p $PREFIX
+
+        STATIC_FLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
+        echo "CFLAGS=$STATIC_FLAGS -I$PREFIX/include" >> $GITHUB_ENV
+        echo "CXXFLAGS=$STATIC_FLAGS -std=c++17 -I$PREFIX/include" >> $GITHUB_ENV
+        echo "LDFLAGS=$STATIC_FLAGS -L$PREFIX/lib" >> $GITHUB_ENV
+
+        echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
+        echo "PATH=$PREFIX/bin:$PATH" >> $GITHUB_ENV
+
+    - name: Use MSYS2 Rust
+      shell: msys2 {0}
+      run: |
+        which cargo
+        cargo --version
+
+    - name: Build x264
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://code.videolan.org/videolan/x264.git
+        cd x264
+        ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Install prebuilt x265
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/LvzBxLzSyP/x265.git
+        cd x265
+        mkdir -p $PREFIX/include
+        mkdir -p $PREFIX/lib
+        cp -r ./include/* $PREFIX/include/
+        cp -r ./lib/* $PREFIX/lib/
+
+    - name: Build SVT-AV1
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+        cd SVT-AV1
+        cmake -G "Ninja" \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_APPS=OFF \
+          -DBUILD_DEC=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          .
+        ninja
+        ninja install
+        cd ..
+
+    - name: Build rav1e
+      shell: msys2 {0}
+      run: |
+        export PATH="/mingw64/bin:$PATH"
+        export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
+        git clone --depth=1 https://github.com/xiph/rav1e.git
+        cd rav1e
+        cargo install cargo-c --force
+        cargo cinstall --release --target x86_64-pc-windows-gnu \
+          --library-type staticlib \
+          --prefix="$PREFIX"
+
+    - name: Build libaom
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://aomedia.googlesource.com/aom.git
+        mkdir -p aom/build && cd aom/build
+        cmake .. -G "Ninja" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_NASM=ON \
+          -DENABLE_TOOLS=OFF \
+          -DENABLE_EXAMPLES=OFF \
+          -DENABLE_DOCS=OFF \
+          -DENABLE_TESTS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+        ninja
+        ninja install
+        cd ../..
+
+    - name: Build libvpx
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git
+        cd libvpx
+        LDFLAGS="$LDFLAGS" ./configure \
+          --prefix=$PREFIX \
+          --disable-examples \
+          --disable-unit-tests \
+          --disable-tools \
+          --disable-docs \
+          --enable-vp8 \
+          --enable-vp9 \
+          --enable-vp9-highbitdepth \
+          --enable-static \
+          --disable-shared \
+          --extra-cflags="$CFLAGS" 
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build VVenC
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
+        export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
+        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
+        cd vvenc
+        cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
+          -G Ninja
+        ninja -j$(nproc)
+        ninja install
+        cd ..
+
+    - name: Build VVdeC
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
+        export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
+        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
+        cd vvdec
+        cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
+          -G Ninja
+        ninja -j$(nproc)
+        ninja install
+
+    - name: Build libxeve
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/mpeg5/xeve.git
+        cd xeve
+        cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+          .
+        ninja
+        cmake --install . --component Development
+
+    - name: Build libxevd
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/mpeg5/xevd.git
+        cd xevd
+        cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+          .
+        ninja
+        cmake --install . --component Development
+
+    - name: Build freetype2
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git
+        cd freetype
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --enable-static --disable-shared --without-bzip2 --without-png CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build libmp3lame
+      shell: msys2 {0}
+      run: |
+        wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+        tar xzf lame-3.100.tar.gz
+        cd lame-3.100
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build fribidi
+      shell: msys2 {0}
+      run: |
+        wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
+        tar xf fribidi-1.0.13.tar.xz
+        cd fribidi-1.0.13
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-docs CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build harfbuzz
+      shell: msys2 {0}
+      run: |
+        wget https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
+        tar xf harfbuzz-11.3.2.tar.xz
+        cd harfbuzz-11.3.2
+        mkdir build && cd build
+        export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DHB_HAVE_FREETYPE=ON \
+          -DHB_HAVE_GLIB=OFF \
+          -DHB_HAVE_GOBJECT=OFF \
+          -DHB_HAVE_CAIRO=OFF \
+          -DHB_HAVE_FONTCONFIG=OFF \
+          -DHB_HAVE_ICU=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+
+    - name: Build libass
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/libass/libass.git
+        cd libass
+        export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --disable-shared --enable-static CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build opus
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/xiph/opus.git
+        cd opus
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --disable-shared --enable-static CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Install NVENC headers
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/FFmpeg/nv-codec-headers.git
+        cd nv-codec-headers
+        make PREFIX=$PREFIX
+        make install PREFIX=$PREFIX
+        cd ..
+
+    - name: Build FFmpeg
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+        cd ffmpeg
+        export PATH="/mingw64/bin:$PATH"
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
+
+        X265_FLAG=""
+        if pkg-config --exists x265 || [ -f "$PREFIX/lib/libx265.a" ]; then
+          X265_FLAG="--enable-libx265"
+        fi
+
+        wget -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
+        git apply libvvdec.patch
+
+        ./configure \
+          --prefix=$PREFIX \
+          --pkg-config-flags="--static" \
+          --extra-cflags="$CFLAGS" \
+          --extra-cxxflags="$CXXFLAGS" \
+          --extra-ldflags="$LDFLAGS" \
+          --extra-ldexeflags="$LDFLAGS -L/d/ffmpeg-build/lib/xevd -L/d/ffmpeg-build/lib/xeve -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
+          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lwinmm -ldxguid" \
+          --enable-static \
+          --disable-shared \
+          --disable-debug \
+          --disable-doc \
+          --enable-gpl \
+          --enable-version3 \
+          --disable-w32threads \
+          --enable-pthreads \
+          --enable-libx264 \
+          $X265_FLAG \
+          --enable-librav1e \
+          --enable-libsvtav1 \
+          --enable-libaom \
+          --enable-libvpx \
+          --enable-libvvenc \
+          --enable-libvvdec \
+          --enable-libxeve \
+          --enable-libxevd \
+          --enable-libmp3lame \
+          --enable-libopus \
+          --enable-libass \
+          --enable-libfreetype \
+          --enable-nvenc \
+          --enable-cuda \
+          --enable-libvpl \
+          --enable-sdl2 \
+          --enable-ffplay \
+          --enable-dxva2 \
+          --enable-d3d11va || cat ffbuild/config.log
+        
+        if grep -qi 'nonfree' ffbuild/config.log; then
+          echo "❌ nonfree detected"
+          exit 1
+        fi
+
+        make -j$(nproc)
+        make install
+
+    - name: Test FFmpeg build
+      shell: msys2 {0}
+      run: |
+        $PREFIX/bin/ffmpeg.exe -version
+        $PREFIX/bin/ffmpeg.exe -encoders | grep -E "(264|265|av1|vp9|aac|mp3|vvc)"
+        $PREFIX/bin/ffmpeg.exe -decoders | grep -E "(264|265|av1|vp9|aac|mp3|vvc)"
+
+    - name: Package binary
+      shell: msys2 {0}
+      run: |
+        cd "$PREFIX"
+        mkdir -p package/bin
+        cp bin/ffmpeg.exe package/bin/
+        cp bin/ffprobe.exe package/bin
+        if [ -e bin/ffplay.exe ]; then
+          cp bin/ffplay.exe package/bin
+        fi
+        
+        echo "Collecting DLL dependencies for ffmpeg.exe..."
+        dlls=$(objdump -p bin/ffmpeg.exe | grep 'DLL Name:' | awk '{print $3}' | sort -u)
+    
+        # 系統 DLL 白名單，不要打包這些
+        skip_list=(
+          "KERNEL32.dll"
+          "USER32.dll"
+          "GDI32.dll"
+          "ADVAPI32.dll"
+          "SHELL32.dll"
+          "OLE32.dll"
+          "OLEAUT32.dll"
+          "WS2_32.dll"
+          "CRYPT32.dll"
+          "NTDLL.dll"
+          "MSVCRT.dll"
+          "Secur32.dll"
+          "SHLWAPI.dll"
+          "api-ms-win-core.*"
+          "ncrypt.dll"
+          "AVICAP32.dll"
+        )
+    
+        function to_lower() {
+          echo "$1" | tr '[:upper:]' '[:lower:]'
+        }
+
+        function should_skip() {
+          local dll_lc=$(to_lower "$1")
+          for skip in "${skip_list[@]}"; do
+            skip_lc=$(to_lower "$skip")
+            if [[ "$dll_lc" == "$skip_lc" || "$dll_lc" =~ $skip_lc ]]; then
+              return 0
+            fi
+          done
+          return 1
+        }
+    
+        echo "Copying required DLLs..."
+        for dll in $dlls; do
+          if should_skip "$dll"; then
+            echo "Skipping system DLL: $dll"
+            continue
+          fi
+    
+          dll_path=$(which "$dll" 2>/dev/null || find /mingw64/bin -iname "$dll" | head -n1)
+    
+          if [[ -f "$dll_path" ]]; then
+            cp -u "$dll_path" package/bin/
+            echo "Added: $dll"
+          else
+            echo "Warning: $dll not found"
+          fi
+        done
+    
+        echo "Zipping package..."
+        cd package
+        zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-msys2.zip .
+        
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ffmpeg-win64-static-msys2
+        path: ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip
