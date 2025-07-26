@@ -1,4 +1,4 @@
-name: Build Ultimate Static Windows FFmpeg with MSYS2
+name: Build Ultimate Static Windows FFmpeg with MSYS2(Non-free)
 
 on:
   workflow_dispatch:
