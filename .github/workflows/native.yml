@@ -211,7 +211,7 @@ jobs:
     - name: Build libxeve
       shell: msys2 {0}
       run: |
-        git clone --depth=1 https://github.com/mpeg5/xeve.git
+        git clone https://github.com/mpeg5/xeve.git
         cd xeve
         cmake -G Ninja \
           -DCMAKE_BUILD_TYPE=Release \
