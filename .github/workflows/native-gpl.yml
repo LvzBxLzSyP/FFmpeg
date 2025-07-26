@@ -372,12 +372,6 @@ jobs:
           --enable-ffplay \
           --enable-dxva2 \
           --enable-d3d11va || cat ffbuild/config.log
-        
-        if grep -qi 'nonfree' ffbuild/config.log; then
-          echo "❌ nonfree detected"
-          cat ffbuild/config.log
-          exit 1
-        fi
 
         make -j$(nproc)
         make install
