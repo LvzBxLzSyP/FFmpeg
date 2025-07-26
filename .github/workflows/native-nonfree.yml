@@ -498,11 +498,11 @@ jobs:
     
         echo "Zipping package..."
         cd package
-        zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-msys2.zip .
+        zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-msys2-nonfree.zip .
         
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ffmpeg-win64-static-msys2
+        name: ffmpeg-win64-static-msys2-nonfree
         path: ${{ github.workspace }}/ffmpeg-win64-static-nonfree-msys2.zip
         retention-days: 7
