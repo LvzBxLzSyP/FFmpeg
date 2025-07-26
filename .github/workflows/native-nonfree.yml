@@ -479,24 +479,22 @@ jobs:
             echo "Warning: $dll not found"
           fi
         done
-
-        cat > package/WARNING.txt << 'EOF'
-WARNING: This FFmpeg build includes the following components that may have patent or licensing restrictions:
-
-- libfdk-aac (AAC encoder)
-- NVENC support (dynamically loaded at runtime from NVIDIA proprietary drivers)
-
-Other enabled encoders, such as libx264, libaom, libsvtav1, libxeve, and libxevd, are generally considered free and open source under GPL or similar licenses.
-
-Use of this software may be subject to patent restrictions and licensing obligations in your jurisdiction.
-You are responsible for complying with all applicable laws.
-
-No warranty is provided. Use at your own risk.
-
-For more information, please consult:
-- https://ffmpeg.org/legal.html
-- https://ffmpeg.org/license.html
-EOF
+        
+        echo "WARNING: This FFmpeg build includes the following components that may have patent or licensing restrictions:" > package/WARNING.txt
+        echo "" >> package/WARNING.txt
+        echo "- libfdk-aac (AAC encoder)" >> package/WARNING.txt
+        echo "- NVENC support (dynamically loaded at runtime from NVIDIA proprietary drivers)" >> package/WARNING.txt
+        echo "" >> package/WARNING.txt
+        echo "Other enabled encoders, such as libx264, libaom, libsvtav1, libxeve, and libxevd, are generally considered free and open source under GPL or similar licenses." >> package/WARNING.txt
+        echo "" >> package/WARNING.txt
+        echo "Use of this software may be subject to patent restrictions and licensing obligations in your jurisdiction." >> package/WARNING.txt
+        echo "You are responsible for complying with all applicable laws." >> package/WARNING.txt
+        echo "" >> package/WARNING.txt
+        echo "No warranty is provided. Use at your own risk." >> package/WARNING.txt
+        echo "" >> package/WARNING.txt
+        echo "For more information, please consult:" >> package/WARNING.txt
+        echo "- https://ffmpeg.org/legal.html" >> package/WARNING.txt
+        echo "- https://ffmpeg.org/license.html" >> package/WARNING.txt
     
         echo "Zipping package..."
         cd package
