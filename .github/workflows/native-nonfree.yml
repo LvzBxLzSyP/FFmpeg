@@ -224,7 +224,7 @@ jobs:
         ninja
         cmake --install . --component Development
 
-    - name: Build libxeve
+    - name: Build libxevd
       shell: msys2 {0}
       run: |
         git clone https://github.com/mpeg5/xevd.git
@@ -487,4 +487,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ffmpeg-win64-static-msys2
-        path: ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip
+        path: ${{ github.workspace }}/ffmpeg-win64-static-nonfree-msys2.zip
+        retention-days: 7
