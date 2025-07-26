@@ -368,7 +368,7 @@ jobs:
           --extra-cflags="$CFLAGS" \
           --extra-cxxflags="$CXXFLAGS" \
           --extra-ldflags="$LDFLAGS" \
-          --extra-ldexeflags="$LDFLAGS -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
+          --extra-ldexeflags="$LDFLAGS -L/d/ffmpeg-build/lib/xevd -L/d/ffmpeg-build/lib/xeve -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
           --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lwinmm -ldxguid" \
           --enable-static \
           --disable-shared \
