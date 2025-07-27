@@ -8,6 +8,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
@@ -60,6 +63,8 @@ jobs:
 
         echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
         echo "PATH=$PREFIX/bin:$PATH" >> $GITHUB_ENV
+
+        echo -e "x264\nx265\nSVT-AV1\nrav1e\naom\nlibvpx\nvvenc\nndec\nxeve\nxevd\nfreetype\nlame-3.100\nfribidi-1.0.13\nharfbuzz-11.3.2\nlibass\nopus\nnv-codec-headers\nffmpeg\npackages" >> ${{ github.workspace }}/.gitignore
 
     - name: Use MSYS2 Rust
       shell: msys2 {0}
