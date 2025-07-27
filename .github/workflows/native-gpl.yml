@@ -477,6 +477,6 @@ jobs:
       with:
         tag_name: ${{ steps.tagger.outputs.tag_name }}
         name: ${{ steps.tagger.outputs.release_name }}
-        files: ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip
+        files: ffmpeg-win64-static-msys2.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
