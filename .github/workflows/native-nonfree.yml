@@ -498,7 +498,7 @@ jobs:
     
         echo "Zipping package..."
         cd package
-        zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-msys2-nonfree.zip .
+        zip -r /d/a/FFmpeg/FFmpeg/ffmpeg-win64-static-nonfree-msys2.zip .
         
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
