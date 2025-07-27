@@ -2,6 +2,8 @@ name: Build Ultimate Static Windows FFmpeg with MSYS2
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *' 
 
 jobs:
   build-ffmpeg-win64:
