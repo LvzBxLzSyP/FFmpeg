@@ -108,7 +108,7 @@ jobs:
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
           .
-        ninja
+        ninja -j$(nproc)
         ninja install
         cd ..
 
@@ -140,7 +140,7 @@ jobs:
           -DENABLE_TESTS=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS"
-        ninja
+        ninja -j$(nproc)
         ninja install
         cd ../..
 
@@ -217,7 +217,7 @@ jobs:
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
           .
-        ninja
+        ninja -j$(nproc)
         cmake --install . --component Development
 
     - name: Build libxevd
@@ -233,7 +233,7 @@ jobs:
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
           .
-        ninja
+        ninja -j$(nproc)
         cmake --install . --component Development
 
     - name: Build freetype2
@@ -258,19 +258,36 @@ jobs:
         make install
         cd ..
 
-    - name: Build libflac
+    - name: Build libogg
       shell: msys2 {0}
       run: |
-        git clone https://github.com/xiph/flac.git
-        cd flac
-        cmake -G Ninja \
+        git clone https://github.com/xiph/ogg.git
+        cd ogg
+        mkdir build && cd build
+        cmake .. -G Ninja \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
-        ninja
+        ninja -j$(nproc)
+        ninja install
+
+    - name: Build libflac
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/xiph/flac.git
+        cd flac
+        mkdir build && cd build
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja -j$(nproc)
         ninja install
         cd ..
 
