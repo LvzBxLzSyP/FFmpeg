@@ -66,7 +66,7 @@ jobs:
         echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
         echo "PATH=$PREFIX/bin:$PATH" >> $GITHUB_ENV
 
-        echo -e "x264\nx265\nSVT-AV1\nrav1e\naom\nlibvpx\nvvenc\nndec\nxeve\nxevd\nfreetype\nlame-3.100\nfribidi-1.0.13\nharfbuzz-11.3.2\nlibass\nopus\nnv-codec-headers\nffmpeg\npackages" >> /d/a/FFmpeg/FFmpeg/.gitignore
+        echo -e "x264\nx265\nSVT-AV1\nrav1e\naom\nlibvpx\nvvenc\nndec\nxeve\nxevd\nfreetype\nlame-3.100\nflac\nfribidi-1.0.13\nharfbuzz-11.3.2\nlibass\nopus\nnv-codec-headers\nffmpeg\npackages" >> /d/a/FFmpeg/FFmpeg/.gitignore
 
     - name: Use MSYS2 Rust
       shell: msys2 {0}
@@ -256,6 +256,22 @@ jobs:
         ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
         make -j$(nproc)
         make install
+        cd ..
+
+    - name: Build libflac
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/xiph/flac.git
+        cd flac
+        cmake -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja
+        ninja install
         cd ..
 
     - name: Build fribidi
