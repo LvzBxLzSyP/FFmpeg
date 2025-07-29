@@ -284,6 +284,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
+          -DINSTALL_MANPAGES=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
