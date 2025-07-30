@@ -83,6 +83,9 @@ jobs:
         path: |
           D:/ffmpeg-build/
         key: ${{ steps.cache-key.outputs.key }}
+        restore-keys: |
+          ultimate-ffmpeg-2024-
+          ultimate-ffmpeg-
 
     - name: Set environment variables
       if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
@@ -532,7 +535,7 @@ jobs:
 
   build-mpc-be:
     needs: build-ultimate-ffmpeg
-    runs-on: windows-2022
+    runs-on: windows-2025
     strategy:
       matrix:
         platform: [x64]
