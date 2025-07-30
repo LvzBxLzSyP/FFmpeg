@@ -486,8 +486,6 @@ jobs:
           --enable-libxevd \
           --enable-libmp3lame \
           --enable-libopus \
-          --enable-libogg \
-          --enable-libflac \
           --enable-libvorbis \
           --enable-libass \
           --enable-libfreetype \
