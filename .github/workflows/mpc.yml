@@ -76,13 +76,7 @@ jobs:
           xz
           patch
 
-    
-    - name: Set environment variables
-      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
-      shell: msys2 {0}
-      run: |
-        export PREFIX="/d/ffmpeg-build"
-        echo "PREFIX=$PR- name: Generate FFmpeg cache key
+    - name: Generate FFmpeg cache key
       id: cache-key
       shell: msys2 {0}
       run: |
@@ -138,7 +132,7 @@ jobs:
           ${{ steps.cache-key.outputs.restore_base }}
           ultimate-ffmpeg-2024-
           ultimate-ffmpeg-
-          
+
     - name: Set environment variables
       if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
       shell: msys2 {0}
