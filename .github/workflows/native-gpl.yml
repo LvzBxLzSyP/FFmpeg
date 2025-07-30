@@ -273,6 +273,7 @@ jobs:
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
         ninja -j$(nproc)
         ninja install
+        cd ../..
 
     - name: Build libflac
       shell: msys2 {0}
@@ -290,7 +291,25 @@ jobs:
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
         ninja -j$(nproc)
         ninja install
-        cd ..
+        cd ../..
+
+    - name: Build libvorbis
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/xiph/vorbis.git
+        cd vorbis
+        mkdir build && cd build
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DINSTALL_MANPAGES=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
 
     - name: Build fribidi
       shell: msys2 {0}
