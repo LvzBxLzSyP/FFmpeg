@@ -20,6 +20,16 @@ on:
         required: false
         default: false
         type: boolean
+      cache_strategy:
+        description: 'Cache strategy'
+        required: false
+        default: 'smart'
+        type: choice
+        options:
+        - smart
+        - daily
+        - weekly
+        - force_new
   schedule:
     - cron: '0 6 * * 1'  # 每週一早上 6 點自動編譯
 
@@ -66,15 +76,56 @@ jobs:
           xz
           patch
 
-    - name: Generate FFmpeg cache key
+    
+    - name: Set environment variables
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        export PREFIX="/d/ffmpeg-build"
+        echo "PREFIX=$PR- name: Generate FFmpeg cache key
       id: cache-key
       shell: msys2 {0}
       run: |
-        # 基於所有編解碼器源碼的 commit hash 生成緩存鍵
+        # 根據策略生成不同的緩存鍵
+        STRATEGY="${{ github.event.inputs.cache_strategy || 'smart' }}"
         DATE=$(date -u +"%Y-%m-%d")
-        CACHE_KEY="ultimate-ffmpeg-${DATE}"
+        WEEK=$(date -u +"%Y-W%U")
+        
+        case "$STRATEGY" in
+          "daily")
+            CACHE_KEY="ultimate-ffmpeg-daily-${DATE}"
+            RESTORE_BASE="ultimate-ffmpeg-daily"
+            ;;
+          "weekly") 
+            CACHE_KEY="ultimate-ffmpeg-weekly-${WEEK}"
+            RESTORE_BASE="ultimate-ffmpeg-weekly"
+            ;;
+          "force_new")
+            CACHE_KEY="ultimate-ffmpeg-force-$(date -u +"%Y%m%d-%H%M%S")"
+            RESTORE_BASE="ultimate-ffmpeg-force"
+            ;;
+          "smart"|*)
+            # 智能緩存：基於主要組件的 commit
+            X264_COMMIT=$(curl -s "https://api.github.com/repos/mirror/x264/commits/master" | grep -o '"sha":"[^"]*' | head -1 | cut -d'"' -f4 | cut -c1-8 2>/dev/null || echo "unknown")
+            FFMPEG_COMMIT=$(curl -s "https://api.github.com/repos/FFmpeg/FFmpeg/commits/master" | grep -o '"sha":"[^"]*' | head -1 | cut -d'"' -f4 | cut -c1-8 2>/dev/null || echo "unknown")
+            
+            CACHE_KEY="ultimate-ffmpeg-smart-${DATE}-${FFMPEG_COMMIT}-${X264_COMMIT}"
+            RESTORE_BASE="ultimate-ffmpeg-smart-${DATE}"
+            ;;
+        esac
+        
+        # 如果強制重建，修改緩存鍵
+        if [[ "${{ github.event.inputs.force_rebuild_ffmpeg }}" == "true" ]]; then
+          CACHE_KEY="${CACHE_KEY}-force-$(date -u +"%H%M%S")"
+        fi
+        
         echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
+        echo "restore_base=$RESTORE_BASE" >> $GITHUB_OUTPUT
+        echo "strategy=$STRATEGY" >> $GITHUB_OUTPUT
+        
+        echo "Cache strategy: $STRATEGY"
         echo "FFmpeg cache key: $CACHE_KEY"
+        echo "Restore base: $RESTORE_BASE"
 
     - name: Cache Ultimate FFmpeg build
       id: cache-ffmpeg
@@ -84,9 +135,10 @@ jobs:
           D:/ffmpeg-build/
         key: ${{ steps.cache-key.outputs.key }}
         restore-keys: |
+          ${{ steps.cache-key.outputs.restore_base }}
           ultimate-ffmpeg-2024-
           ultimate-ffmpeg-
-
+          
     - name: Set environment variables
       if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
       shell: msys2 {0}
