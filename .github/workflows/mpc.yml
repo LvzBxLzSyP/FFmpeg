@@ -610,11 +610,45 @@ jobs:
           $content | Out-File $mainConfigPath -Encoding UTF8
         }
 
-    - name: Patch MPC-BE project files
+    - name: Find and patch MPC-BE project files
       shell: powershell
       run: |
-        # 修改主專案文件
-        $vcxprojPath = "src\mpc-be\mpc-be.vcxproj"
+        # 首先找到 MPC-BE 的實際項目結構
+        Write-Host "Exploring MPC-BE directory structure..."
+        Get-ChildItem -Recurse -Name "*.vcxproj" | Head -10
+        Get-ChildItem -Recurse -Name "*.sln" | Head -5
+        
+        # 找到主項目文件
+        $possiblePaths = @(
+          "src\mpc-be\mpc-be.vcxproj",
+          "mpc-be.vcxproj", 
+          "src\apps\mpc-be\mpc-be.vcxproj",
+          "src\mpc-be64.vcxproj"
+        )
+        
+        $vcxprojPath = $null
+        foreach ($path in $possiblePaths) {
+          if (Test-Path $path) {
+            $vcxprojPath = $path
+            Write-Host "Found MPC-BE project file: $path"
+            break
+          }
+        }
+        
+        if (-not $vcxprojPath) {
+          # 如果找不到，搜索所有 .vcxproj 文件
+          $allProjects = Get-ChildItem -Recurse -Filter "*.vcxproj" | Where-Object { $_.Name -like "*mpc-be*" }
+          if ($allProjects.Count -gt 0) {
+            $vcxprojPath = $allProjects[0].FullName
+            Write-Host "Found alternative project file: $vcxprojPath"
+          } else {
+            Write-Error "Could not find MPC-BE project file"
+            Get-ChildItem -Recurse -Filter "*.vcxproj" | Select-Object Name, Directory
+            exit 1
+          }
+        }
+        
+        # 讀取並修改項目文件
         $content = Get-Content $vcxprojPath -Raw
         
         # 添加 Ultimate FFmpeg 包含目錄
@@ -643,15 +677,60 @@ jobs:
         $content = $content -replace '(<AdditionalDependencies>[^<]*)', "`$0$systemLibs"
         
         $content | Out-File $vcxprojPath -Encoding UTF8
+        Write-Host "Successfully patched: $vcxprojPath"
 
-        # 修改過濾器專案文件
-        $filtersProjPath = "src\filters\filters.vcxproj"
-        if (Test-Path $filtersProjPath) {
-          $filtersContent = Get-Content $filtersProjPath -Raw
-          $filtersContent = $filtersContent -replace '(<AdditionalIncludeDirectories>)', "`$1$ffmpegInclude;"
-          $filtersContent = $filtersContent -replace '(<AdditionalLibraryDirectories>)', "`$1$ffmpegLibDir;"
-          $filtersContent | Out-File $filtersProjPath -Encoding UTF8
+        # 尋找並修改過濾器專案文件
+        $filtersPossiblePaths = @(
+          "src\filters\filters.vcxproj",
+          "filters\filters.vcxproj",
+          "src\DSUtil\DSUtil.vcxproj"
+        )
+        
+        foreach ($filtersPath in $filtersPossiblePaths) {
+          if (Test-Path $filtersPath) {
+            Write-Host "Found filters project: $filtersPath"
+            $filtersContent = Get-Content $filtersPath -Raw
+            $filtersContent = $filtersContent -replace '(<AdditionalIncludeDirectories>)', "`$1$ffmpegInclude;"
+            $filtersContent = $filtersContent -replace '(<AdditionalLibraryDirectories>)', "`$1$ffmpegLibDir;"
+            $filtersContent | Out-File $filtersPath -Encoding UTF8
+            Write-Host "Successfully patched filters project: $filtersPath"
+            break
+          }
         }
+
+    - name: Find and prepare build solution
+      shell: powershell
+      run: |
+        # 找到主解決方案文件
+        $possibleSolutions = @(
+          "mpc-be.sln",
+          "src\mpc-be.sln", 
+          "mpc-be_2022.sln",
+          "build\mpc-be.sln"
+        )
+        
+        $solutionPath = $null
+        foreach ($path in $possibleSolutions) {
+          if (Test-Path $path) {
+            $solutionPath = $path
+            Write-Host "Found solution file: $path"
+            break
+          }
+        }
+        
+        if (-not $solutionPath) {
+          # 搜索所有解決方案文件
+          $allSolutions = Get-ChildItem -Recurse -Filter "*.sln"
+          if ($allSolutions.Count -gt 0) {
+            $solutionPath = $allSolutions[0].FullName
+            Write-Host "Found alternative solution: $solutionPath"
+          } else {
+            Write-Error "Could not find solution file"
+            exit 1
+          }
+        }
+        
+        echo "SOLUTION_PATH=$solutionPath" >> $env:GITHUB_ENV
 
     - name: Build MPC-BE Ultimate
       shell: powershell
