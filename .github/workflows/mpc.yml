@@ -463,9 +463,7 @@ jobs:
           --enable-version3 \
           --disable-w32threads \
           --enable-pthreads \
-          --enable-runtime-cpudetect \
           --enable-asm \
-          --enable-yasm \
           --enable-mmx \
           --enable-sse \
           --enable-sse2 \
