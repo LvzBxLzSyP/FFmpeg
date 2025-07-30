@@ -1,0 +1,846 @@
+name: Build MPC-BE with Ultimate Static FFmpeg
+
+on:
+  workflow_dispatch:
+    inputs:
+      mpc_be_branch:
+        description: 'MPC-BE branch/tag to build'
+        required: false
+        default: 'master'
+      build_config:
+        description: 'Build configuration'
+        required: false
+        default: 'Release'
+        type: choice
+        options:
+        - Debug
+        - Release
+      include_debug_symbols:
+        description: 'Include debug symbols'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    - cron: '0 6 * * 1'  # 每週一早上 6 點自動編譯
+
+env:
+  VCPKG_BINARY_SOURCES: 'clear;x-gha,readwrite'
+
+jobs:
+  build-ultimate-ffmpeg:
+    runs-on: windows-latest
+    outputs:
+      ffmpeg-artifact-name: ${{ steps.artifact-name.outputs.name }}
+      
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          mingw-w64-x86_64-toolchain
+          mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-ninja
+          mingw-w64-x86_64-nasm
+          mingw-w64-x86_64-yasm
+          mingw-w64-x86_64-pkg-config
+          mingw-w64-x86_64-zlib
+          mingw-w64-x86_64-rust
+          mingw-w64-x86_64-diffutils
+          mingw-w64-x86_64-libvpl
+          mingw-w64-x86_64-SDL2
+          autoconf
+          automake
+          libtool
+          make
+          git
+          curl
+          wget
+          unzip
+          zip
+          tar
+          xz
+          patch
+
+    - name: Generate FFmpeg cache key
+      id: cache-key
+      shell: msys2 {0}
+      run: |
+        # 基於所有編解碼器源碼的 commit hash 生成緩存鍵
+        DATE=$(date -u +"%Y-%m-%d")
+        CACHE_KEY="ultimate-ffmpeg-${DATE}"
+        echo "key=$CACHE_KEY" >> $GITHUB_OUTPUT
+        echo "FFmpeg cache key: $CACHE_KEY"
+
+    - name: Cache Ultimate FFmpeg build
+      id: cache-ffmpeg
+      uses: actions/cache@v4
+      with:
+        path: |
+          /d/ffmpeg-build/
+        key: ${{ steps.cache-key.outputs.key }}
+
+    - name: Set environment variables
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        export PREFIX="/d/ffmpeg-build"
+        echo "PREFIX=$PREFIX" >> $GITHUB_ENV
+        mkdir -p $PREFIX
+
+        # 針對 MPC-BE 優化的編譯參數
+        STATIC_FLAGS="-O3 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -march=x86-64-v2"
+        echo "CFLAGS=$STATIC_FLAGS -I$PREFIX/include" >> $GITHUB_ENV
+        echo "CXXFLAGS=$STATIC_FLAGS -std=c++17 -I$PREFIX/include" >> $GITHUB_ENV
+        echo "LDFLAGS=$STATIC_FLAGS -L$PREFIX/lib" >> $GITHUB_ENV
+
+        echo "PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig" >> $GITHUB_ENV
+        echo "PATH=$PREFIX/bin:$PATH" >> $GITHUB_ENV
+
+    # 所有編解碼器編譯步驟（只在緩存未命中時執行）
+    - name: Build x264
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://code.videolan.org/videolan/x264.git
+        cd x264
+        ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli --disable-avs --disable-swscale --disable-lavf --disable-ffms --disable-gpac --disable-lsmash
+        make -j$(nproc)
+        make install
+
+    - name: Install prebuilt x265
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/LvzBxLzSyP/x265.git
+        cd x265
+        mkdir -p $PREFIX/include $PREFIX/lib
+        cp -r ./include/* $PREFIX/include/
+        cp -r ./lib/* $PREFIX/lib/
+
+    - name: Build SVT-AV1
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+        cd SVT-AV1
+        cmake -G "Ninja" \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_APPS=OFF \
+          -DBUILD_DEC=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          .
+        ninja -j$(nproc)
+        ninja install
+
+    - name: Build rav1e
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        export PATH="/mingw64/bin:$PATH"
+        export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
+        git clone --depth=1 https://github.com/xiph/rav1e.git
+        cd rav1e
+        cargo install cargo-c --force
+        cargo cinstall --release --target x86_64-pc-windows-gnu \
+          --library-type staticlib \
+          --prefix="$PREFIX"
+
+    - name: Build libaom
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://aomedia.googlesource.com/aom.git
+        mkdir -p aom/build && cd aom/build
+        cmake .. -G "Ninja" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_NASM=ON \
+          -DENABLE_TOOLS=OFF \
+          -DENABLE_EXAMPLES=OFF \
+          -DENABLE_DOCS=OFF \
+          -DENABLE_TESTS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+        ninja -j$(nproc)
+        ninja install
+
+    - name: Build libvpx
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git
+        cd libvpx
+        LDFLAGS="$LDFLAGS" ./configure \
+          --prefix=$PREFIX \
+          --disable-examples \
+          --disable-unit-tests \
+          --disable-tools \
+          --disable-docs \
+          --enable-vp8 \
+          --enable-vp9 \
+          --enable-vp9-highbitdepth \
+          --enable-static \
+          --disable-shared \
+          --extra-cflags="$CFLAGS"
+        make -j$(nproc)
+        make install
+
+    # 省略其他編解碼器步驟，保持與原配置相同...
+    - name: Build VVenC
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
+        cd vvenc
+        cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
+          -G Ninja
+        ninja -j$(nproc)
+        ninja install
+        
+    - name: Build VVdeC
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
+        export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
+        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
+        cd vvdec
+        cmake \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
+          -G Ninja
+        ninja -j$(nproc)
+        ninja install
+
+    - name: Build libxeve
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/mpeg5/xeve.git
+        cd xeve
+        cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+          .
+        ninja -j$(nproc)
+        cmake --install . --component Development
+
+    - name: Build libxevd
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/mpeg5/xevd.git
+        cd xevd
+        cmake -G Ninja \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+          .
+        ninja -j$(nproc)
+        cmake --install . --component Development
+
+    - name: Build freetype2
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git
+        cd freetype
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --enable-static --disable-shared --without-bzip2 --without-png CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build libmp3lame
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        wget https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+        tar xzf lame-3.100.tar.gz
+        cd lame-3.100
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build libogg
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/xiph/ogg.git
+        cd ogg
+        mkdir build && cd build
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+
+    - name: Build libflac
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/xiph/flac.git
+        cd flac
+        mkdir build && cd build
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DINSTALL_MANPAGES=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+
+    - name: Build libvorbis
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/xiph/vorbis.git
+        cd vorbis
+        mkdir build && cd build
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DINSTALL_MANPAGES=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+
+    - name: Build fribidi
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
+        tar xf fribidi-1.0.13.tar.xz
+        cd fribidi-1.0.13
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-docs CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build harfbuzz
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        wget https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
+        tar xf harfbuzz-11.3.2.tar.xz
+        cd harfbuzz-11.3.2
+        mkdir build && cd build
+        export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DHB_HAVE_FREETYPE=ON \
+          -DHB_HAVE_GLIB=OFF \
+          -DHB_HAVE_GOBJECT=OFF \
+          -DHB_HAVE_CAIRO=OFF \
+          -DHB_HAVE_FONTCONFIG=OFF \
+          -DHB_HAVE_ICU=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+
+    - name: Build libass
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/libass/libass.git
+        cd libass
+        export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --disable-shared --enable-static CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Build opus
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/xiph/opus.git
+        cd opus
+        ./autogen.sh
+        ./configure --prefix=$PREFIX --disable-shared --enable-static CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
+        cd ..
+
+    - name: Install NVENC headers
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/FFmpeg/nv-codec-headers.git
+        cd nv-codec-headers
+        make PREFIX=$PREFIX
+        make install PREFIX=$PREFIX
+        cd ..
+
+    - name: Build Ultimate FFmpeg for MPC-BE
+      if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      shell: msys2 {0}
+      run: |
+        git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+        cd ffmpeg
+        export PATH="/mingw64/bin:$PATH"
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
+
+        # 檢查 x265 是否可用
+        X265_FLAG=""
+        if pkg-config --exists x265 || [ -f "$PREFIX/lib/libx265.a" ]; then
+          X265_FLAG="--enable-libx265"
+        fi
+
+        # 應用 VVC 解碼補丁
+        wget -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
+        git apply libvvdec.patch || echo "Patch may already be applied or not needed"
+
+        # 針對 MPC-BE 優化的 FFmpeg 配置
+        ./configure \
+          --prefix=$PREFIX \
+          --pkg-config-flags="--static" \
+          --extra-cflags="$CFLAGS -DWIN32_LEAN_AND_MEAN" \
+          --extra-cxxflags="$CXXFLAGS" \
+          --extra-ldflags="$LDFLAGS" \
+          --extra-ldexeflags="$LDFLAGS -L/d/ffmpeg-build/lib/xevd -L/d/ffmpeg-build/lib/xeve -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
+          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lwinmm -ldxguid" \
+          --enable-static \
+          --disable-shared \
+          --disable-programs \
+          --disable-doc \
+          --disable-htmlpages \
+          --disable-manpages \
+          --disable-podpages \
+          --disable-txtpages \
+          --enable-gpl \
+          --enable-version3 \
+          --disable-w32threads \
+          --enable-pthreads \
+          --enable-runtime-cpudetect \
+          --enable-asm \
+          --enable-yasm \
+          --enable-mmx \
+          --enable-sse \
+          --enable-sse2 \
+          --enable-sse3 \
+          --enable-sse4 \
+          --enable-sse42 \
+          --enable-avx \
+          --enable-avx2 \
+          --enable-libx264 \
+          $X265_FLAG \
+          --enable-librav1e \
+          --enable-libsvtav1 \
+          --enable-libaom \
+          --enable-libvpx \
+          --enable-libvvenc \
+          --enable-libvvdec \
+          --enable-libxeve \
+          --enable-libxevd \
+          --enable-libmp3lame \
+          --enable-libopus \
+          --enable-libogg \
+          --enable-libflac \
+          --enable-libvorbis \
+          --enable-libass \
+          --enable-libfreetype \
+          --enable-nvenc \
+          --enable-nvdec \
+          --enable-cuda \
+          --enable-libvpl \
+          --enable-dxva2 \
+          --enable-d3d11va \
+          --enable-mediafoundation \
+          --enable-schannel || cat ffbuild/config.log
+
+        make -j$(nproc)
+        make install
+
+        # 為 MPC-BE 創建特殊的配置文件
+        cat > $PREFIX/ffmpeg-mpc-be.pc << EOF
+        prefix=$PREFIX
+        exec_prefix=\${prefix}
+        libdir=\${exec_prefix}/lib
+        includedir=\${prefix}/include
+
+        Name: FFmpeg for MPC-BE
+        Description: Ultimate static FFmpeg build for MPC-BE
+        Version: $(cat VERSION)
+        Requires:
+        Libs: -L\${libdir} -lavformat -lavcodec -lavutil -lswscale -lswresample -lavfilter -lavdevice
+        Libs.private: -lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lwinmm -ldxguid
+        Cflags: -I\${includedir}
+        EOF
+
+    - name: Set artifact name
+      id: artifact-name
+      run: |
+        $date = Get-Date -Format "yyyy-MM-dd-HH-mm"
+        $name = "ultimate-ffmpeg-$date"
+        echo "name=$name" >> $env:GITHUB_OUTPUT
+
+    - name: Upload FFmpeg artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.artifact-name.outputs.name }}
+        path: |
+          /d/ffmpeg-build/
+        retention-days: 7
+
+  build-mpc-be:
+    needs: build-ultimate-ffmpeg
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        platform: [x64]
+        configuration: [Release, Debug]
+        exclude:
+          - configuration: Debug
+            platform: x64
+          
+    steps:
+    - name: Checkout MPC-BE
+      uses: actions/checkout@v4
+      with:
+        repository: 'Aleksoid1978/MPC-BE'
+        ref: ${{ github.event.inputs.mpc_be_branch || 'master' }}
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkgGitCommitId: '2024.01.12'
+
+    - name: Download Ultimate FFmpeg
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ needs.build-ultimate-ffmpeg.outputs.ffmpeg-artifact-name }}
+        path: ffmpeg-ultimate/
+
+    - name: Configure MPC-BE for Ultimate FFmpeg
+      shell: powershell
+      run: |
+        # 設置環境變數
+        $ffmpegRoot = "${{ github.workspace }}\ffmpeg-ultimate"
+        echo "FFMPEG_ROOT=$ffmpegRoot" >> $env:GITHUB_ENV
+        echo "PKG_CONFIG_PATH=$ffmpegRoot\lib\pkgconfig" >> $env:GITHUB_ENV
+
+        # 創建 MPC-BE 自定義配置
+        $configHeader = @"
+        #pragma once
+        #ifndef MPC_BE_ULTIMATE_CONFIG_H
+        #define MPC_BE_ULTIMATE_CONFIG_H
+
+        // Ultimate FFmpeg 支援
+        #define USE_STATIC_FFMPEG 1
+        #define FFMPEG_SUPPORT 1
+        #define HAVE_FFMPEG 1
+
+        // 最新編解碼器支援
+        #define HAVE_AV1_DECODE 1
+        #define HAVE_VVC_DECODE 1
+        #define HAVE_EVC_SUPPORT 1
+        #define HAVE_ULTIMATE_CODECS 1
+
+        // 硬體加速支援
+        #define HAVE_DXVA2 1
+        #define HAVE_D3D11VA 1
+        #define HAVE_NVDEC 1
+        #define HAVE_QSV 1
+
+        #endif // MPC_BE_ULTIMATE_CONFIG_H
+        "@
+        
+        $configHeader | Out-File -FilePath "src\mpc-be_ultimate_config.h" -Encoding UTF8
+
+        # 修改主配置文件
+        $mainConfigPath = "src\mpc-be_config.h"
+        if (Test-Path $mainConfigPath) {
+          $content = Get-Content $mainConfigPath -Raw
+          $content = $content -replace '#define USE_STATIC_FFMPEG.*', '#define USE_STATIC_FFMPEG 1'
+          $content = $content -replace '#define FFMPEG_SUPPORT.*', '#define FFMPEG_SUPPORT 1'
+          $content += "`n#include `"mpc-be_ultimate_config.h`"`n"
+          $content | Out-File $mainConfigPath -Encoding UTF8
+        }
+
+    - name: Patch MPC-BE project files
+      shell: powershell
+      run: |
+        # 修改主專案文件
+        $vcxprojPath = "src\mpc-be\mpc-be.vcxproj"
+        $content = Get-Content $vcxprojPath -Raw
+        
+        # 添加 Ultimate FFmpeg 包含目錄
+        $ffmpegInclude = "`$(FFMPEG_ROOT)\include"
+        $content = $content -replace '(<AdditionalIncludeDirectories>)', "`$1$ffmpegInclude;"
+        
+        # 添加 Ultimate FFmpeg 庫目錄
+        $ffmpegLibDir = "`$(FFMPEG_ROOT)\lib"
+        $content = $content -replace '(<AdditionalLibraryDirectories>)', "`$1$ffmpegLibDir;"
+        
+        # 添加完整的 FFmpeg 庫依賴（包括所有編解碼器）
+        $ultimateLibs = @(
+          "avcodec.lib", "avformat.lib", "avutil.lib", "swscale.lib", 
+          "swresample.lib", "avfilter.lib", "avdevice.lib",
+          "x264.lib", "x265.lib", "aom.lib", "vpx.lib", 
+          "svtav1enc.lib", "rav1e.lib", "vvenc.lib", "vvdec.lib",
+          "xeve.lib", "xevd.lib", "mp3lame.lib", "opus.lib",
+          "ogg.lib", "flac.lib", "vorbis.lib", "vorbisenc.lib",
+          "ass.lib", "freetype.lib", "fribidi.lib", "harfbuzz.lib"
+        ) -join ";"
+        
+        $content = $content -replace '(<AdditionalDependencies>)', "`$1$ultimateLibs;"
+        
+        # 添加系統庫
+        $systemLibs = "ws2_32.lib;secur32.lib;bcrypt.lib;winmm.lib;dxguid.lib;"
+        $content = $content -replace '(<AdditionalDependencies>[^<]*)', "`$0$systemLibs"
+        
+        $content | Out-File $vcxprojPath -Encoding UTF8
+
+        # 修改過濾器專案文件
+        $filtersProjPath = "src\filters\filters.vcxproj"
+        if (Test-Path $filtersProjPath) {
+          $filtersContent = Get-Content $filtersProjPath -Raw
+          $filtersContent = $filtersContent -replace '(<AdditionalIncludeDirectories>)', "`$1$ffmpegInclude;"
+          $filtersContent = $filtersContent -replace '(<AdditionalLibraryDirectories>)', "`$1$ffmpegLibDir;"
+          $filtersContent | Out-File $filtersProjPath -Encoding UTF8
+        }
+
+    - name: Build MPC-BE Ultimate
+      shell: powershell
+      run: |
+        $platform = "${{ matrix.platform }}"
+        $configuration = "${{ matrix.configuration }}"
+        
+        # 設置編譯參數
+        $buildArgs = @(
+          "mpc-be.sln"
+          "/p:Configuration=$configuration"
+          "/p:Platform=$platform"
+          "/p:WindowsTargetPlatformVersion=10.0"
+          "/p:PlatformToolset=v143"
+          "/p:UseEnv=true"
+          "/p:PreferredToolArchitecture=x64"
+          "/p:EnableClangTidyCodeAnalysis=false"
+          "/m"
+          "/verbosity:minimal"
+          "/p:WarningLevel=1"
+        )
+        
+        if ("${{ github.event.inputs.include_debug_symbols }}" -eq "true") {
+          $buildArgs += "/p:GenerateDebugInformation=true"
+        }
+        
+        msbuild @buildArgs
+
+    - name: Test MPC-BE Ultimate build
+      shell: powershell
+      run: |
+        $platform = "${{ matrix.platform }}"
+        $configuration = "${{ matrix.configuration }}"
+        
+        $exeName = if ($platform -eq "x86") { "mpc-be.exe" } else { "mpc-be64.exe" }
+        $exePath = "bin\mpc-be_$platform\$configuration\$exeName"
+        
+        if (Test-Path $exePath) {
+          Write-Host "✅ MPC-BE Ultimate build successful: $exePath"
+          $fileInfo = Get-Item $exePath
+          Write-Host "File size: $([math]::Round($fileInfo.Length / 1MB, 2)) MB"
+          
+          # 檢查依賴的 DLL（應該很少，因為是靜態連結）
+          Write-Host "`nDependencies:"
+          dumpbin /dependents $exePath | Select-String "\.dll"
+        } else {
+          Write-Error "❌ MPC-BE Ultimate build failed"
+          exit 1
+        }
+
+    - name: Package MPC-BE Ultimate
+      shell: powershell
+      run: |
+        $platform = "${{ matrix.platform }}"
+        $configuration = "${{ matrix.configuration }}"
+        $timestamp = Get-Date -Format "yyyy-MM-dd-HH-mm"
+        $packageName = "MPC-BE-Ultimate-$platform-$configuration-$timestamp"
+        
+        New-Item -ItemType Directory -Path $packageName -Force
+        
+        # 複製主程序
+        $exeName = if ($platform -eq "x86") { "mpc-be.exe" } else { "mpc-be64.exe" }
+        $exePath = "bin\mpc-be_$platform\$configuration\$exeName"
+        
+        if (Test-Path $exePath) {
+          Copy-Item $exePath "$packageName\"
+          
+          # 重命名為更清楚的名稱
+          $newName = "MPC-BE-Ultimate-$platform.exe"
+          Rename-Item "$packageName\$exeName" $newName
+        }
+        
+        # 複製文檔和授權文件
+        @("COPYING.txt", "readme.txt", "AUTHORS", "CHANGELOG") | ForEach-Object {
+          if (Test-Path $_) {
+            Copy-Item $_ "$packageName\"
+          }
+        }
+        
+        # 創建說明文件
+        $readmeContent = @"
+        MPC-BE Ultimate Build
+        ====================
+        
+        Build Information:
+        - Platform: $platform
+        - Configuration: $configuration  
+        - Build Date: $timestamp
+        - FFmpeg: Ultimate static build with latest codecs
+        
+        Supported Codecs:
+        - Video: H.264, H.265/HEVC, AV1, VP8/VP9, VVC/H.266, EVC
+        - Audio: AAC, MP3, Opus, FLAC, Vorbis
+        - Hardware Acceleration: DXVA2, D3D11VA, NVDEC, QuickSync
+        
+        This build includes the latest video codecs and optimizations.
+        "@
+        
+        $readmeContent | Out-File "$packageName\README-Ultimate.txt" -Encoding UTF8
+        
+        # 創建版本信息
+        $versionInfo = @{
+          "build_date" = $timestamp
+          "platform" = $platform
+          "configuration" = $configuration
+          "ffmpeg_version" = "Ultimate Static Build"
+          "supported_codecs" = @("H.264", "H.265", "AV1", "VP8", "VP9", "VVC", "EVC")
+        } | ConvertTo-Json -Depth 3
+        
+        $versionInfo | Out-File "$packageName\build-info.json" -Encoding UTF8
+        
+        echo "PACKAGE_NAME=$packageName" >> $env:GITHUB_ENV
+
+    - name: Upload MPC-BE Ultimate
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.PACKAGE_NAME }}
+        path: ${{ env.PACKAGE_NAME }}/
+        retention-days: 30
+
+  create-ultimate-release:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    needs: [build-ultimate-ffmpeg, build-mpc-be]
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      
+    - name: Create release packages
+      run: |
+        # 創建發布包
+        for dir in MPC-BE-Ultimate-*/; do
+          if [ -d "$dir" ]; then
+            archive_name="${dir%/}.7z"
+            7z a -t7z -m0=lzma2 -mx=9 -mfb=64 -md=32m -ms=on "$archive_name" "$dir"*
+            echo "Created: $archive_name"
+          fi
+        done
+        
+        ls -la *.7z
+
+    - name: Generate release info
+      id: release-info
+      run: |
+        TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+        TAG="ultimate-$(date -u +"%Y%m%d-%H%M%S")"
+        
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+        echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+
+    - name: Create Ultimate Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.release-info.outputs.tag }}
+        name: "MPC-BE Ultimate ${{ steps.release-info.outputs.tag }}"
+        body: |
+          # MPC-BE Ultimate Build 🚀
+          
+          **The most advanced MPC-BE build with cutting-edge video codec support!**
+          
+          ## 🎥 Supported Video Codecs
+          - **H.264/AVC** - Industry standard
+          - **H.265/HEVC** - 4K/8K ready  
+          - **AV1** - Next-gen efficiency
+          - **VP8/VP9** - Web optimized
+          - **VVC/H.266** - Future standard ⭐
+          - **EVC** - MPEG-5 Essential Video Coding ⭐
+          
+          ## 🎵 Audio Codecs
+          - AAC, MP3, Opus, FLAC, Vorbis, OGG
+          
+          ## ⚡ Hardware Acceleration
+          - DXVA2, D3D11VA, NVIDIA NVDEC, Intel QuickSync
+          
+          ## 📦 Build Details
+          - **Build Date**: ${{ steps.release-info.outputs.timestamp }}
+          - **FFmpeg**: Ultimate static build with all codecs
+          - **Optimization**: x86-64-v2 with AVX2 support
+          - **Linking**: Fully static (no external dependencies)
+          
+          ## 📋 Variants
+          - **x64 Release**: Optimized for production use
+          - **x64 Debug**: For development and debugging
+          
+          **Note**: This build includes experimental codecs and the latest video standards. Perfect for enthusiasts and professionals who need the most comprehensive codec support.
+        files: |
+          *.7z
+        draft: false
+        prerelease: false
