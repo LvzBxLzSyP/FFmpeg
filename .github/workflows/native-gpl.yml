@@ -522,6 +522,7 @@ jobs:
         path: ${{ github.workspace }}/ffmpeg-win64-static-msys2.zip
         
     - name: Create Git Tag
+      if: github.event_name == 'schedule'
       shell: msys2 {0}
       run: |
         git config --global user.email "action@github.com"
@@ -530,6 +531,7 @@ jobs:
         git push origin ${{ steps.tagger.outputs.tag_name }}
 
     - name: Upload to GitHub Release
+      if: github.event_name == 'schedule'
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.tagger.outputs.tag_name }}
