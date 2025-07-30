@@ -302,6 +302,7 @@ jobs:
         cmake .. -G Ninja \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
           -DBUILD_SHARED_LIBS=OFF \
           -DINSTALL_MANPAGES=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
