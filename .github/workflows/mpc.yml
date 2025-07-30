@@ -81,7 +81,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          /d/ffmpeg-build/
+          D:/ffmpeg-build/
         key: ${{ steps.cache-key.outputs.key }}
 
     - name: Set environment variables
@@ -527,7 +527,7 @@ jobs:
       with:
         name: ${{ steps.artifact-name.outputs.name }}
         path: |
-          /d/ffmpeg-build/
+          D:/ffmpeg-build/
         retention-days: 7
 
   build-mpc-be:
@@ -556,7 +556,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: '2024.01.12'
+        vcpkgGitCommitId: '7087dcfba66c8da4acb50b09ea680b4e9050a4e9'
 
     - name: Download Ultimate FFmpeg
       uses: actions/download-artifact@v4
