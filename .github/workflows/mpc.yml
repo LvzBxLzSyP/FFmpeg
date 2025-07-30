@@ -200,6 +200,8 @@ jobs:
       shell: msys2 {0}
       run: |
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
+        export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
+        export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
         cd vvenc
         cmake \
           -DCMAKE_BUILD_TYPE=Release \
