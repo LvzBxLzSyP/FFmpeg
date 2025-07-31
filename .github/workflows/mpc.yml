@@ -917,6 +917,8 @@ jobs:
     - name: Retarget solution for compatible SDK
       shell: powershell
       run: |
+        $platform = "${{ matrix.platform }}"
+        $configuration = "${{ matrix.configuration }}"
         Write-Host "Retargeting solution to use SDK: $env:WINDOWS_SDK_VERSION"
         
         # 使用 MSBuild 重新定向解決方案
