@@ -917,7 +917,7 @@ jobs:
     - name: Retarget solution for compatible SDK
       shell: powershell
       run: |
-        $GITHUB_WORKSPACE\.github\external\retarget.ps1
+        & "$env:GITHUB_WORKSPACE\.github\external\retarget.ps1"
         
     - name: Validate project files structure
       shell: powershell
@@ -992,7 +992,7 @@ jobs:
       if: failure()
       shell: powershell
       run: |
-        $GITHUB_WORKSPACE\.github\external\alternative.ps1
+        & "$env:GITHUB_WORKSPACE\.github\external\alternative.ps1"
         
     - name: XML-based project file repair
       shell: powershell
