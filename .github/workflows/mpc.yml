@@ -702,7 +702,7 @@ jobs:
     - name: Setup vcpkg
       uses: lukka/run-vcpkg@v11
       with:
-        vcpkgGitCommitId: '897ba2ab4c4c776b985ab1f599548fcf3ae598ba'
+        vcpkgGitCommitId: '2024.01.12'
 
     - name: Download Ultimate FFmpeg
       uses: actions/download-artifact@v4
@@ -917,45 +917,274 @@ jobs:
     - name: Retarget solution for compatible SDK
       shell: powershell
       run: |
-        $platform = "${{ matrix.platform }}"
-        $configuration = "${{ matrix.configuration }}"
         Write-Host "Retargeting solution to use SDK: $env:WINDOWS_SDK_VERSION"
-        
-        # 使用 MSBuild 重新定向解決方案
-        $retargetArgs = @(
-          "$env:SOLUTION_PATH"
-          "/t:_CheckForInvalidConfigurationAndPlatform"
-          "/p:WindowsTargetPlatformVersion=$env:WINDOWS_SDK_VERSION"
-          "/p:PlatformToolset=v143"
-          "/verbosity:minimal"
-        )
-        
-        try {
-          msbuild @retargetArgs
-          Write-Host "✅ Solution retargeted successfully"
-        } catch {
-          Write-Warning "Retargeting failed, will try manual modification"
-        }
         
         # 手動修改項目文件中的 Windows SDK 版本
         $projectFiles = Get-ChildItem -Recurse -Filter "*.vcxproj"
+        Write-Host "Found $($projectFiles.Count) project files to update"
+        
         foreach ($proj in $projectFiles) {
-          $content = Get-Content $proj.FullName -Raw
+          Write-Host "Processing: $($proj.Name)"
           
-          # 替換 WindowsTargetPlatformVersion
-          $content = $content -replace '<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>', "<WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>"
+          try {
+            $content = Get-Content $proj.FullName -Raw -Encoding UTF8
+            $originalContent = $content
+            
+            # 檢查是否已經有 WindowsTargetPlatformVersion
+            if ($content -match '<WindowsTargetPlatformVersion>([^<]*)</WindowsTargetPlatformVersion>') {
+              # 替換現有的版本
+              $content = $content -replace '<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>', "<WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>"
+              Write-Host "  - Updated existing WindowsTargetPlatformVersion"
+            } else {
+              # 找到第一個 PropertyGroup 並添加 WindowsTargetPlatformVersion
+              if ($content -match '(<PropertyGroup[^>]*>)([\s\S]*?)(</PropertyGroup>)') {
+                $propertyGroupStart = $matches[1]
+                $propertyGroupContent = $matches[2]
+                $propertyGroupEnd = $matches[3]
+                
+                # 檢查是否已經包含平台相關設定
+                if ($propertyGroupContent -match '(Configuration|Platform)') {
+                  $newPropertyGroupContent = $propertyGroupContent + "`n    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>"
+                  $newPropertyGroup = $propertyGroupStart + $newPropertyGroupContent + $propertyGroupEnd
+                  $content = $content -replace [regex]::Escape($matches[0]), $newPropertyGroup
+                  Write-Host "  - Added WindowsTargetPlatformVersion to existing PropertyGroup"
+                } else {
+                  # 在第一個 PropertyGroup 後添加新的 PropertyGroup
+                  $newPropertyGroup = @"
+  <PropertyGroup>
+    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+"@
+                  $content = $content -replace '(</PropertyGroup>)', "`$1`n$newPropertyGroup"
+                  Write-Host "  - Added new PropertyGroup with WindowsTargetPlatformVersion"
+                }
+              } else {
+                # 如果找不到 PropertyGroup，在 Project 開始後添加
+                $newPropertyGroup = @"
+  <PropertyGroup>
+    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+"@
+                $content = $content -replace '(<Project[^>]*>)', "`$1`n$newPropertyGroup"
+                Write-Host "  - Added new PropertyGroup after Project element"
+              }
+            }
+            
+            # 確保 PlatformToolset 正確
+            if ($content -match '<PlatformToolset>([^<]*)</PlatformToolset>') {
+              $content = $content -replace '<PlatformToolset>[^<]*</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>'
+              Write-Host "  - Updated PlatformToolset to v143"
+            } else {
+              # 如果沒有 PlatformToolset，添加它
+              if ($content -match '(<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>)') {
+                $content = $content -replace '(<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>)', "`$1`n    <PlatformToolset>v143</PlatformToolset>"
+                Write-Host "  - Added PlatformToolset v143"
+              }
+            }
+            
+            # 只有在內容變更時才寫入文件
+            if ($content -ne $originalContent) {
+              $content | Out-File $proj.FullName -Encoding UTF8 -NoNewline
+              Write-Host "  ✅ Successfully updated: $($proj.Name)"
+            } else {
+              Write-Host "  ℹ️  No changes needed: $($proj.Name)"
+            }
+            
+          } catch {
+            Write-Warning "  ❌ Failed to process $($proj.Name): $($_.Exception.Message)"
+          }
+        }
+        
+        Write-Host "`nProject files updated successfully"
+
+    - name: Validate project files structure
+      shell: powershell
+      run: |
+        Write-Host "Validating project files..."
+        
+        $projectFiles = Get-ChildItem -Recurse -Filter "*.vcxproj"
+        $validationErrors = @()
+        
+        foreach ($proj in $projectFiles) {
+          try {
+            # 嘗試載入 XML 來驗證結構
+            [xml]$xmlContent = Get-Content $proj.FullName -Raw
+            
+            # 檢查關鍵元素
+            $propertyGroups = $xmlContent.Project.PropertyGroup
+            $hasWindowsSDK = $false
+            $hasPlatformToolset = $false
+            
+            foreach ($pg in $propertyGroups) {
+              if ($pg.WindowsTargetPlatformVersion) {
+                $hasWindowsSDK = $true
+                Write-Host "  ✅ $($proj.Name): WindowsTargetPlatformVersion = $($pg.WindowsTargetPlatformVersion)"
+              }
+              if ($pg.PlatformToolset) {
+                $hasPlatformToolset = $true
+                Write-Host "  ✅ $($proj.Name): PlatformToolset = $($pg.PlatformToolset)"
+              }
+            }
+            
+            if (-not $hasWindowsSDK) {
+              $validationErrors += "$($proj.Name): Missing WindowsTargetPlatformVersion"
+            }
+            if (-not $hasPlatformToolset) {
+              $validationErrors += "$($proj.Name): Missing PlatformToolset"
+            }
+            
+          } catch {
+            $validationErrors += "$($proj.Name): XML parsing failed - $($_.Exception.Message)"
+            
+            # 嘗試修復 XML 結構問題
+            Write-Host "  🔧 Attempting to fix XML structure in $($proj.Name)"
+            $content = Get-Content $proj.FullName -Raw
+            
+            # 修復常見的 XML 問題
+            $content = $content -replace '&(?!amp;|lt;|gt;|quot;|apos;)', '&amp;'
+            $content = $content -replace '<(\s)', '&lt;$1'
+            
+            # 確保正確的 XML 格式
+            if ($content -notmatch '^\s*<\?xml') {
+              $content = '<?xml version="1.0" encoding="utf-8"?>' + "`n" + $content
+            }
+            
+            try {
+              [xml]$fixedXml = $content
+              $content | Out-File $proj.FullName -Encoding UTF8 -NoNewline
+              Write-Host "  ✅ Fixed XML structure in $($proj.Name)"
+            } catch {
+              Write-Warning "  ❌ Could not fix XML structure in $($proj.Name)"
+            }
+          }
+        }
+        
+        if ($validationErrors.Count -gt 0) {
+          Write-Host "`n⚠️  Validation Issues Found:"
+          $validationErrors | ForEach-Object { Write-Host "  - $_" }
+        } else {
+          Write-Host "`n✅ All project files validated successfully"
+        }
+
+    - name: Alternative project fix (if validation failed)
+      if: failure()
+      shell: powershell
+      run: |
+        Write-Host "Applying alternative project file fixes..."
+        
+        $projectFiles = Get-ChildItem -Recurse -Filter "*.vcxproj"
+        
+        foreach ($proj in $projectFiles) {
+          Write-Host "Fixing: $($proj.Name)"
           
-          # 如果沒有 WindowsTargetPlatformVersion，添加它
-          if ($content -notmatch '<WindowsTargetPlatformVersion>') {
-            $content = $content -replace '(<PropertyGroup[^>]*>)', "`$1`n    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>"
+          $content = Get-Content $proj.FullName -Raw -Encoding UTF8
+          
+          # 創建一個標準的 PropertyGroup 模板
+          $standardPropertyGroup = @"
+  <PropertyGroup>
+    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+"@
+          
+          # 移除所有錯誤放置的 WindowsTargetPlatformVersion 和 PlatformToolset
+          $content = $content -replace '<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>', ''
+          $content = $content -replace '<PlatformToolset>[^<]*</PlatformToolset>', ''
+          
+          # 在第一個 PropertyGroup 後添加標準配置
+          if ($content -match '(<PropertyGroup[^>]*>[\s\S]*?</PropertyGroup>)') {
+            $content = $content -replace '(<PropertyGroup[^>]*>[\s\S]*?</PropertyGroup>)', "`$1`n$standardPropertyGroup"
+          } else {
+            # 如果沒有 PropertyGroup，在 Project 開始後添加
+            $content = $content -replace '(<Project[^>]*>)', "`$1`n$standardPropertyGroup"
           }
           
-          # 確保 PlatformToolset 正確
-          $content = $content -replace '<PlatformToolset>[^<]*</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>'
+          # 清理重複的空行
+          $content = $content -replace '\n\s*\n\s*\n', "`n`n"
           
-          $content | Out-File $proj.FullName -Encoding UTF8
-          Write-Host "Updated SDK version in: $($proj.Name)"
+          $content | Out-File $proj.FullName -Encoding UTF8 -NoNewline
+          Write-Host "  ✅ Applied alternative fix to: $($proj.Name)"
         }
+        
+        Write-Host "`nAlternative fixes completed"
+
+    - name: XML-based project file repair
+      shell: powershell
+      run: |
+        $platform = "${{ matrix.platform }}"
+        $configuration = "${{ matrix.configuration }}"
+        
+        Write-Host "Performing XML-based project file repair..."
+        
+        $projectFiles = Get-ChildItem -Recurse -Filter "*.vcxproj"
+        
+        foreach ($proj in $projectFiles) {
+          try {
+            Write-Host "Processing: $($proj.Name)"
+            
+            # 載入 XML 文檔
+            [xml]$xmlDoc = Get-Content $proj.FullName -Encoding UTF8
+            
+            # 確保有 xmlns 屬性
+            if (-not $xmlDoc.Project.GetAttribute("xmlns")) {
+              $xmlDoc.Project.SetAttribute("xmlns", "http://schemas.microsoft.com/developer/msbuild/2003")
+            }
+            
+            # 查找或創建全局 PropertyGroup
+            $globalPropertyGroup = $xmlDoc.Project.PropertyGroup | Where-Object { 
+              $_.Configuration -or $_.Platform -or (-not $_.Condition) 
+            } | Select-Object -First 1
+            
+            if (-not $globalPropertyGroup) {
+              # 創建新的全局 PropertyGroup
+              $globalPropertyGroup = $xmlDoc.CreateElement("PropertyGroup", $xmlDoc.Project.NamespaceURI)
+              $xmlDoc.Project.InsertBefore($globalPropertyGroup, $xmlDoc.Project.FirstChild)
+            }
+            
+            # 設置或更新 WindowsTargetPlatformVersion
+            $windowsSDKElement = $globalPropertyGroup.WindowsTargetPlatformVersion
+            if ($windowsSDKElement) {
+              $windowsSDKElement.InnerText = $env:WINDOWS_SDK_VERSION
+            } else {
+              $windowsSDKElement = $xmlDoc.CreateElement("WindowsTargetPlatformVersion", $xmlDoc.Project.NamespaceURI)
+              $windowsSDKElement.InnerText = $env:WINDOWS_SDK_VERSION
+              $globalPropertyGroup.AppendChild($windowsSDKElement) | Out-Null
+            }
+            
+            # 設置或更新 PlatformToolset
+            $toolsetElement = $globalPropertyGroup.PlatformToolset
+            if ($toolsetElement) {
+              $toolsetElement.InnerText = "v143"
+            } else {
+              $toolsetElement = $xmlDoc.CreateElement("PlatformToolset", $xmlDoc.Project.NamespaceURI)
+              $toolsetElement.InnerText = "v143"
+              $globalPropertyGroup.AppendChild($toolsetElement) | Out-Null
+            }
+            
+            # 保存文檔
+            $xmlDoc.Save($proj.FullName)
+            Write-Host "  ✅ Successfully repaired: $($proj.Name)"
+            
+          } catch {
+            Write-Warning "  ❌ Failed to repair $($proj.Name): $($_.Exception.Message)"
+            
+            # 回退到文本替換方法
+            try {
+              $content = Get-Content $proj.FullName -Raw -Encoding UTF8
+              
+              # 簡單的文本替換作為後備
+              if ($content -notmatch '<WindowsTargetPlatformVersion>') {
+                $content = $content -replace '(<Project[^>]*>)', "`$1`n  <PropertyGroup>`n    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>`n    <PlatformToolset>v143</PlatformToolset>`n  </PropertyGroup>"
+                $content | Out-File $proj.FullName -Encoding UTF8 -NoNewline
+                Write-Host "  🔧 Applied fallback fix to: $($proj.Name)"
+              }
+            } catch {
+              Write-Error "  💥 Complete failure to fix: $($proj.Name)"
+            }
+          }
+        }
+        
+        Write-Host "`nXML-based repair completed"
         
         # 設置編譯參數
         $buildArgs = @(
