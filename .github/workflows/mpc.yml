@@ -951,20 +951,20 @@ jobs:
                 } else {
                   # 在第一個 PropertyGroup 後添加新的 PropertyGroup
                   $newPropertyGroup = @"
-  <PropertyGroup>
-    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
-  </PropertyGroup>
-"@
+                    <PropertyGroup>
+                      <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
+                    </PropertyGroup>
+                  "@
                   $content = $content -replace '(</PropertyGroup>)', "`$1`n$newPropertyGroup"
                   Write-Host "  - Added new PropertyGroup with WindowsTargetPlatformVersion"
                 }
               } else {
                 # 如果找不到 PropertyGroup，在 Project 開始後添加
                 $newPropertyGroup = @"
-  <PropertyGroup>
-    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
-  </PropertyGroup>
-"@
+                  <PropertyGroup>
+                    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
+                  </PropertyGroup>
+                "@
                 $content = $content -replace '(<Project[^>]*>)', "`$1`n$newPropertyGroup"
                 Write-Host "  - Added new PropertyGroup after Project element"
               }
@@ -1081,11 +1081,11 @@ jobs:
           
           # 創建一個標準的 PropertyGroup 模板
           $standardPropertyGroup = @"
-  <PropertyGroup>
-    <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
-    <PlatformToolset>v143</PlatformToolset>
-  </PropertyGroup>
-"@
+            <PropertyGroup>
+              <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
+              <PlatformToolset>v143</PlatformToolset>
+            </PropertyGroup>
+          "@
           
           # 移除所有錯誤放置的 WindowsTargetPlatformVersion 和 PlatformToolset
           $content = $content -replace '<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>', ''
