@@ -599,6 +599,11 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - name: Checkout original repository
+      uses: actions/checkout@v4
+      with:
+        path: D:/FFmpeg-src/
+
     - name: Setup MSBuild and Windows SDK
       uses: microsoft/setup-msbuild@v2
 
@@ -917,7 +922,7 @@ jobs:
     - name: Retarget solution for compatible SDK
       shell: powershell
       run: |
-        & "$env:GITHUB_WORKSPACE\.github\external\retarget.ps1"
+        & "D:\FFmpeg-src\.github\external\retarget.ps1"
         
     - name: Validate project files structure
       shell: powershell
@@ -992,7 +997,7 @@ jobs:
       if: failure()
       shell: powershell
       run: |
-        & "$env:GITHUB_WORKSPACE\.github\external\alternative.ps1"
+        & "D:\FFmpeg-src\.github\external\alternative.ps1"
         
     - name: XML-based project file repair
       shell: powershell
