@@ -56,11 +56,12 @@ foreach ($proj in $projectFiles) {
             $content = $content -replace '<PlatformToolset>[^<]*</PlatformToolset>', '<PlatformToolset>v143</PlatformToolset>'
             Write-Host "  - Updated PlatformToolset to v143"
         } elseif ($content -match '(<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>)') {
+            # 自動偵測縮排
             $line = $matches[1]
             if ($line -match '^\s*') {
                 $indent = ($line -match '^\s*')[0]
             } else {
-                $indent = '    '
+                $indent = '    '  # 預設 4 空格
             }
             $content = $content -replace '(<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>)', "`$1`n${indent}<PlatformToolset>v143</PlatformToolset>"
             Write-Host "  - Added PlatformToolset v143"
@@ -86,6 +87,6 @@ foreach ($proj in $projectFiles) {
     } catch {
         Write-Warning "  ❌ Failed to process $($proj.Name): $($_.Exception.Message)"
     }
-}  # ⬅️ 補這個 foreach 結尾的 }
+}
 
 Write-Host "`nAll project files processed."
