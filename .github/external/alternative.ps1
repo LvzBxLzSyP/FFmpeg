@@ -6,16 +6,16 @@ foreach ($proj in $projectFiles) {
     Write-Host "Fixing: $($proj.Name)"
 
     try {
-        $content = Get-Content $proj.FullName -Raw -Encoding UTF8
+        $content = Get-Content -Path $proj.FullName -Raw -Encoding UTF8
         $originalContent = $content
 
-        # 建立標準的 PropertyGroup 區塊（無多餘縮排）
+        # 建立標準的 PropertyGroup 區塊
         $standardPropertyGroup = @"
 <PropertyGroup>
   <WindowsTargetPlatformVersion>$env:WINDOWS_SDK_VERSION</WindowsTargetPlatformVersion>
   <PlatformToolset>v143</PlatformToolset>
 </PropertyGroup>
-"@.Trim()
+"@
 
         # 移除所有 WindowsTargetPlatformVersion 和 PlatformToolset 設定
         $content = $content -replace '<WindowsTargetPlatformVersion>[^<]*</WindowsTargetPlatformVersion>', ''
@@ -43,7 +43,7 @@ foreach ($proj in $projectFiles) {
 
         # 寫入檔案（如有改動）
         if ($content -ne $originalContent) {
-            $content | Out-File $proj.FullName -Encoding UTF8 -NoNewline
+            $content | Out-File -FilePath $proj.FullName -Encoding UTF8 -NoNewline
             Write-Host "  ✅ Applied alternative fix to: $($proj.Name)"
         } else {
             Write-Host "  ℹ️  No changes applied to: $($proj.Name)"
