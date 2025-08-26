@@ -494,7 +494,6 @@ jobs:
         echo "" >> package/WARNING.txt
         echo "For more information, please consult:" >> package/WARNING.txt
         echo "- https://ffmpeg.org/legal.html" >> package/WARNING.txt
-        echo "- https://ffmpeg.org/license.html" >> package/WARNING.txt
     
         echo "Zipping package..."
         cd package
