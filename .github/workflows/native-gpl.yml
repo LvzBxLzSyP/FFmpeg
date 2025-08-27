@@ -383,7 +383,7 @@ jobs:
     - name: Build FFmpeg
       shell: msys2 {0}
       run: |
-        git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+        git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
         cd ffmpeg
         export PATH="/mingw64/bin:$PATH"
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
