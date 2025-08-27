@@ -250,8 +250,7 @@ jobs:
           -D FT_DISABLE_BZIP2=TRUE \
           -D FT_DISABLE_PNG=TRUE \
           -DCMAKE_C_FLAGS="$CFLAGS" \
-          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
-          -DCMAKE_STATIC_LINKER_FLAGS="$LDFLAGS"
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
         ninja -j$(nproc)
         ninja install
         cd ..
