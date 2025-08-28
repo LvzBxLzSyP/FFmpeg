@@ -398,9 +398,13 @@ jobs:
         git clone --depth=1 https://github.com/xiph/opus.git
         cd opus
         ./autogen.sh
-        ./configure --prefix=$PREFIX --disable-shared --enable-static CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
-        make -j$(nproc)
-        make install
+        cmake .. -G Ninja \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        ninja -j${nproc}
+        ninja install
         cd ..
 
     - name: Install NVENC headers
