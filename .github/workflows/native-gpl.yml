@@ -397,7 +397,7 @@ jobs:
       run: |
         git clone --depth=1 https://github.com/xiph/opus.git
         cd opus
-        ./autogen.sh
+        mkdir -p build && cd build
         cmake .. -G Ninja \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DBUILD_SHARED_LIBS=OFF \
