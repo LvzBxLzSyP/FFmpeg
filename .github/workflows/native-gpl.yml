@@ -88,12 +88,25 @@ jobs:
     - name: Install prebuilt x265
       shell: msys2 {0}
       run: |
-        git clone https://github.com/LvzBxLzSyP/x265.git
-        cd x265
-        mkdir -p $PREFIX/include
-        mkdir -p $PREFIX/lib
-        cp -r ./include/* $PREFIX/include/
-        cp -r ./lib/* $PREFIX/lib/
+        git clone https://bitbucket.org/multicoreware/x265_git x265
+        cd x265/build
+        cmake -G "Ninja" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_CLI=OFF \
+          -DENABLE_TESTS=OFF \
+          -DENABLE_DOCS=OFF \
+          -DSTATIC_LINK_CRT=ON \
+          -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++" \
+          -DCMAKE_C_FLAGS="-static-libgcc" \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.10 \
+          -DCMAKE_POLICY_DEFAULT_CMP0025=NEW \
+          -DCMAKE_POLICY_DEFAULT_CMP0054=NEW \
+          -Wno-dev \
+          ../source
+        ninja -j$(nproc)
+        ninja install
 
     - name: Build SVT-AV1
       shell: msys2 {0}
@@ -333,7 +346,6 @@ jobs:
           -Ddefault_library=static \
           -Ddocs=false \
           -Dc_args="$CFLAGS" \
-          -Dlink_args="$LDFLAGS"
           
         meson compile -C builddir -j$(nproc)
         meson install -C builddir 
