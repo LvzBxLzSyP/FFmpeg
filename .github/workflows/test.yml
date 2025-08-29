@@ -594,10 +594,10 @@ jobs:
           echo "CCACHE_DIR=$CCACHE_DIR"
           echo "CC=clang"
           echo "CXX=clang++"
-          echo "AR=llvm-ar"
-          echo "RANLIB=llvm-ranlib"
-          echo "NM=llvm-nm"
-          echo "STRIP=llvm-strip"
+          echo "AR=$(which llvm-ar)"
+          echo "RANLIB=$(which llvm-ranlib)"
+          echo "NM=$(which llvm-nm)"
+          echo "STRIP=$(which llvm-strip)"
         } >> $GITHUB_ENV
 
     - name: Cache Clang build dependencies
