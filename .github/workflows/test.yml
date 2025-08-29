@@ -115,7 +115,7 @@ jobs:
 
         # Build x265
         if [ ! -f "$PREFIX/lib/libx265.a" ]; then
-          git clone --depth=1 https://bitbucket.org/multicoreware/x265_git x265
+          git clone https://bitbucket.org/multicoreware/x265_git x265
           cd x265/build
           cmake -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
@@ -404,7 +404,7 @@ jobs:
 
         # Build x265 with Clang
         if [ ! -f "$PREFIX/lib/libx265.a" ]; then
-          git clone --depth=1 https://bitbucket.org/multicoreware/x265_git x265
+          git clone https://bitbucket.org/multicoreware/x265_git x265
           cd x265/build
           cmake -G "Ninja" \
             -DCMAKE_BUILD_TYPE=Release \
