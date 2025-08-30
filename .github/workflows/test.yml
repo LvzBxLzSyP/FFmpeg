@@ -540,7 +540,7 @@ jobs:
           mingw-w64-clang-x86_64-pkg-config
           mingw-w64-clang-x86_64-zlib
           mingw-w64-clang-x86_64-diffutils
-          mingw-w64-clang-x86_64-rust
+          mingw-w64-clang-x86_64-rustup
           mingw-w64-clang-x86_64-libvpl
           mingw-w64-clang-x86_64-SDL2
           mingw-w64-clang-x86_64-lld
