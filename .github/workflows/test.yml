@@ -673,15 +673,14 @@ jobs:
 
         # Build rav1e with Clang (Rust uses its own toolchain)
         if [ ! -f "$PREFIX/lib/librav1e.a" ]; then
-          export PATH="/clang64/bin:$PATH"
-          export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
-          export CC_x86_64_pc_windows_gnu=clang
-          export CXX_x86_64_pc_windows_gnu=clang++
-          export AR_x86_64_pc_windows_gnu=llvm-ar
+          export PATH="/clang64/bin:$PATH"export CC_x86_64_pc_windows_clang=clang
+          export CXX_x86_64_pc_windows_clang=clang++
+          export AR_x86_64_pc_windows_clang=llvm-ar
+          export CARGO_BUILD_TARGET=x86_64-pc-windows-clang
           git clone --depth=1 https://github.com/xiph/rav1e.git
           cd rav1e
           cargo install cargo-c --force
-          cargo cinstall --release --target x86_64-pc-windows-gnu \
+          cargo cinstall --release --target x86_64-pc-windows-clang \
             --library-type staticlib \
             --prefix="$PREFIX"
           cd ..
