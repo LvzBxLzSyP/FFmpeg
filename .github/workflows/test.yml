@@ -428,10 +428,10 @@ jobs:
         fi
 
         # Install AMF headers
-        if [ ! -f "$PREFIX/include/amd/core/D3D12AMF.h" ]; then
+        if [ ! -f "$PREFIX/include/amd/AMF/core/D3D12AMF.h" ]; then
           git clone https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
-          mkdir -p "$PREFIX/include/amd"
-          cp -r AMF/amf/public/include/* "$PREFIX/include/amd/"
+          mkdir -p "$PREFIX/include/amd/AMF"
+          cp -r AMF/amf/public/include/* "$PREFIX/include/amd/AMF"
         fi
 
     - name: Build FFmpeg (GCC)
@@ -547,7 +547,7 @@ jobs:
           mingw-w64-clang-x86_64-pkg-config
           mingw-w64-clang-x86_64-zlib
           mingw-w64-clang-x86_64-diffutils
-          mingw-w64-clang-x86_64-rust
+          mingw-w64-clang-x86_64-rav1e
           mingw-w64-clang-x86_64-libvpl
           mingw-w64-clang-x86_64-SDL2
           mingw-w64-clang-x86_64-lld
@@ -673,28 +673,6 @@ jobs:
             .
           ninja -j$(nproc)
           ninja install
-          cd ..
-        fi
-
-        # Build rav1e with Clang (Rust uses its own toolchain)
-        if [ ! -f "$PREFIX/lib/librav1e.a" ]; then
-          export CC_x86_64_pc_windows_gnullvm=clang
-          export CXX_x86_64_pc_windows_gnullvm=clang++
-          export AR_x86_64_pc_windows_gnullvm=llvm-ar
-          export CFLAGS_x86_64_pc_windows_gnullvm="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 \
-          -I$CLANG_PREFIX/include -I/clang64/include -I/mingw64/include"
-          export CXXFLAGS_x86_64_pc_windows_gnullvm="-O3 -flto=full -static -std=c++17 -D_WIN32_WINNT=0x0601 \
-          -I$CLANG_PREFIX/include -I/clang64/include -I/clang64/include/c++/v1 -I/mingw64/include"
-          export LDFLAGS_x86_64_pc_windows_gnullvm="-O3 -flto=full -static -fuse-ld=lld -Wl,--lto-O3 \
-          -L$CLANG_PREFIX/lib -L/clang64/lib -L/mingw64/lib"
-          export CARGO_BUILD_TARGET=x86_64-pc-windows-gnullvm
-          export CARGO_TARGET_X86_64_PC_WINDOWS_GNULLVM_LINKER=clang
-          git clone --depth=1 https://github.com/xiph/rav1e.git
-          cd rav1e
-          cargo install cargo-c --force
-          cargo cinstall --release --target x86_64-pc-windows-gnullvm \
-            --library-type staticlib \
-            --prefix="$PREFIX"
           cd ..
         fi
 
@@ -997,8 +975,8 @@ jobs:
         # Install AMF headers
         if [ ! -f "$PREFIX/include/amd/core/D3D12AMF.h" ]; then
           git clone https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
-          mkdir -p "$PREFIX/include/amd"
-          cp -r AMF/amf/public/include/* "$PREFIX/include/amd/"
+          mkdir -p "$PREFIX/include/amd/AMF"
+          cp -r AMF/amf/public/include/* "$PREFIX/include/amd/AMF"
         fi
 
     - name: Build FFmpeg (Clang with Full LTO)
