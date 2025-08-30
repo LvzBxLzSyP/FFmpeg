@@ -561,9 +561,6 @@ jobs:
       shell: msys2 {0}
       run: |
         mkdir -p $CLANG_PREFIX
-
-        # Setup cargo target
-        rustup target add x86_64-pc-windows-gnu
         
         # Clang-specific flags with Full LTO
         CLANG_STATIC_FLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601"
