@@ -427,6 +427,13 @@ jobs:
           cd ..
         fi
 
+        # Install AMF headers
+        if [ ! -f "$PREFIX/include/amd/core/D3D12AMF.h" ]; then
+          git clone https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+          mkdir -p "$PREFIX/include/amd"
+          cp -r AMF/amf/public/include/* "$PREFIX/include/amd/"
+        fi
+
     - name: Build FFmpeg (GCC)
       shell: msys2 {0}
       run: |
@@ -540,7 +547,7 @@ jobs:
           mingw-w64-clang-x86_64-pkg-config
           mingw-w64-clang-x86_64-zlib
           mingw-w64-clang-x86_64-diffutils
-          mingw-w64-clang-x86_64-rustup
+          mingw-w64-clang-x86_64-rust
           mingw-w64-clang-x86_64-libvpl
           mingw-w64-clang-x86_64-SDL2
           mingw-w64-clang-x86_64-lld
@@ -556,13 +563,6 @@ jobs:
           tar
           xz
           patch
-
-    
-    - name: Setup Rust
-      shell: msys2 {0}
-      run: |
-        rustup default stable
-        rustup target add x86_64-pc-windows-gnullvm
 
     - name: Setup Clang build environment
       shell: msys2 {0}
@@ -990,6 +990,14 @@ jobs:
           cd nv-codec-headers
           make PREFIX=$PREFIX install
           cd ..
+        fi
+
+
+        # Install AMF headers
+        if [ ! -f "$PREFIX/include/amd/core/D3D12AMF.h" ]; then
+          git clone https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+          mkdir -p "$PREFIX/include/amd"
+          cp -r AMF/amf/public/include/* "$PREFIX/include/amd/"
         fi
 
     - name: Build FFmpeg (Clang with Full LTO)
