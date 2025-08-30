@@ -540,6 +540,7 @@ jobs:
           mingw-w64-clang-x86_64-pkg-config
           mingw-w64-clang-x86_64-zlib
           mingw-w64-clang-x86_64-diffutils
+          mingw-w64-clang-x86_64-rust
           mingw-w64-clang-x86_64-libvpl
           mingw-w64-clang-x86_64-SDL2
           mingw-w64-clang-x86_64-lld
@@ -555,12 +556,6 @@ jobs:
           tar
           xz
           patch
-
-    - name: Setup Rust
-      shell: msys2 {0}
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-        echo "PATH=/c/Users/runneradmin/.cargo/bin:$PATH" >> $GITHUB_ENV
 
     - name: Setup Clang build environment
       shell: msys2 {0}
@@ -678,14 +673,14 @@ jobs:
 
         # Build rav1e with Clang (Rust uses its own toolchain)
         if [ ! -f "$PREFIX/lib/librav1e.a" ]; then
-          export CC_x86_64_pc_windows_gnu=clang
-          export CXX_x86_64_pc_windows_gnu=clang++
-          export AR_x86_64_pc_windows_gnu=llvm-ar
-          export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
+          export CC_x86_64_pc_windows_gnullvm=clang
+          export CXX_x86_64_pc_windows_gnullvm=clang++
+          export AR_x86_64_pc_windows_gnullvm=llvm-ar
+          export CARGO_BUILD_TARGET=x86_64-pc-windows-gnullvm
           git clone --depth=1 https://github.com/xiph/rav1e.git
           cd rav1e
           cargo install cargo-c --force
-          cargo cinstall --release --target x86_64-pc-windows-gnu \
+          cargo cinstall --release --target x86_64-pc-windows-gnullvm \
             --library-type staticlib \
             --prefix="$PREFIX"
           cd ..
