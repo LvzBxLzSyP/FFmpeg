@@ -687,6 +687,7 @@ jobs:
           export LDFLAGS_x86_64_pc_windows_gnullvm="-O3 -flto=full -static -fuse-ld=lld -Wl,--lto-O3 \
           -L$CLANG_PREFIX/lib -L/clang64/lib"
           export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
+          export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=clang
           git clone --depth=1 https://github.com/xiph/rav1e.git
           cd rav1e
           cargo install cargo-c --force
