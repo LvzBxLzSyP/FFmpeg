@@ -38,6 +38,7 @@ jobs:
           mingw-w64-x86_64-rust
           mingw-w64-x86_64-diffutils
           mingw-w64-x86_64-SDL2
+          mingw-w64-x86_64-libvpl
           autoconf
           automake
           libtool
@@ -550,6 +551,7 @@ jobs:
           mingw-w64-clang-x86_64-libvpl
           mingw-w64-clang-x86_64-SDL2
           mingw-w64-clang-x86_64-lld
+          mingw-w64-clang-x86_64-libvpl
           autoconf
           automake
           libtool
@@ -711,7 +713,7 @@ jobs:
             --enable-static \
             --disable-shared \
             --extra-cflags="$CFLAGS" 
-          make -j$(nproc)
+          make -j$(nproc) STRIP=:
           make install
           cd ..
         fi
