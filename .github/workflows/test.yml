@@ -1,4 +1,4 @@
-name: Build Ultimate Static Windows FFmpeg with MSYS2
+name: Build Ultimate Static Windows FFmpeg with MSYS2 GCC/Clang
 
 on:
   workflow_dispatch:
@@ -86,8 +86,8 @@ jobs:
           echo "PATH=$BUILD_PREFIX/bin:$PATH"
           echo "MAKEFLAGS=-j$(nproc)"
           echo "CCACHE_DIR=$CCACHE_DIR"
-          echo "CC=gcc"
-          echo "CXX=g++"
+          echo "CC=\"ccache $(which gcc)\""
+          echo "CXX=\"ccache $(which g++)\""
         } >> $GITHUB_ENV
 
     - name: Cache GCC build dependencies
@@ -325,7 +325,6 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
         ninja -j$(nproc)
         ninja install
@@ -373,8 +372,7 @@ jobs:
           --prefix="$PREFIX" \
           -Ddefault_library=static \
           -Ddocs=false \
-          -Dc_args="$CFLAGS" \
-          
+          -Dc_args="$CFLAGS" 
         meson compile -C builddir -j$(nproc)
         meson install -C builddir 
         cd ..
@@ -410,8 +408,7 @@ jobs:
           --buildtype=release \
           --prefix="$PREFIX" \
           -Ddefault_library=static \
-          -Dc_args="$CFLAGS" \
-          
+          -Dc_args="$CFLAGS" 
         meson compile -C builddir -j$(nproc)
         meson install -C builddir
         cd ..
@@ -592,8 +589,8 @@ jobs:
           echo "PATH=$CLANG_PREFIX/bin:/clang64/bin:$PATH"
           echo "MAKEFLAGS=-j$(nproc)"
           echo "CCACHE_DIR=$CCACHE_DIR"
-          echo "CC=clang"
-          echo "CXX=clang++"
+          echo "CC=\"ccache $(which clang)\""
+          echo "CXX=\"ccache $(which clang++)\""
           echo "AR=$(which llvm-ar)"
           echo "RANLIB=$(which llvm-ranlib)"
           echo "NM=$(which llvm-nm)"
@@ -722,39 +719,106 @@ jobs:
           ninja install
           cd ../..
         fi
-
-    - name: Build audio & text libraries (Clang)
-      shell: msys2 {0}
-      run: |
-        # Build libmp3lame with Clang
-        if [ ! -f "$PREFIX/lib/libmp3lame.a" ]; then
-          wget -q https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
-          tar xzf lame-3.100.tar.gz
-          cd lame-3.100
-          ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend \
-            CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib \
-            CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        
+        # Build libvpx
+        if [ ! -f "$PREFIX/lib/libvpx.a" ]; then
+          git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git
+          cd libvpx
+          LDFLAGS="$LDFLAGS" ./configure \
+            --prefix=$PREFIX \
+            --disable-examples \
+            --disable-unit-tests \
+            --disable-tools \
+            --disable-docs \
+            --enable-vp8 \
+            --enable-vp9 \
+            --enable-vp9-highbitdepth \
+            --enable-static \
+            --disable-shared \
+            --extra-cflags="$CFLAGS" 
           make -j$(nproc)
           make install
           cd ..
         fi
-
-        # Build opus with Clang
-        if [ ! -f "$PREFIX/lib/libopus.a" ]; then
-          git clone --depth=1 https://github.com/xiph/opus.git
-          cd opus
-          mkdir -p build && cd build
-          cmake .. -G Ninja \
-            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+        
+        # Build VVenC
+        if [ ! -f "$PREFIX/lib/libvvenc.a" ]; then
+          git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
+          cd vvenc
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
             -DCMAKE_C_COMPILER=clang \
-            -DCMAKE_C_FLAGS="$CFLAGS" \
-            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+            -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
+            -G Ninja
           ninja -j$(nproc)
           ninja install
-          cd ../..
+          cd ..
+        fi
+      
+        # Build VVdeC
+        if [ ! -f "$PREFIX/lib/libvvdec.a" ]; then
+          git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
+          cd vvdec
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ \
+            -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+            -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
+            -G Ninja
+          ninja -j$(nproc)
+          ninja install
+          cd ..
+        fi
+      
+        # Build XEVE
+        if [ ! -f "$PREFIX/lib/xeve/libxeve.a"]; then
+          git clone https://github.com/mpeg5/xeve.git
+          cd xeve
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+            .
+          ninja -j$(nproc)
+          cmake --install . --component Development
+          cd ..
+        fi
+        
+        # Build XEVD
+        if [ ! -f "$PREFIX/lib/xevd/libxevd.a"]; then
+          git clone https://github.com/mpeg5/xevd.git
+          cd xevd
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+            .
+          ninja -j$(nproc)
+          cmake --install . --component Development
         fi
 
+    - name: Build audio & text libraries (Clang)
+      shell: msys2 {0}
+      run: |
         # Build freetype with Clang
         if [ ! -f "$PREFIX/lib/libfreetype.a" ]; then
           git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git
@@ -769,6 +833,120 @@ jobs:
             -DCMAKE_C_COMPILER=clang \
             -DCMAKE_C_FLAGS="$CFLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" 
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
+        
+        # Build libmp3lame with Clang
+        if [ ! -f "$PREFIX/lib/libmp3lame.a" ]; then
+          wget -q https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+          tar xzf lame-3.100.tar.gz
+          cd lame-3.100
+          ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend \
+            CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib \
+            CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+          make -j$(nproc)
+          make install
+          cd ..
+        fi
+        
+        # Build libogg with Clang
+        if [ ! -f "$PREFIX/lib/libogg.a" ];then
+          git clone https://github.com/xiph/ogg.git
+          cd ogg
+          mkdir build && cd build
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+            -DCMAKE_C_COMPILER=clang
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
+        
+        # Build libflac with Clang
+        if [ ! -f "$PREFIX/lib/libFLAC.a" ];then
+          git clone https://github.com/xiph/flac.git
+          cd flac
+          mkdir build && cd build
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DINSTALL_MANPAGES=OFF \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++ 
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
+        
+        # Build libvorbis with Clang
+        if [ ! -f "$PREFIX/lib/libvorbis.a"];then
+          git clone https://github.com/xiph/vorbis.git
+          cd vorbis
+          mkdir build && cd build
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DINSTALL_MANPAGES=OFF \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
+
+        # Build fribidi with Clang
+        if [ ! -f "$PREFIX/lib/libfribidi.a" ]; then
+          wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
+          tar xf fribidi-1.0.13.tar.xz
+          cd fribidi-1.0.13
+          meson setup builddir \
+            --buildtype=release \
+            --prefix="$PREFIX" \
+            -Ddefault_library=static \
+            -Ddocs=false \
+            -Dc_args="$CFLAGS" 
+          meson compile -C builddir -j$(nproc)
+          meson install -C builddir 
+          cd ..
+        fi
+        
+        # Build harfbuzz
+        if [ ! -f "$PREFIX/lib/libharfbuzz.a" ]; then
+          wget https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
+          tar xf harfbuzz-11.3.2.tar.xz
+          cd harfbuzz-11.3.2
+          mkdir build && cd build
+          export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DHB_HAVE_FREETYPE=ON \
+            -DHB_HAVE_GLIB=OFF \
+            -DHB_HAVE_GOBJECT=OFF \
+            -DHB_HAVE_CAIRO=OFF \
+            -DHB_HAVE_FONTCONFIG=OFF \
+            -DHB_HAVE_ICU=OFF \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_CXX_COMPILER=clang++
           ninja -j$(nproc)
           ninja install
           cd ../..
@@ -790,6 +968,22 @@ jobs:
           meson install -C builddir
           cd ..
         fi
+        
+        # Build opus with Clang
+        if [ ! -f "$PREFIX/lib/libopus.a" ]; then
+          git clone --depth=1 https://github.com/xiph/opus.git
+          cd opus
+          mkdir -p build && cd build
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_C_COMPILER=clang \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
 
         # Install NVENC headers
         if [ ! -f "$PREFIX/include/ffnvcodec/nvEncodeAPI.h" ]; then
@@ -802,7 +996,7 @@ jobs:
     - name: Build FFmpeg (Clang with Full LTO)
       shell: msys2 {0}
       run: |
-        git clone --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg-clang
+        git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg-clang
         cd ffmpeg-clang
         
         # Apply VVC decoder patch
