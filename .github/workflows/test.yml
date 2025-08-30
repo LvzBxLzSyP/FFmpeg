@@ -51,7 +51,6 @@ jobs:
           tar
           xz
           patch
-          ccache
 
     - name: Set UTC datetime tag & release name
       shell: msys2 {0}
@@ -67,12 +66,6 @@ jobs:
         # Create build directory
         mkdir -p $BUILD_PREFIX
         
-        # Setup ccache
-        export CCACHE_DIR="/d/ccache-gcc"
-        mkdir -p $CCACHE_DIR
-        ccache --set-config=max_size=2G
-        ccache --set-config=compression=true
-        
         # GCC-specific flags
         STATIC_FLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
         
@@ -86,8 +79,8 @@ jobs:
           echo "PATH=$BUILD_PREFIX/bin:$PATH"
           echo "MAKEFLAGS=-j$(nproc)"
           echo "CCACHE_DIR=$CCACHE_DIR"
-          echo "CC=\"ccache $(which gcc)\""
-          echo "CXX=\"ccache $(which g++)\""
+          echo "CC=gcc"
+          echo "CXX=g++"
         } >> $GITHUB_ENV
 
     - name: Cache GCC build dependencies
@@ -563,18 +556,11 @@ jobs:
           tar
           xz
           patch
-          ccache
 
     - name: Setup Clang build environment
       shell: msys2 {0}
       run: |
         mkdir -p $CLANG_PREFIX
-        
-        # Setup ccache for clang
-        export CCACHE_DIR="/d/ccache-clang"
-        mkdir -p $CCACHE_DIR
-        ccache --set-config=max_size=2G
-        ccache --set-config=compression=true
         
         # Clang-specific flags with Full LTO
         CLANG_STATIC_FLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601"
@@ -589,8 +575,8 @@ jobs:
           echo "PATH=$CLANG_PREFIX/bin:/clang64/bin:$PATH"
           echo "MAKEFLAGS=-j$(nproc)"
           echo "CCACHE_DIR=$CCACHE_DIR"
-          echo "CC=\"ccache $(which clang)\""
-          echo "CXX=\"ccache $(which clang++)\""
+          echo "CC=clang"
+          echo "CXX=clang++"
           echo "AR=$(which llvm-ar)"
           echo "RANLIB=$(which llvm-ranlib)"
           echo "NM=$(which llvm-nm)"
