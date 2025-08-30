@@ -673,6 +673,12 @@ jobs:
           export CC_x86_64_pc_windows_gnullvm=clang
           export CXX_x86_64_pc_windows_gnullvm=clang++
           export AR_x86_64_pc_windows_gnullvm=llvm-ar
+          export CFLAGS_x86_64_pc_windows_gnullvm="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 \
+          -I$CLANG_PREFIX/include -I/clang64/include"
+          export CXXFLAGS_x86_64_pc_windows_gnullvm="-O3 -flto=full -static -std=c++17 -D_WIN32_WINNT=0x0601 \
+          -I$CLANG_PREFIX/include -I/clang64/include -I/clang64/include/c++/v1"
+          export LDFLAGS_x86_64_pc_windows_gnullvm="-O3 -flto=full -static -fuse-ld=lld -Wl,--lto-O3 \
+          -L$CLANG_PREFIX/lib -L/clang64/lib"
           export CARGO_BUILD_TARGET=x86_64-pc-windows-gnullvm
           git clone --depth=1 https://github.com/xiph/rav1e.git
           cd rav1e
