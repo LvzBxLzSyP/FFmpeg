@@ -37,7 +37,6 @@ jobs:
           mingw-w64-x86_64-zlib
           mingw-w64-x86_64-rust
           mingw-w64-x86_64-diffutils
-          mingw-w64-x86_64-libvpl
           mingw-w64-x86_64-SDL2
           autoconf
           automake
@@ -572,8 +571,6 @@ jobs:
         # Clang-specific flags with Full LTO
         CLANG_STATIC_FLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601"
         CLANG_LINK_FLAGS="-O3 -flto=full -static -fuse-ld=lld -Wl,--lto-O3"
-
-        rustc --print target-list
         
         {
           echo "PREFIX=$CLANG_PREFIX"
