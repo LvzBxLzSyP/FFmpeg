@@ -450,8 +450,8 @@ jobs:
         ./configure \
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
-          --extra-cflags="$CFLAGS" \
-          --extra-cxxflags="$CXXFLAGS" \
+          --extra-cflags="$CFLAGS -I$PREFIX/include/amd" \
+          --extra-cxxflags="$CXXFLAGS -I$PREFIX/include/amd" \
           --extra-ldflags="$LDFLAGS" \
           --extra-ldexeflags="$LDFLAGS -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
           --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lwinmm -ldxguid" \
@@ -572,6 +572,8 @@ jobs:
         # Clang-specific flags with Full LTO
         CLANG_STATIC_FLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601"
         CLANG_LINK_FLAGS="-O3 -flto=full -static -fuse-ld=lld -Wl,--lto-O3"
+
+        rustc --print target-list
         
         {
           echo "PREFIX=$CLANG_PREFIX"
@@ -594,7 +596,6 @@ jobs:
       uses: actions/cache@v4
       with:
         path: |
-          /d/ccache-clang
           /d/ffmpeg-build-clang
         key: ffmpeg-deps-clang-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.patch') }}
         restore-keys: |
@@ -1016,8 +1017,8 @@ jobs:
         ./configure \
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
-          --extra-cflags="$CFLAGS" \
-          --extra-cxxflags="$CXXFLAGS" \
+          --extra-cflags="$CFLAGS -I$PREFIX/include/amd" \
+          --extra-cxxflags="$CXXFLAGS -I$PREFIX/include/amd" \
           --extra-ldflags="$LDFLAGS_LTO" \
           --extra-ldexeflags="$LDFLAGS_LTO -Wl,--whole-archive -lc++ -Wl,--no-whole-archive -Wl,-Bstatic" \
           --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lwinmm -ldxguid" \
