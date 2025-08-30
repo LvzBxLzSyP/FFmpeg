@@ -558,7 +558,9 @@ jobs:
 
     - name: Setup Rust
       shell: msys2 {0}
-      run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        echo "PATH=/c/Users/runneradmin/.cargo/bin:$PATH" >> $GITHUB_ENV
 
     - name: Setup Clang build environment
       shell: msys2 {0}
