@@ -591,6 +591,10 @@ jobs:
           echo "STRIP=$(which llvm-strip)"
         } >> $GITHUB_ENV
 
+        cd /clang64/bin
+        mv lld-link.exe lld-link.exe-bak
+        ln -s ld.lld.exe lld-link.exe
+
     - name: Cache Clang build dependencies
       uses: actions/cache@v4
       with:
