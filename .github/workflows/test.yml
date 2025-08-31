@@ -1,4 +1,4 @@
-name: Build Ultimate Static Windows FFmpeg with MSYS2 GCC/Clang
+seename: Build Ultimate Static Windows FFmpeg with MSYS2 GCC/Clang
 
 on:
   workflow_dispatch:
@@ -1061,7 +1061,7 @@ jobs:
           --ranlib=llvm-ranlib \
           --nm=llvm-nm \
           --strip=llvm-strip \
-          --ld=clang \
+          --ld="clang -target x86_64-w64-windows-gnu" \
           --arch=x86_64 \
           --target-os=mingw32 || { cat ffbuild/config.log; exit 1; }
 
