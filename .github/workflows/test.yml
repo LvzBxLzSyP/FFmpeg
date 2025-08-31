@@ -1002,7 +1002,6 @@ jobs:
         ./configure \
           --prefix=$PREFIX \
           --pkg-config-flags="--static" \
-          --toolchain=clang \
           --extra-cflags="$CFLAGS -I$PREFIX/include/amd" \
           --extra-cxxflags="$CXXFLAGS -I$PREFIX/include/amd" \
           --extra-ldflags="$LDFLAGS_LTO" \
