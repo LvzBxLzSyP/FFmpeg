@@ -520,7 +520,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ffmpeg-win64-gcc-static
-        path: ${{ env.BUILD_PREFIX }}/ffmpeg-win64-gcc-static.zip
+        path: D:\ffmpeg-build\ffmpeg-win64-gcc-static.zip
         retention-days: 7
 
   # Job 2: Clang Build with Full LTO
@@ -701,6 +701,7 @@ jobs:
         if [ ! -f "$PREFIX/lib/libvpx.a" ]; then
           git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git
           cd libvpx
+          export STRIP=:
           LDFLAGS="$LDFLAGS" ./configure \
             --prefix=$PREFIX \
             --disable-examples \
@@ -712,11 +713,13 @@ jobs:
             --enable-vp9-highbitdepth \
             --enable-static \
             --disable-shared \
-            --extra-cflags="$CFLAGS" 
-          make -j$(nproc) STRIP=:
+            --extra-cflags="$CFLAGS"
+          make -j$(nproc)
           make install
           cd ..
         fi
+
+        export STRIP=$(which llvm-strip)
         
         # Build VVenC
         if [ ! -f "$PREFIX/lib/libvvenc.a" ]; then
@@ -1072,7 +1075,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ffmpeg-win64-clang-lto-static
-        path: ${{ env.CLANG_PREFIX }}/ffmpeg-win64-clang-lto-static.zip
+        path: D:\ffmpeg-clang\ffmpeg-win64-clang-lto-static.zip
         retention-days: 7
 
   # Job 3: Create Release (depends on both builds)
