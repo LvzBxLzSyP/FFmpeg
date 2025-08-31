@@ -1041,7 +1041,7 @@ jobs:
           --ranlib=llvm-ranlib \
           --nm=llvm-nm \
           --strip=llvm-strip \
-          --ld=ld.lld \
+          --ld=clang \
           --arch=x86_64 \
           --target-os=mingw32 || { cat ffbuild/config.log; exit 1; }
 
