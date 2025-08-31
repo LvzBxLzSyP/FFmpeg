@@ -1,4 +1,4 @@
-seename: Build Ultimate Static Windows FFmpeg with MSYS2 GCC/Clang
+name: Build Ultimate Static Windows FFmpeg with MSYS2 GCC/Clang
 
 on:
   workflow_dispatch:
