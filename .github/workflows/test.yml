@@ -572,7 +572,7 @@ jobs:
 
         # Clang-specific flags with Full LTO
         CLANG_STATIC_FLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601"
-        CLANG_LINK_FLAGS="-static -fuse-ld=ld.lld -Wl,--lto-O3 -Wl,--plugin-opt=O3"
+        CLANG_LINK_FLAGS="-static -fuse-ld=lld -Wl,--lto-O3 -Wl,--plugin-opt=O3"
         
         {
           echo "PREFIX=$CLANG_PREFIX"
@@ -618,7 +618,8 @@ jobs:
         
         echo "=== 測試編譯 ==="
         echo 'int main(){return 0;}' > test.c
-        clang $CFLAGS $LDFLAGS test.c -o test.exe
+        echo "int main(){return 0;}" > test.c
+        clang $CFLAGS $LDFLAGS test.c -o test.exe -v
         echo "編譯測試結果: $?"
         rm -f test.c test.exe
       
