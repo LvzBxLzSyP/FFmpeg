@@ -96,25 +96,6 @@ jobs:
     - name: Build dependencies
       shell: msys2 {0}
       run: |
-        echo "=== 調試工具鏈 ==="
-        echo "CC: $CC"
-        echo "CXX: $CXX"
-        echo "CFLAGS: $CFLAGS"
-        echo "LDFLAGS: $LDFLAGS"
-        echo "PATH: $PATH"
-        
-        echo "=== 檢查工具 ==="
-        which clang
-        which ld.lld
-        clang --version
-        ld.lld --version
-        
-        echo "=== 測試編譯 ==="
-        echo 'int main(){return 0;}' > test.c
-        clang $CFLAGS $LDFLAGS test.c -o test.exe
-        echo "編譯測試結果: $?"
-        rm -f test.c test.exe
-      
         # Build x264
         if [ ! -f "$PREFIX/lib/libx264.a" ]; then
           git clone --depth=1 https://code.videolan.org/videolan/x264.git
@@ -622,6 +603,25 @@ jobs:
     - name: Build dependencies (Clang)
       shell: msys2 {0}
       run: |
+        echo "=== 調試工具鏈 ==="
+        echo "CC: $CC"
+        echo "CXX: $CXX"
+        echo "CFLAGS: $CFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "PATH: $PATH"
+        
+        echo "=== 檢查工具 ==="
+        which clang
+        which ld.lld
+        clang --version
+        ld.lld --version
+        
+        echo "=== 測試編譯 ==="
+        echo 'int main(){return 0;}' > test.c
+        clang $CFLAGS $LDFLAGS test.c -o test.exe
+        echo "編譯測試結果: $?"
+        rm -f test.c test.exe
+      
         # Build x264 with Clang
         if [ ! -f "$PREFIX/lib/libx264.a" ]; then
           git clone --depth=1 https://code.videolan.org/videolan/x264.git
