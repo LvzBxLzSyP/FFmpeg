@@ -720,6 +720,8 @@ jobs:
         fi
 
         export STRIP=$(which llvm-strip)
+        export CFLAGS="-O3 -flto=full -static -I$PREFIX/include"
+        export CXXFLAGS="-O3 -flto=full -static -std=c++17 -I$PREFIX/include"
         
         # Build VVenC
         if [ ! -f "$PREFIX/lib/libvvenc.a" ]; then
@@ -760,6 +762,9 @@ jobs:
           ninja install
           cd ..
         fi
+
+        export CFLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
+        export CXXFLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
       
         # Build XEVE
         if [ ! -f "$PREFIX/lib/xeve/libxeve.a"]; then
