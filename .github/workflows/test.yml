@@ -623,7 +623,7 @@ jobs:
         echo "=== 測試編譯 ==="
         echo 'int main(){return 0;}' > test.c
         echo "int main(){return 0;}" > test.c
-        clang $CFLAGS $LDFLAGS test.c -o test.exe -v
+        clang $CFLAGS $LDFLAGS -fuse-ld=$(which ld.lld) test.c -o test.exe -v
         echo "編譯測試結果: $?"
         rm -f test.c test.exe
       
