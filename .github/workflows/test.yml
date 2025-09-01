@@ -593,7 +593,7 @@ jobs:
 
         cd /clang64/bin
         mv lld-link.exe lld-link.exe-bak
-        echo -e "#!/bin/bash\nexec ld.lld \$\@" > lld-link.exe
+        echo -e "#!/bin/bash\nexec ld.lld -flavor gnu \$\@" > lld-link.exe
 
     - name: Cache Clang build dependencies
       uses: actions/cache@v4
