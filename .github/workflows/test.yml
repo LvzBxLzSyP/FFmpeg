@@ -1062,7 +1062,7 @@ jobs:
           --ranlib=llvm-ranlib \
           --nm=llvm-nm \
           --strip=llvm-strip \
-          --ld="clang -fuse-ld=lld -Wl,-flavor,gnu -Wl,--ld-path=/clang64/bin/ld.lld" \
+          --ld="clang -fuse-ld=lld" \
           --arch=x86_64 \
           --target-os=mingw32 || { cat ffbuild/config.log; exit 1; }
 
