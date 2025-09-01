@@ -591,10 +591,6 @@ jobs:
           echo "STRIP=$(which llvm-strip)"
         } >> $GITHUB_ENV
 
-        cd /clang64/bin
-        mv lld-link.exe lld-link.exe-bak
-        echo -e "#!/bin/bash\nexec ld.lld -flavor gnu \$\@" > lld-link.exe
-
     - name: Cache Clang build dependencies
       uses: actions/cache@v4
       with:
@@ -623,7 +619,7 @@ jobs:
         echo "=== 測試編譯 ==="
         echo 'int main(){return 0;}' > test.c
         echo "int main(){return 0;}" > test.c
-        clang $CFLAGS $LDFLAGS -fuse-ld=$(which ld.lld) test.c -o test.exe -v
+        clang $CFLAGS $LDFLAGS test.c -o test.exe -v
         echo "編譯測試結果: $?"
         rm -f test.c test.exe
       
@@ -1066,7 +1062,7 @@ jobs:
           --ranlib=llvm-ranlib \
           --nm=llvm-nm \
           --strip=llvm-strip \
-          --ld="clang -target x86_64-w64-windows-gnu" \
+          --ld="clang -fuse-ld=lld -Wl,-flavor,gnu -Wl,--ld-path=/clang64/bin/ld.lld" \
           --arch=x86_64 \
           --target-os=mingw32 || { cat ffbuild/config.log; exit 1; }
 
