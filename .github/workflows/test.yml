@@ -1070,7 +1070,6 @@ jobs:
           --enable-d3d11va \
           --enable-amf \
           --enable-schannel \
-          --x86asmexe=yasm \
           --cc=clang \
           --cxx=clang++ \
           --ar=llvm-ar \
