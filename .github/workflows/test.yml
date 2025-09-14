@@ -1017,7 +1017,7 @@ jobs:
         git apply --3way libvvdec.patch || echo "Patch may have already been applied"
 
         # Special LTO flags for FFmpeg
-        export LDFLAGS_LTO="$LDFLAGS -Wl,--lto-O3 -Wl,--plugin-opt=-O3"
+        export LDFLAGS_LTO="$LDFLAGS"
         export LD=$(which ld.lld)
 
         ./configure \
