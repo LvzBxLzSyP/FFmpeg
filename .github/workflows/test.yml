@@ -1016,6 +1016,8 @@ jobs:
         wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
         git apply --3way libvvdec.patch || echo "Patch may have already been applied"
 
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/clang64/lib/pkgconfig"
+
         # Special LTO flags for FFmpeg
         export LDFLAGS_LTO="$LDFLAGS"
         export LD=$(which ld.lld)
