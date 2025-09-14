@@ -655,6 +655,15 @@ jobs:
           ninja -j$(nproc)
           ninja install
           cd ../..
+
+          if [ -f "$PREFIX/lib/pkgconfig/x265.pc" ]; then
+            echo "Before fixing:"
+            cat "$PREFIX/lib/pkgconfig/x265.pc"
+            sed -i 's/-l-l:/-l:/g' "$PREFIX/lib/pkgconfig/x265.pc"
+            sed -i 's/-lc++/-lstdc++/g' "$PREFIX/lib/pkgconfig/x265.pc"
+            echo "Fixed x265.pc:"
+            cat "$PREFIX/lib/pkgconfig/x265.pc"
+          fi
         fi
 
         # Build dav1d with Clang
