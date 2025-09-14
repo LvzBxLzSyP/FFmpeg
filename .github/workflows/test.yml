@@ -284,7 +284,8 @@ jobs:
       shell: msys2 {0}
       run: |
         # Build freetype2
-        git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git
+        git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git \
+          || git clone --depth=1 https://github.com/freetype/freetype.git
         cd freetype
         mkdir -p build && cd build
         cmake .. \
@@ -836,7 +837,8 @@ jobs:
       run: |
         # Build freetype with Clang
         if [ ! -f "$PREFIX/lib/libfreetype.a" ]; then
-          git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git
+          git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git \
+            || git clone --depth=1 https://github.com/freetype/freetype.git
           cd freetype
           mkdir -p build && cd build
           cmake .. -G "Ninja" \
