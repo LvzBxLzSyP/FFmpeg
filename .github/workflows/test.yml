@@ -277,7 +277,7 @@ jobs:
         export CXXFLAGS="$STATIC_FLAGS -std=c++17 -I$BUILD_PREFIX/include"
 
         # Build XEVE
-        if [ ! -f "$PREFIX/lib/xeve/libxeve.a"]; then
+        if [ ! -f "$PREFIX/lib/xeve/libxeve.a" ]; then
           echo "::group::Build libxeve"
           git clone https://github.com/mpeg5/xeve.git
           cd xeve
@@ -295,7 +295,7 @@ jobs:
         fi
 
         # Build XEVD
-        if [ ! -f "$PREFIX/lib/xevd/libxevd.a"]; then
+        if [ ! -f "$PREFIX/lib/xevd/libxevd.a" ]; then
           echo "::group::Build libxevd"
           git clone https://github.com/mpeg5/xevd.git
           cd xevd
@@ -530,6 +530,10 @@ jobs:
           --enable-libaom \
           --enable-libdav1d \
           --enable-libvpx \
+          --enable-libvvenc \
+          --enable-libvvdec \
+          --enable-libxeve \
+          --enable-libxevd \
           --enable-libmp3lame \
           --enable-libopus \
           --enable-libvorbis \
@@ -856,7 +860,7 @@ jobs:
         export CXXFLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
       
         # Build XEVE
-        if [ ! -f "$PREFIX/lib/xeve/libxeve.a"]; then
+        if [ ! -f "$PREFIX/lib/xeve/libxeve.a" ]; then
           git clone https://github.com/mpeg5/xeve.git
           cd xeve
           cmake -G Ninja \
@@ -874,7 +878,7 @@ jobs:
         fi
         
         # Build XEVD
-        if [ ! -f "$PREFIX/lib/xevd/libxevd.a"]; then
+        if [ ! -f "$PREFIX/lib/xevd/libxevd.a" ]; then
           git clone https://github.com/mpeg5/xevd.git
           cd xevd
           cmake -G Ninja \
@@ -1114,6 +1118,11 @@ jobs:
           --enable-libsvtav1 \
           --enable-libaom \
           --enable-libdav1d \
+          --enable-libvpx \
+          --enable-libvvenc \
+          --enable-libvvdec \
+          --enable-libxeve \
+          --enable-libxevd \
           --enable-libmp3lame \
           --enable-libopus \
           --enable-libvorbis \
