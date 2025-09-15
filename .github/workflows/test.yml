@@ -1070,6 +1070,7 @@ jobs:
           --enable-d3d11va \
           --enable-amf \
           --enable-schannel \
+          --enable-lto \
           --cc=clang \
           --cxx=clang++ \
           --ar=llvm-ar \
