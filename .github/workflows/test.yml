@@ -1079,7 +1079,7 @@ jobs:
           --ld="clang -fuse-ld=lld" \
           --arch=x86_64 \
           --target-os=mingw32 || { cat ffbuild/config.log; exit 1; }
-
+        sed -i 's/^LDFLAGS=.*/& -Wl,--whole-archive -lavcodec -lavutil -lavformat -lavfilter -lswscale -lswresample -Wl,--no-whole-archive/' ffbuild/config.mak
         # Build with verbose output for LTO debugging
         make -j$(nproc) V=1
         make install
