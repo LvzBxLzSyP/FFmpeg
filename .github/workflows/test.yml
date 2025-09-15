@@ -1,6 +1,8 @@
 name: Build Ultimate Static Windows FFmpeg with MSYS2 GCC/Clang
 
 on:
+  schedule:
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 env:
