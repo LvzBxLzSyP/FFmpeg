@@ -524,7 +524,7 @@ jobs:
         path: D:\ffmpeg-build\ffmpeg-win64-gcc-static.zip
         retention-days: 7
 
-  # Job 2: Clang Build with Full LTO
+  # Job 2: Clang Build with Thinq LTO
   build-ffmpeg-clang:
     runs-on: windows-latest
     timeout-minutes: 600  # Clang/LTO builds take longer
@@ -571,9 +571,9 @@ jobs:
       run: |
         mkdir -p $CLANG_PREFIX
 
-        # Clang-specific flags with Full LTO
-        CLANG_STATIC_FLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601"
-        CLANG_LINK_FLAGS="-static -flto=full"  # 移除手動 LTO 參數
+        # Clang-specific flags with Thin LTO
+        CLANG_STATIC_FLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
+        CLANG_LINK_FLAGS="-static -flto=thin"
         
         {
           echo "PREFIX=$CLANG_PREFIX"
@@ -1079,7 +1079,6 @@ jobs:
           --ld="clang -fuse-ld=lld" \
           --arch=x86_64 \
           --target-os=mingw32 || { cat ffbuild/config.log; exit 1; }
-        sed -i 's/^LDFLAGS=.*/& -Wl,--whole-archive -lavcodec -lavutil -lavformat -lavfilter -lswscale -lswresample -Wl,--no-whole-archive/' ffbuild/config.mak
         # Build with verbose output for LTO debugging
         make -j$(nproc) V=1
         make install
@@ -1102,7 +1101,7 @@ jobs:
         Compiler: Clang $(clang --version | head -n1)
         FFmpeg Version: $(./bin/ffmpeg.exe -version | head -n1)
         
-        Optimization: -O3 with Full LTO
+        Optimization: -O3 with Thin LTO
         Linker: LLD with LTO
         Static Linking: Yes
         
