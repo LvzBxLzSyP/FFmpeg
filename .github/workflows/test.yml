@@ -692,8 +692,8 @@ jobs:
         if [ ! -f "$PREFIX/lib/libx264.a" ]; then
           git clone --depth=1 https://code.videolan.org/videolan/x264.git
           cd x264
-          ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli --enable-pic \
-            --extra-cflags="-O3 -static -D_WIN32_WINNT=0x0601 -I$CLANG_PREFIX/include" --extra-ldflags="-static"
+          ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli --enable-pic --enable-lto \
+            --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS"
           make -j$(nproc)
           make install
           cd ..
