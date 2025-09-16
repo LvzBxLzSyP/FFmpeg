@@ -615,6 +615,7 @@ jobs:
           mingw-w64-clang-x86_64-diffutils
           mingw-w64-clang-x86_64-rav1e
           mingw-w64-clang-x86_64-libvpl
+          mingw-w64-clang-x86_64-libx264
           mingw-w64-clang-x86_64-SDL2
           mingw-w64-clang-x86_64-lld
           mingw-w64-clang-x86_64-libvpl
@@ -687,17 +688,6 @@ jobs:
         clang $CFLAGS $LDFLAGS test.c -o test.exe -v
         echo "編譯測試結果: $?"
         rm -f test.c test.exe
-      
-        # Build x264 with Clang
-        if [ ! -f "$PREFIX/lib/libx264.a" ]; then
-          git clone --depth=1 https://code.videolan.org/videolan/x264.git
-          cd x264
-          ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli --enable-pic --enable-lto \
-            --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS"
-          make -j$(nproc)
-          make install
-          cd ..
-        fi
 
         # Build x265 with Clang
         if [ ! -f "$PREFIX/lib/libx265.a" ]; then
