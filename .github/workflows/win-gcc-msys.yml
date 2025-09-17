@@ -3,6 +3,11 @@ name: Windows MSYS2 GCC Build Reusable Workflow
 on:
   workflow_call:
 
+env:
+  # Global build configuration
+  prefix: /d/ffmpeg-build
+
+
 jobs:
   build:
     runs-on: windows-latest
@@ -58,14 +63,14 @@ jobs:
       shell: msys2 {0}
       run: |
         # Create build directory
-        mkdir -p $BUILD_PREFIX
+        mkdir -p $prefix
         
         # GCC-specific flags
         STATIC_FLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
         
         # Environment variables
         {
-          echo "PREFIX=$BUILD_PREFIX"
+          echo "PREFIX=$prefix"
           echo "CFLAGS=$STATIC_FLAGS -I$BUILD_PREFIX/include"
           echo "CXXFLAGS=$STATIC_FLAGS -std=c++17 -I$BUILD_PREFIX/include"  
           echo "LDFLAGS=$STATIC_FLAGS -L$BUILD_PREFIX/lib"
