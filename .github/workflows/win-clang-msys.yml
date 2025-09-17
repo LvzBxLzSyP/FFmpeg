@@ -60,11 +60,11 @@ jobs:
         
         {
           echo "PREFIX=$globalprefix"
-          echo "CFLAGS=$CLANG_STATIC_FLAGS -I$CLANG_PREFIX/include"
-          echo "CXXFLAGS=$CLANG_STATIC_FLAGS -std=c++17 -I$CLANG_PREFIX/include"
-          echo "LDFLAGS=$CLANG_LINK_FLAGS -L$CLANG_PREFIX/lib"
-          echo "PKG_CONFIG_PATH=$CLANG_PREFIX/lib/pkgconfig"
-          echo "PATH=$CLANG_PREFIX/bin:/clang64/bin:$PATH"
+          echo "CFLAGS=$CLANG_STATIC_FLAGS -I$globalprefix/include"
+          echo "CXXFLAGS=$CLANG_STATIC_FLAGS -std=c++17 -I$globalprefix/include"
+          echo "LDFLAGS=$CLANG_LINK_FLAGS -L$globalprefix/lib"
+          echo "PKG_CONFIG_PATH=$globalprefix/lib/pkgconfig"
+          echo "PATH=$globalprefix/bin:/clang64/bin:$PATH"
           echo "MAKEFLAGS=-j$(nproc)"
           echo "CCACHE_DIR=$CCACHE_DIR"
           echo "CC=clang"
@@ -587,3 +587,10 @@ jobs:
         
         cd package-clang
         zip -9 -r ../ffmpeg-win64-clang-lto-static.zip 
+      
+    - name: Upload Clang build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ffmpeg-win64-clang-lto-static
+        path: D:\ffmpeg-build-clang\ffmpeg-win64-clang-lto-static.zip
+        retention-days: 7
