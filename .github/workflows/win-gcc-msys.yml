@@ -71,11 +71,11 @@ jobs:
         # Environment variables
         {
           echo "PREFIX=$globalprefix"
-          echo "CFLAGS=$STATIC_FLAGS -I$BUILD_PREFIX/include"
-          echo "CXXFLAGS=$STATIC_FLAGS -std=c++17 -I$BUILD_PREFIX/include"  
-          echo "LDFLAGS=$STATIC_FLAGS -L$BUILD_PREFIX/lib"
-          echo "PKG_CONFIG_PATH=$BUILD_PREFIX/lib/pkgconfig"
-          echo "PATH=$BUILD_PREFIX/bin:$PATH"
+          echo "CFLAGS=$STATIC_FLAGS -I$globalprefix/include"
+          echo "CXXFLAGS=$STATIC_FLAGS -std=c++17 -I$globalprefix/include"  
+          echo "LDFLAGS=$STATIC_FLAGS -L$globalprefix/lib"
+          echo "PKG_CONFIG_PATH=$globalprefix/lib/pkgconfig"
+          echo "PATH=$globalprefix/bin:$PATH"
           echo "MAKEFLAGS=-j$(nproc)"
           echo "CCACHE_DIR=$CCACHE_DIR"
           echo "CC=gcc"
@@ -272,8 +272,8 @@ jobs:
 
         # Reset variable
         STATIC_FLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
-        export CFLAGS="$STATIC_FLAGS -I$BUILD_PREFIX/include"
-        export CXXFLAGS="$STATIC_FLAGS -std=c++17 -I$BUILD_PREFIX/include"
+        export CFLAGS="$STATIC_FLAGS -I$globalprefix/include"
+        export CXXFLAGS="$STATIC_FLAGS -std=c++17 -I$globalprefix/include"
 
         # Build XEVE
         if [ ! -f "$PREFIX/lib/xeve/libxeve.a" ]; then
@@ -585,3 +585,4 @@ jobs:
         name: ffmpeg-win64-gcc-static
         path: D:\ffmpeg-build\ffmpeg-win64-gcc-static.zip
         retention-days: 7
+        
