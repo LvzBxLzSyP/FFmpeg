@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  build-ffmpeg-gcc:
+  build:
     runs-on: windows-latest
     timeout-minutes: 480
     outputs:
