@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 env:
-  prefix: /d/ffmpeg-build-clang
+  globalprefix: /d/ffmpeg-build-clang
 
 jobs:
   build:
@@ -52,14 +52,14 @@ jobs:
     - name: Setup Clang build environment
       shell: msys2 {0}
       run: |
-        mkdir -p $prefix
+        mkdir -p $globalprefix
 
         # Clang-specific flags with Thin LTO
         CLANG_STATIC_FLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
         CLANG_LINK_FLAGS="-static -flto=thin"
         
         {
-          echo "PREFIX=$prefix"
+          echo "PREFIX=$globalprefix"
           echo "CFLAGS=$CLANG_STATIC_FLAGS -I$CLANG_PREFIX/include"
           echo "CXXFLAGS=$CLANG_STATIC_FLAGS -std=c++17 -I$CLANG_PREFIX/include"
           echo "LDFLAGS=$CLANG_LINK_FLAGS -L$CLANG_PREFIX/lib"
