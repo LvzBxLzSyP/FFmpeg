@@ -1,4 +1,4 @@
-name: Simple Reusable Workflow
+name: Windows MSYS2 GCC Build Reusable Workflow
 
 on:
   workflow_call:
