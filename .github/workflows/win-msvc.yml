@@ -1,0 +1,60 @@
+name: Windows MSVC Build Reusable Workflow
+
+on: 
+  workflow_call:
+  workflow_dispatch:
+
+env:
+  globalprefix: D:\ffmpeg-build-msvc
+
+jobs:
+  build:
+    runs-on: windows-2025
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Install Meson
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install meson
+
+    - name: Install ASM for Visual Studio
+      shell: pwsh
+      run: |
+        wget https://github.com/ShiftMediaProject/VSNASM/releases/download/1.0/VSNASM.zip
+        Expand-Archive -Path "VSNASM.zip" -DestinationPath ".\VSNASM" -Force
+        cd VSNASM
+        & "install_script.bat"
+
+    - name: Set Environment Variable
+      shell: cmd
+      run: |
+        :: 假設你已經在 VS Developer Command Prompt 或已經調用 vcvars64.bat
+        (
+          echo PREFIX=%globalprefix%
+          echo CFLAGS=/O2 /GL /MT /D_WIN32_WINNT=0x0601 /I%globalprefix%\include
+          echo CXXFLAGS=/O2 /GL /MT /std:c++17 /I%globalprefix%\include
+          echo LDFLAGS=/LTCG /NODEFAULTLIB /LIBPATH:%globalprefix%\lib
+          echo PKG_CONFIG_PATH=%globalprefix%\lib\pkgconfig
+          echo PATH=%globalprefix%\bin;%PATH%
+          echo MAKEFLAGS=/M
+          echo CC=cl
+          echo CXX=cl
+        ) >> %GITHUB_ENV%
+
+    - name: Build Dependencies
+      shell: cmd
+      run: |
+        git clone https://github.com/ShiftMediaProject/x264.git
+        cd x264/SMP
+        msbuild libx264.vcxproj /p:Configuration=Release /p:Platform=x64 /p:WholeProgramOptimization=true
+
+    - name: Test Build Export
+      shell: bash
+      run: |
+        tree -d -L 10 ./x264 | tail -n +2
