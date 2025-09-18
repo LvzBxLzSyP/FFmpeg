@@ -29,7 +29,7 @@ jobs:
         Invoke-WebRequest -Uri "https://github.com/ShiftMediaProject/VSNASM/releases/download/1.0/VSNASM.zip" -OutFile "VSNASM.zip"
         Expand-Archive -Path "VSNASM.zip" -DestinationPath ".\VSNASM" -Force
         cd VSNASM
-        & "install_script.bat"
+        & ".\install_script.bat"
 
     - name: Set Environment Variable
       shell: cmd
