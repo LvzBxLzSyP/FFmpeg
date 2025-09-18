@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 env:
-  globalprefix: D:\ffmpeg-build-msvc
+  globalprefix: D:\a\FFmpeg\msvc\
 
 jobs:
   build:
@@ -54,7 +54,18 @@ jobs:
         cd x264/SMP
         msbuild libx264.vcxproj /p:Configuration=Release /p:Platform=x64 /p:WholeProgramOptimization=true
 
-    - name: Test Build Export
-      shell: bash
-      run: |
-        tree -d -L 10 ./x264 | tail -n +2
+        cd ../..
+        git clone https://bitbucket.org/multicoreware/x265_git.git x265
+        cd x265/build
+        cmake -G "Visual Studio 17 2022" ^
+          -A x64 ^
+          -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
+          -DENABLE_SHARED=OFF ^
+          -DENABLE_CLI=OFF ^
+          -DENABLE_TESTS=OFF ^
+          -DENABLE_DOCS=OFF ^
+          -DCMAKE_C_FLAGS_RELEASE="/O2 /GL" ^
+          -DCMAKE_CXX_FLAGS_RELEASE="/O2 /GL /std:c++17" ^
+          ../source
+        msbuild x265.sln /p:Configuration=Release /p:Platform=x64 /p:WholeProgramOptimization=true
+        
