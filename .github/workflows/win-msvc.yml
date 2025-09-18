@@ -26,7 +26,7 @@ jobs:
     - name: Install ASM for Visual Studio
       shell: pwsh
       run: |
-        wget https://github.com/ShiftMediaProject/VSNASM/releases/download/1.0/VSNASM.zip
+        Invoke-WebRequest -Uri "https://github.com/ShiftMediaProject/VSNASM/releases/download/1.0/VSNASM.zip" -OutFile "VSNASM.zip"
         Expand-Archive -Path "VSNASM.zip" -DestinationPath ".\VSNASM" -Force
         cd VSNASM
         & "install_script.bat"
