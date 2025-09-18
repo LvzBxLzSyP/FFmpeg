@@ -40,7 +40,7 @@ jobs:
         echo PREFIX=%globalprefix% >> %GITHUB_ENV%
         echo CFLAGS=/O2 /GL /MT /D_WIN32_WINNT=0x0601 /I%globalprefix%\include >> %GITHUB_ENV%
         echo CXXFLAGS=/O2 /GL /MT /std:c++17 /I%globalprefix%\include >> %GITHUB_ENV%
-        echo LDFLAGS=/LTCG /NODEFAULTLIB /LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
+        echo LDFLAGS=/LTCG /LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
         echo PKG_CONFIG_PATH=%globalprefix%\lib\pkgconfig >> %GITHUB_ENV%
         echo PATH=%globalprefix%\bin;%PATH% >> %GITHUB_ENV%
         echo MAKEFLAGS=/M >> %GITHUB_ENV%
@@ -64,8 +64,8 @@ jobs:
           -DENABLE_CLI=OFF ^
           -DENABLE_TESTS=OFF ^
           -DENABLE_DOCS=OFF ^
-          -DCMAKE_C_FLAGS_RELEASE="/O2 /GL" ^
-          -DCMAKE_CXX_FLAGS_RELEASE="/O2 /GL /std:c++17" ^
+          -DCMAKE_C_FLAGS_RELEASE="/O2 /GL /MT" ^
+          -DCMAKE_CXX_FLAGS_RELEASE="/O2 /GL /MT /std:c++17" ^
           ../source
         msbuild x265.sln /p:Configuration=Release /p:Platform=x64 /p:WholeProgramOptimization=true
         
