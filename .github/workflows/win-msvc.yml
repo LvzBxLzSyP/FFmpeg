@@ -29,7 +29,7 @@ jobs:
         Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip" -OutFile "NASM.zip"
         Invoke-WebRequest -Uri "https://github.com/ShiftMediaProject/VSNASM/releases/download/1.0/VSNASM.zip" -OutFile "VSNASM.zip"
         Expand-Archive -Path "NASM.zip" -DestinationPath ".\NASM" -Force
-        Copy-Item -Path ".\NASM\nasm-2.16.03\nasm.exe" -DestinationPath "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\nasm.exe"
+        Copy-Item -Path ".\NASM\nasm-2.16.03\nasm.exe" -Destination "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\nasm.exe"
         Expand-Archive -Path "VSNASM.zip" -DestinationPath ".\VSNASM" -Force
         cd VSNASM
         & ".\install_script.bat"
