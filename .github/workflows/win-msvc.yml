@@ -50,6 +50,7 @@ jobs:
     - name: Build Dependencies
       shell: cmd
       run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         git clone https://github.com/ShiftMediaProject/x264.git
         cd x264/SMP
         msbuild libx264.vcxproj /p:Configuration=Release /p:Platform=x64 /p:WholeProgramOptimization=true
