@@ -34,18 +34,15 @@ jobs:
     - name: Set Environment Variable
       shell: cmd
       run: |
-        :: 假設你已經在 VS Developer Command Prompt 或已經調用 vcvars64.bat
-        (
-          echo PREFIX=%globalprefix%
-          echo CFLAGS=/O2 /GL /MT /D_WIN32_WINNT=0x0601 /I%globalprefix%\include
-          echo CXXFLAGS=/O2 /GL /MT /std:c++17 /I%globalprefix%\include
-          echo LDFLAGS=/LTCG /NODEFAULTLIB /LIBPATH:%globalprefix%\lib
-          echo PKG_CONFIG_PATH=%globalprefix%\lib\pkgconfig
-          echo PATH=%globalprefix%\bin;%PATH%
-          echo MAKEFLAGS=/M
-          echo CC=cl
-          echo CXX=cl
-        ) >> %GITHUB_ENV%
+        echo PREFIX=%globalprefix% >> %GITHUB_ENV%
+        echo CFLAGS=/O2 /GL /MT /D_WIN32_WINNT=0x0601 /I%globalprefix%\include >> %GITHUB_ENV%
+        echo CXXFLAGS=/O2 /GL /MT /std:c++17 /I%globalprefix%\include >> %GITHUB_ENV%
+        echo LDFLAGS=/LTCG /NODEFAULTLIB /LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
+        echo PKG_CONFIG_PATH=%globalprefix%\lib\pkgconfig >> %GITHUB_ENV%
+        echo PATH=%globalprefix%\bin;%PATH% >> %GITHUB_ENV%
+        echo MAKEFLAGS=/M >> %GITHUB_ENV%
+        echo CC=cl >> %GITHUB_ENV%
+        echo CXX=cl >> %GITHUB_ENV%
 
     - name: Build Dependencies
       shell: cmd
