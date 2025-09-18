@@ -586,7 +586,7 @@ jobs:
         EOF
         
         cd package-clang
-        zip -9 -r ../ffmpeg-win64-clang-lto-static.zip 
+        zip -9 -r ../ffmpeg-win64-clang-lto-static.zip .
       
     - name: Upload Clang build artifact
       uses: actions/upload-artifact@v4
