@@ -68,4 +68,19 @@ jobs:
           -DCMAKE_CXX_FLAGS_RELEASE="/O2 /GL /MT /std:c++17" ^
           ../source
         msbuild x265.sln /p:Configuration=Release /p:Platform=x64 /p:WholeProgramOptimization=true
-        
+
+        cd ../..
+        git clone https://code.videolan.org/videolan/dav1d.git
+        cd dav1d
+        meson setup build ^
+          --buildtype=release ^
+          --prefix=%PREFIX% ^
+          -Ddefault_library=static ^
+          -Denable_tools=false ^
+          -Denable_tests=false ^
+          -Dc_args="%CFLAGS%" ^
+          -Dcpp_args="%CXXFLAGS%" ^
+          -Dc_link_args="%LDFLAGS%" ^
+          -Dcpp_link_args="%LDFLAGS%"
+        meson compile -C build -j %NUMBER_OF_PROCESSORS%
+        meson install -C build
