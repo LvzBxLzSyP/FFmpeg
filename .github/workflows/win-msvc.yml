@@ -34,6 +34,12 @@ jobs:
         cd VSNASM
         & ".\install_script.bat"
 
+    - name: Install Ninja
+      run: |
+        Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip -OutFile ninja.zip
+        Expand-Archive ninja.zip -DestinationPath $env:USERPROFILE\ninja
+        setx PATH "$env:USERPROFILE\ninja;$env:PATH"
+
     - name: Set Environment Variable
       shell: cmd
       run: |
@@ -58,7 +64,7 @@ jobs:
         cd ../..
         git clone https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
-        cmake -G "Visual Studio 17 2022" ^
+        cmake -G Ninja ^
           -A x64 ^
           -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
           -DENABLE_SHARED=OFF ^
@@ -68,7 +74,8 @@ jobs:
           -DCMAKE_C_FLAGS_RELEASE="/O2 /GL /MT" ^
           -DCMAKE_CXX_FLAGS_RELEASE="/O2 /GL /MT /std:c++17" ^
           ../source
-        msbuild x265.sln /p:Configuration=Release /p:Platform=x64 /p:WholeProgramOptimization=true
+        ninja
+        ninja install
 
         cd ../..
         git clone https://code.videolan.org/videolan/dav1d.git
