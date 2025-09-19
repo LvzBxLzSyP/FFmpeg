@@ -65,7 +65,6 @@ jobs:
         git clone https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
         cmake -G Ninja ^
-          -A x64 ^
           -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
           -DENABLE_SHARED=OFF ^
           -DENABLE_CLI=OFF ^
