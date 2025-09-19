@@ -2,6 +2,13 @@ name: Windows MSYS2 GCC Build Reusable Workflow
 
 on:
   workflow_call:
+    outputs:
+      tag_name:
+        description: "Generated tag"
+        value: ${{ jobs.build.outputs.tag_name }}
+      release_name:
+        description: "Generated release name"
+        value: ${{ jobs.build.outputs.release_name }}
 
 env:
   # Global build configuration
