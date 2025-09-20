@@ -23,6 +23,16 @@ jobs:
       with: 
         cache: false
 
+    - name: Set up vcpkg
+      uses: lukka/run-vcpkg@v11
+      with:
+        vcpkg-root: './vcpkg'
+        vcpkg-revision: '29ff5b8131d0c6c8fcb8fbaef35992f0d507cd7c'
+
+    - name: Install dependencies
+      run: |
+        ./vcpkg/vcpkg install curl sqlite3
+
     - name: Install Meson
       run: |
         python -m pip install --upgrade pip
