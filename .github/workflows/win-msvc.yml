@@ -80,8 +80,8 @@ jobs:
           ../source
         ninja
         ninja install
-
         cd ../..
+        
         git clone https://code.videolan.org/videolan/dav1d.git
         cd dav1d
         meson setup build ^
@@ -96,3 +96,12 @@ jobs:
           -Dcpp_link_args="%LDFLAGS%"
         meson compile -C build -j %NUMBER_OF_PROCESSORS%
         meson install -C build
+        cd ..
+
+        git clone --depth=1 https://github.com/xiph/rav1e.git
+        cd rav1e
+        cargo install cargo-c --force
+        cargo cinstall --release --target x86_64-pc-windows-msvc \
+          --library-type staticlib \
+          --prefix="%PREFIX%"
+        cd ..
