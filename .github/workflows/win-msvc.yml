@@ -31,7 +31,7 @@ jobs:
         
     - name: Install dependencies
       run: |
-        ./vcpkg/vcpkg install curl:x64-windows-static sqlite3:x64-windows-static libgit2:x64-windows-static libssh2:x64-windows-static
+        ./vcpkg/vcpkg install curl:x64-windows-static sqlite3:x64-windows-static libgit2:x64-windows-static libssh2:x64-windows-static openssl:x64-windows-static
 
     - name: Setup Rust link path
       shell: pwsh
