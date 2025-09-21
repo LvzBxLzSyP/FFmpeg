@@ -37,7 +37,7 @@ jobs:
       shell: pwsh
       run: |
         echo "VCPKG_ROOT=${{ github.workspace }}/vcpkg" >> $env:GITHUB_ENV
-        echo "RUSTFLAGS=-L${{ github.workspace }}/vcpkg/installed/x64-windows-static/lib -l static=git2 -l static=libcurl -l static=sqlite3 -l static=libssh2 -l static=zlib" >> $env:GITHUB_ENV
+        echo "RUSTFLAGS=-L${{ github.workspace }}/vcpkg/installed/x64-windows-static/lib -l static=git2 -l static=libcurl -l static=sqlite3 -l static=libssh2 -l static=zlib -l static=libssl -l static=libcrypto" >> $env:GITHUB_ENV
         dir ${{ github.workspace }}\vcpkg\installed\x64-windows-static\lib
         
     - name: Install Meson
