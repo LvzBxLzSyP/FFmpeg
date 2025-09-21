@@ -31,7 +31,8 @@ jobs:
         
     - name: Install dependencies
       run: |
-        ./vcpkg/vcpkg install curl sqlite3
+        ./vcpkg/vcpkg install curl:x64-windows-static sqlite3:x64-windows-static libgit2:x64-windows-static
+        echo "RUSTFLAGS=-L${{ github.workspace }}/vcpkg/installed/x64-windows-static/lib" >> $GITHUB_ENV
 
     - name: Install Meson
       run: |
