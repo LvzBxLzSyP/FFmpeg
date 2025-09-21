@@ -32,8 +32,13 @@ jobs:
     - name: Install dependencies
       run: |
         ./vcpkg/vcpkg install curl:x64-windows-static sqlite3:x64-windows-static libgit2:x64-windows-static
-        echo "RUSTFLAGS=-L${{ github.workspace }}/vcpkg/installed/x64-windows-static/lib" >> $GITHUB_ENV
 
+    - name: Setup Rust link path
+      shell: pwsh
+      run: |
+        echo "VCPKG_ROOT=${{ github.workspace }}/vcpkg" >> $env:GITHUB_ENV
+        echo "RUSTFLAGS=-L${{ github.workspace }}/vcpkg/installed/x64-windows-static/lib -l static=git2 -l static=libcurl -l static=sqlite3 -l static=ssh2 -l static=z" >> $env:GITHUB_ENV
+        
     - name: Install Meson
       run: |
         python -m pip install --upgrade pip
