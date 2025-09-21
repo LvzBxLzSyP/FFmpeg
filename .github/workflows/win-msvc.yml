@@ -117,8 +117,9 @@ jobs:
 
         git clone --depth=1 https://github.com/xiph/rav1e.git
         cd rav1e
-        cargo install cargo-c --force
-        cargo cinstall --release --target x86_64-pc-windows-msvc \
-          --library-type staticlib \
-          --prefix="%PREFIX%"
+        cargo install cargo-c --force -j1
+        cargo cinstall --release --target x86_64-pc-windows-msvc ^
+          --library-type staticlib ^
+          --prefix="%PREFIX%" ^
+          -j1
         cd ..
