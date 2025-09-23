@@ -17,28 +17,6 @@ jobs:
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
-
-    - name: Install Rust
-      uses: actions-rust-lang/setup-rust-toolchain@v1
-      with: 
-        cache: false
-    
-    - name: Set up vcpkg
-      uses: lukka/run-vcpkg@v11
-      with:
-        vcpkgDirectory: './vcpkg'
-        vcpkgGitCommitId: '29ff5b8131d0c6c8fcb8fbaef35992f0d507cd7c'
-        
-    - name: Install dependencies
-      run: |
-        ./vcpkg/vcpkg install curl:x64-windows-static sqlite3:x64-windows-static libgit2:x64-windows-static libssh2:x64-windows-static openssl:x64-windows-static
-
-    - name: Setup Rust link path
-      shell: pwsh
-      run: |
-        echo "VCPKG_ROOT=${{ github.workspace }}/vcpkg" >> $env:GITHUB_ENV
-        echo "RUSTFLAGS=-L${{ github.workspace }}/vcpkg/installed/x64-windows-static/lib -l static=git2 -l static=libcurl -l static=sqlite3 -l static=libssh2 -l static=zlib" >> $env:GITHUB_ENV
-        dir ${{ github.workspace }}\vcpkg\installed\x64-windows-static\lib
         
     - name: Install Meson
       run: |
@@ -115,11 +93,5 @@ jobs:
         meson install -C build
         cd ..
 
-        git clone --depth=1 https://github.com/xiph/rav1e.git
-        cd rav1e
-        cargo install cargo-c --force -j1 --features=vendored-openssl
-        cargo cinstall --release --target x86_64-pc-windows-msvc ^
-          --library-type staticlib ^
-          --prefix="%PREFIX%" ^
-          -j1
-        cd ..
+        wget https://www.github.com/LvzBxLzSyP/rav1e/releases/download/latest/rav1e-x86_64.zip
+        7z x rav1e-x86_64 -o%PREFIX%
