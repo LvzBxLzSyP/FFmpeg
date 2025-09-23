@@ -94,4 +94,4 @@ jobs:
         cd ..
 
         wget https://www.github.com/LvzBxLzSyP/rav1e/releases/download/latest/rav1e-x86_64.zip
-        7z x rav1e-x86_64 -o%PREFIX%
+        7z x rav1e-x86_64.zip -o%PREFIX%
