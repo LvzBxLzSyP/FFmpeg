@@ -93,5 +93,5 @@ jobs:
         meson install -C build
         cd ..
 
-        curl -L -o rav1e-x86_64.zip https://www.github.com/LvzBxLzSyP/rav1e/releases/download/latest/rav1e-x86_64.zip
+        curl -L -o rav1e-x86_64.zip https://github.com/LvzBxLzSyP/rav1e/releases/latest/download/rav1e-x86_64.zip
         7z x rav1e-x86_64.zip -o%PREFIX%
