@@ -1,6 +1,7 @@
 name: Windows MSYS2 Matrix Build Reusable Workflow
 
 on:
+  workflow_dispatch:
   workflow_call:
     outputs:
       tag_name:
