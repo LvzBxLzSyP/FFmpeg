@@ -1,0 +1,761 @@
+name: Windows MSYS2 Matrix Build Reusable Workflow
+
+on:
+  workflow_call:
+    outputs:
+      tag_name:
+        description: "Generated tag"
+        value: ${{ jobs.build.outputs.tag_name }}
+      release_name:
+        description: "Generated release name"
+        value: ${{ jobs.build.outputs.release_name }}
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 600
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        include:
+          - compiler: gcc
+            msystem: MINGW64
+            prefix: /d/ffmpeg-build-gcc
+            package_name: ffmpeg-win64-gcc-static
+            toolchain_packages: >-
+              mingw-w64-x86_64-toolchain
+              mingw-w64-x86_64-cmake
+              mingw-w64-x86_64-meson
+              mingw-w64-x86_64-ninja
+              mingw-w64-x86_64-nasm
+              mingw-w64-x86_64-yasm
+              mingw-w64-x86_64-pkg-config
+              mingw-w64-x86_64-zlib
+              mingw-w64-x86_64-rust
+              mingw-w64-x86_64-diffutils
+              mingw-w64-x86_64-SDL2
+              mingw-w64-x86_64-libvpl
+            optimization_flags: "-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
+            link_flags: "-static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
+          - compiler: clang
+            msystem: CLANG64
+            prefix: /d/ffmpeg-build-clang
+            package_name: ffmpeg-win64-clang-lto-static
+            toolchain_packages: >-
+              mingw-w64-clang-x86_64-toolchain
+              mingw-w64-clang-x86_64-cmake
+              mingw-w64-clang-x86_64-meson
+              mingw-w64-clang-x86_64-ninja
+              mingw-w64-clang-x86_64-nasm
+              mingw-w64-clang-x86_64-yasm
+              mingw-w64-clang-x86_64-pkg-config
+              mingw-w64-clang-x86_64-zlib
+              mingw-w64-clang-x86_64-diffutils
+              mingw-w64-clang-x86_64-rav1e
+              mingw-w64-clang-x86_64-libvpl
+              mingw-w64-clang-x86_64-libx264
+              mingw-w64-clang-x86_64-SDL2
+              mingw-w64-clang-x86_64-lld
+            optimization_flags: "-O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
+            link_flags: "-static -flto=thin"
+
+    outputs:
+      tag_name: ${{ steps.tagger.outputs.tag_name }}
+      release_name: ${{ steps.tagger.outputs.release_name }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.msystem }}
+        update: true
+        install: >-
+          ${{ matrix.toolchain_packages }}
+          autoconf
+          automake
+          libtool
+          make
+          git
+          curl
+          wget
+          unzip
+          zip
+          tar
+          xz
+          patch
+
+    - name: Set UTC datetime tag & release name
+      shell: msys2 {0}
+      if: matrix.compiler == 'clang'
+      id: tagger
+      run: |
+        DATE=$(date -u +"%Y-%m-%d-%H-%M-%S")
+        echo "tag_name=autobuild-${DATE}" >> $GITHUB_OUTPUT
+        echo "release_name=FFmpeg Auto Build ${DATE}" >> $GITHUB_OUTPUT
+
+    - name: Setup build environment
+      shell: msys2 {0}
+      run: |
+        # Create build directory
+        mkdir -p ${{ matrix.prefix }}
+        
+        # Set compiler-specific variables
+        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+          CC_CMD="gcc"
+          CXX_CMD="g++"
+          AR_CMD="ar"
+          RANLIB_CMD="ranlib"
+          NM_CMD="nm"
+          STRIP_CMD="strip"
+          PATH_PREFIX="${{ matrix.prefix }}/bin:$PATH"
+        else
+          CC_CMD="clang"
+          CXX_CMD="clang++"
+          AR_CMD="$(which llvm-ar)"
+          RANLIB_CMD="$(which llvm-ranlib)"
+          NM_CMD="$(which llvm-nm)"
+          STRIP_CMD="$(which llvm-strip)"
+          PATH_PREFIX="${{ matrix.prefix }}/bin:/clang64/bin:$PATH"
+        fi
+        
+        # Environment variables
+        {
+          echo "PREFIX=${{ matrix.prefix }}"
+          echo "CFLAGS=${{ matrix.optimization_flags }} -I${{ matrix.prefix }}/include"
+          echo "CXXFLAGS=${{ matrix.optimization_flags }} -std=c++17 -I${{ matrix.prefix }}/include"  
+          echo "LDFLAGS=${{ matrix.link_flags }} -L${{ matrix.prefix }}/lib"
+          echo "PKG_CONFIG_PATH=${{ matrix.prefix }}/lib/pkgconfig"
+          echo "PATH=$PATH_PREFIX"
+          echo "MAKEFLAGS=-j$(nproc)"
+          echo "CC=$CC_CMD"
+          echo "CXX=$CXX_CMD"
+          echo "AR=$AR_CMD"
+          echo "RANLIB=$RANLIB_CMD"
+          echo "NM=$NM_CMD"
+          echo "STRIP=$STRIP_CMD"
+          echo "COMPILER_TYPE=${{ matrix.compiler }}"
+        } >> $GITHUB_ENV
+
+    - name: Cache build dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ${{ matrix.prefix }}
+        key: ffmpeg-deps-${{ matrix.compiler }}-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.patch') }}
+        restore-keys: |
+          ffmpeg-deps-${{ matrix.compiler }}-${{ runner.os }}-
+
+    - name: Debug toolchain (Clang only)
+      if: matrix.compiler == 'clang'
+      shell: msys2 {0}
+      run: |
+        echo "=== 調試工具鏈 ==="
+        echo "CC: $CC"
+        echo "CXX: $CXX"
+        echo "CFLAGS: $CFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "PATH: $PATH"
+        
+        echo "=== 檢查工具 ==="
+        which clang
+        which ld.lld
+        clang --version
+        ld.lld --version
+        
+        echo "=== 測試編譯 ==="
+        echo "int main(){return 0;}" > test.c
+        clang $CFLAGS $LDFLAGS test.c -o test.exe -v
+        echo "編譯測試結果: $?"
+        rm -f test.c test.exe
+
+    - name: Build video codec dependencies
+      shell: msys2 {0}
+      run: |
+        # Set compiler-specific cmake flags
+        if [ "$COMPILER_TYPE" = "gcc" ]; then
+          CMAKE_C_COMPILER=""
+          CMAKE_CXX_COMPILER=""
+        else
+          CMAKE_C_COMPILER="-DCMAKE_C_COMPILER=clang"
+          CMAKE_CXX_COMPILER="-DCMAKE_CXX_COMPILER=clang++"
+        fi
+
+        # Build x264 (GCC only - Clang uses package)
+        if [ "$COMPILER_TYPE" = "gcc" ] && [ ! -f "$PREFIX/lib/libx264.a" ]; then
+          echo "::group::Build libx264"
+          git clone --depth=1 https://code.videolan.org/videolan/x264.git
+          cd x264
+          ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli --enable-pic
+          make -j$(nproc)
+          make install
+          cd ..
+          echo ::endgroup::
+        fi
+
+        # Build x265
+        if [ ! -f "$PREFIX/lib/libx265.a" ]; then
+          echo "::group::Build libx265"
+          git clone https://bitbucket.org/multicoreware/x265_git x265
+          cd x265/build
+          cmake -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DENABLE_SHARED=OFF \
+            -DENABLE_CLI=OFF \
+            -DENABLE_TESTS=OFF \
+            -DENABLE_DOCS=OFF \
+            $CMAKE_C_COMPILER \
+            $CMAKE_CXX_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+            $([ "$COMPILER_TYPE" = "clang" ] && echo "-DCMAKE_CXX_IMPLICIT_LINK_LIBRARIES=\"stdc++;m;pthread\"") \
+            $([ "$COMPILER_TYPE" = "gcc" ] && echo "-DSTATIC_LINK_CRT=ON -DCMAKE_CXX_FLAGS=\"-static-libgcc -static-libstdc++\" -DCMAKE_C_FLAGS=\"-static-libgcc\"") \
+            ../source
+          ninja -j$(nproc)
+          ninja install
+
+          # Fix x265.pc for Clang
+          if [ "$COMPILER_TYPE" = "clang" ] && [ -f "$PREFIX/lib/pkgconfig/x265.pc" ]; then
+            echo "Before fixing:"
+            cat "$PREFIX/lib/pkgconfig/x265.pc"
+            sed -i 's/-l-l:/-l:/g' "$PREFIX/lib/pkgconfig/x265.pc"
+            sed -i 's/-lc++/-lstdc++/g' "$PREFIX/lib/pkgconfig/x265.pc"
+            echo "Fixed x265.pc:"
+            cat "$PREFIX/lib/pkgconfig/x265.pc"
+          fi
+          cd ../..
+          echo ::endgroup::
+        fi
+
+        # Build dav1d
+        if [ ! -f "$PREFIX/lib/libdav1d.a" ]; then
+          echo "::group::Build libdav1d"
+          git clone --depth=1 https://code.videolan.org/videolan/dav1d.git
+          cd dav1d
+          meson setup build \
+            --buildtype=release \
+            --prefix="$PREFIX" \
+            -Ddefault_library=static \
+            -Denable_tools=false \
+            -Denable_tests=false \
+            -Dc_args="$CFLAGS" \
+            $([ "$COMPILER_TYPE" = "clang" ] && echo "-Dcpp_args=\"$CXXFLAGS\" -Dc_link_args=\"$LDFLAGS\" -Dcpp_link_args=\"$LDFLAGS\"")
+          meson compile -C build -j$(nproc)
+          meson install -C build
+          cd ..
+          echo ::endgroup::
+        fi
+
+        # Build SVT-AV1
+        if [ ! -f "$PREFIX/lib/libSvtAv1Enc.a" ]; then
+          echo "::group::Build libsvtav1"
+          git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+          cd SVT-AV1
+          cmake -G "Ninja" \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_APPS=OFF \
+            -DBUILD_DEC=OFF \
+            $CMAKE_C_COMPILER \
+            $CMAKE_CXX_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+            .
+          ninja -j$(nproc)
+          ninja install
+          cd ..
+          echo ::endgroup::
+        fi
+
+        # Build rav1e (GCC only - Clang uses package)
+        if [ "$COMPILER_TYPE" = "gcc" ] && [ ! -f "$PREFIX/lib/librav1e.a" ]; then
+          echo "::group::Build librav1e"
+          export PATH="/mingw64/bin:$PATH"
+          export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
+          git clone --depth=1 https://github.com/xiph/rav1e.git
+          cd rav1e
+          cargo install cargo-c --force
+          cargo cinstall --release --target x86_64-pc-windows-gnu \
+            --library-type staticlib \
+            --prefix="$PREFIX"
+          cd ..
+          echo ::endgroup::
+        fi
+
+        # Build libaom
+        if [ ! -f "$PREFIX/lib/libaom.a" ]; then
+          echo "::group::Build libaom"
+          git clone --depth=1 https://aomedia.googlesource.com/aom.git
+          mkdir -p aom/build && cd aom/build
+          cmake .. -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DENABLE_SHARED=OFF \
+            -DENABLE_NASM=ON \
+            -DENABLE_TOOLS=OFF \
+            -DENABLE_EXAMPLES=OFF \
+            -DENABLE_DOCS=OFF \
+            -DENABLE_TESTS=OFF \
+            $CMAKE_C_COMPILER \
+            $CMAKE_CXX_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+          echo ::endgroup::
+        fi
+
+        # Build libvpx
+        if [ ! -f "$PREFIX/lib/libvpx.a" ]; then
+          echo "::group::Build libvpx"
+          git clone --depth=1 https://chromium.googlesource.com/webm/libvpx.git
+          cd libvpx
+          # Disable strip for Clang
+          if [ "$COMPILER_TYPE" = "clang" ]; then
+            export STRIP=:
+          fi
+          LDFLAGS="$LDFLAGS" ./configure \
+            --prefix=$PREFIX \
+            --disable-examples \
+            --disable-unit-tests \
+            --disable-tools \
+            --disable-docs \
+            --enable-vp8 \
+            --enable-vp9 \
+            --enable-vp9-highbitdepth \
+            --enable-static \
+            --disable-shared \
+            --extra-cflags="$CFLAGS" 
+          make -j$(nproc)
+          make install
+          cd ..
+          echo ::endgroup::
+        fi
+
+        # For VVC codecs, use full LTO flags for Clang
+        if [ "$COMPILER_TYPE" = "clang" ]; then
+          export STRIP=$(which llvm-strip)
+          export CFLAGS="-O3 -flto=full -static -I$PREFIX/include"
+          export CXXFLAGS="-O3 -flto=full -static -std=c++17 -I$PREFIX/include"
+        fi
+
+        # Build VVenC
+        if [ ! -f "$PREFIX/lib/libvvenc.a" ]; then
+          echo "::group::Build libvvenc"
+          git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
+          cd vvenc
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+            $CMAKE_C_COMPILER \
+            $CMAKE_CXX_COMPILER \
+            -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+            -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
+            -G Ninja
+          ninja -j$(nproc)
+          ninja install
+          cd ..
+          echo ::endgroup::
+        fi
+
+        # Build VVdeC
+        if [ ! -f "$PREFIX/lib/libvvdec.a" ]; then
+          echo "::group::Build libvvdec"
+          git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
+          cd vvdec
+          cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_C_FLAGS_RELEASE="$CFLAGS $([ "$COMPILER_TYPE" = "clang" ] && echo "-Wno-nontrivial-memcall")" \
+            -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS $([ "$COMPILER_TYPE" = "clang" ] && echo "-Wno-nontrivial-memcall")" \
+            $CMAKE_C_COMPILER \
+            $CMAKE_CXX_COMPILER \
+            -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+            -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
+            -G Ninja
+          ninja -j$(nproc)
+          ninja install
+          echo ::endgroup::
+        fi
+
+        # Reset flags for remaining builds
+        if [ "$COMPILER_TYPE" = "clang" ]; then
+          export CFLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
+          export CXXFLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
+        fi
+
+        # Build XEVE
+        if [ ! -f "$PREFIX/lib/xeve/libxeve.a" ]; then
+          echo "::group::Build libxeve"
+          git clone https://github.com/mpeg5/xeve.git
+          cd xeve
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+            $CMAKE_C_COMPILER \
+            -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+            .
+          ninja -j$(nproc)
+          cmake --install . --component Development
+          cd ..
+          echo ::endgroup::
+        fi
+
+        # Build XEVD
+        if [ ! -f "$PREFIX/lib/xevd/libxevd.a" ]; then
+          echo "::group::Build libxevd"
+          git clone https://github.com/mpeg5/xevd.git
+          cd xevd
+          cmake -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+            $CMAKE_C_COMPILER \
+            -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+            .
+          ninja -j$(nproc)
+          cmake --install . --component Development
+          cd ..
+          echo ::endgroup::
+        fi
+        
+    - name: Build audio & text libraries
+      shell: msys2 {0}
+      run: |
+        # Set compiler-specific flags
+        if [ "$COMPILER_TYPE" = "gcc" ]; then
+          CMAKE_C_COMPILER=""
+          CMAKE_CXX_COMPILER=""
+          CONFIGURE_CC=""
+        else
+          CMAKE_C_COMPILER="-DCMAKE_C_COMPILER=clang"
+          CMAKE_CXX_COMPILER="-DCMAKE_CXX_COMPILER=clang++"
+          CONFIGURE_CC="CC=clang CXX=clang++ AR=llvm-ar RANLIB=llvm-ranlib"
+        fi
+
+        # Build freetype2
+        if [ ! -f "$PREFIX/lib/libfreetype.a" ]; then
+          echo "::group::Build libfreetype"
+          git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git \
+            || git clone --depth=1 https://github.com/freetype/freetype.git
+          cd freetype
+          mkdir -p build && cd build
+          cmake .. \
+            -G "Ninja" \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -D FT_DISABLE_BZIP2=TRUE \
+            -D FT_DISABLE_PNG=TRUE \
+            $CMAKE_C_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+          echo "::endgroup::"
+        fi
+
+        # Build LAME
+        if [ ! -f "$PREFIX/lib/libmp3lame.a" ]; then
+          echo "::group::Build libmp3lame"
+          wget -q https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+          tar xzf lame-3.100.tar.gz
+          cd lame-3.100
+          ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend \
+            $CONFIGURE_CC \
+            CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+          make -j$(nproc)
+          make install
+          cd ..
+          echo "::endgroup::"
+        fi
+
+        # Build libogg
+        if [ ! -f "$PREFIX/lib/libogg.a" ];then
+          git clone https://github.com/xiph/ogg.git
+          cd ogg
+          mkdir build && cd build
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            $CMAKE_C_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
+
+        # Build libflac
+        if [ ! -f "$PREFIX/lib/libFLAC.a" ];then
+          echo "::group::Build libFLAC"
+          git clone https://github.com/xiph/flac.git
+          cd flac
+          mkdir build && cd build
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DINSTALL_MANPAGES=OFF \
+            $CMAKE_C_COMPILER \
+            $CMAKE_CXX_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+          echo "::endgroup::"
+        fi
+
+        # Build libvorbis
+        if [ ! -f "$PREFIX/lib/libvorbis.a" ]; then
+          echo "::group::Build libvorbis"
+          git clone https://github.com/xiph/vorbis.git
+          cd vorbis
+          mkdir build && cd build
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DINSTALL_MANPAGES=OFF \
+            $CMAKE_C_COMPILER \
+            $CMAKE_CXX_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
+
+        # Build fribidi
+        if [ ! -f "$PREFIX/lib/libfribidi.a" ]; then
+          echo "::group::Build libfribidi"
+          wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
+          tar xf fribidi-1.0.13.tar.xz
+          cd fribidi-1.0.13
+          meson setup builddir \
+            --buildtype=release \
+            --prefix="$PREFIX" \
+            -Ddefault_library=static \
+            -Ddocs=false \
+            -Dc_args="$CFLAGS" 
+          meson compile -C builddir -j$(nproc)
+          meson install -C builddir 
+          cd ..
+          echo "::endgroup::"
+        fi
+
+        # Build harfbuzz
+        if [ ! -f "$PREFIX/lib/libharfbuzz.a" ]; then
+          wget https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
+          tar xf harfbuzz-11.3.2.tar.xz
+          cd harfbuzz-11.3.2
+          mkdir build && cd build
+          export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DHB_HAVE_FREETYPE=ON \
+            -DHB_HAVE_GLIB=OFF \
+            -DHB_HAVE_GOBJECT=OFF \
+            -DHB_HAVE_CAIRO=OFF \
+            -DHB_HAVE_FONTCONFIG=OFF \
+            -DHB_HAVE_ICU=OFF \
+            $CMAKE_C_COMPILER \
+            $CMAKE_CXX_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
+
+        # Build libass
+        if [ ! -f "$PREFIX/lib/libass.a" ]; then
+          git clone --depth=1 https://github.com/libass/libass.git
+          cd libass
+          export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+          meson setup builddir \
+            --buildtype=release \
+            --prefix="$PREFIX" \
+            -Ddefault_library=static \
+            -Dc_args="$CFLAGS" \
+            $([ "$COMPILER_TYPE" = "clang" ] && echo "-Dcpp_args=\"$CXXFLAGS\" -Dc_link_args=\"$LDFLAGS\" -Dcpp_link_args=\"$LDFLAGS\"")
+          meson compile -C builddir -j$(nproc)
+          meson install -C builddir
+          cd ..
+        fi
+
+        # Build opus
+        if [ ! -f "$PREFIX/lib/libopus.a" ]; then
+          git clone --depth=1 https://github.com/xiph/opus.git
+          cd opus
+          mkdir -p build && cd build
+          cmake .. -G Ninja \
+            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DBUILD_SHARED_LIBS=OFF \
+            $CMAKE_C_COMPILER \
+            -DCMAKE_C_FLAGS="$CFLAGS" \
+            -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          ninja -j$(nproc)
+          ninja install
+          cd ../..
+        fi
+        
+        # Install NVENC headers
+        if [ ! -f "$PREFIX/include/ffnvcodec/nvEncodeAPI.h" ]; then
+          git clone --depth=1 https://github.com/FFmpeg/nv-codec-headers.git
+          cd nv-codec-headers
+          make PREFIX=$PREFIX install
+          cd ..
+        fi
+
+        # Install AMF headers
+        if [ ! -f "$PREFIX/include/amd/AMF/core/D3D12AMF.h" ]; then
+          git clone https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+          mkdir -p "$PREFIX/include/amd/AMF"
+          cp -r AMF/amf/public/include/* "$PREFIX/include/amd/AMF"
+        fi
+
+    - name: Build FFmpeg
+      shell: msys2 {0}
+      run: |
+        git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg-${{ matrix.compiler }}
+        cd ffmpeg-${{ matrix.compiler }}
+
+        # Apply VVC decoder patch
+        wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
+        git apply --3way libvvdec.patch || echo "Patch may have already been applied"
+
+        # Set compiler-specific configuration
+        if [ "$COMPILER_TYPE" = "gcc" ]; then
+          export PATH="/mingw64/bin:$PATH"
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
+          CONFIGURE_EXTRA_FLAGS=""
+          LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic"
+        else
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/clang64/lib/pkgconfig"
+          export LDFLAGS_LTO="$LDFLAGS"
+          export LD=$(which ld.lld)
+          CONFIGURE_EXTRA_FLAGS="--enable-lto --cc=clang --cxx=clang++ --ar=llvm-ar --ranlib=llvm-ranlib --nm=llvm-nm --strip=llvm-strip --ld=\"clang -fuse-ld=lld\""
+          LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lc++ -Wl,--no-whole-archive -Wl,-Bstatic"
+        fi
+
+        ./configure \
+          --prefix=$PREFIX \
+          --pkg-config-flags="--static" \
+          --extra-cflags="$CFLAGS -I$PREFIX/include/amd" \
+          --extra-cxxflags="$CXXFLAGS -I$PREFIX/include/amd" \
+          --extra-ldflags="$LDFLAGS" \
+          --extra-ldexeflags="$LDEXE_FLAGS" \
+          --extra-libs="-lpthread -lm -lz -lws2_32 -lsecur32 -lbcrypt -lwinmm -ldxguid" \
+          --enable-static \
+          --disable-shared \
+          --disable-debug \
+          --disable-doc \
+          --enable-gpl \
+          --enable-version3 \
+          --disable-w32threads \
+          --enable-pthreads \
+          --enable-libx264 \
+          --enable-libx265 \
+          --enable-librav1e \
+          --enable-libsvtav1 \
+          --enable-libaom \
+          --enable-libdav1d \
+          --enable-libvpx \
+          --enable-libvvenc \
+          --enable-libvvdec \
+          --enable-libxeve \
+          --enable-libxevd \
+          --enable-libmp3lame \
+          --enable-libopus \
+          --enable-libvorbis \
+          --enable-libass \
+          --enable-libfreetype \
+          --enable-nvenc \
+          --enable-nvdec \
+          --enable-cuda \
+          --enable-libvpl \
+          --enable-sdl2 \
+          --enable-ffplay \
+          --enable-dxva2 \
+          --enable-d3d11va \
+          --enable-amf \
+          --enable-schannel \
+          --arch=x86_64 \
+          --target-os=mingw32 \
+          $CONFIGURE_EXTRA_FLAGS || { cat ffbuild/config.log; exit 1; }
+
+        make -j$(nproc)
+        make install
+
+    - name: Package build
+      shell: msys2 {0}
+      run: |
+        cd "$PREFIX"
+        mkdir -p package-${{ matrix.compiler }}/bin
+        
+        cp bin/ffmpeg.exe package-${{ matrix.compiler }}/bin/
+        cp bin/ffprobe.exe package-${{ matrix.compiler }}/bin/
+        [ -f bin/ffplay.exe ] && cp bin/ffplay.exe package-${{ matrix.compiler }}/bin/
+        
+        # Create build info
+        if [ "$COMPILER_TYPE" = "gcc" ]; then
+          COMPILER_INFO="GCC $(gcc --version | head -n1)"
+          BUILD_DESC="FFmpeg GCC Static Build Information"
+          OPTIMIZATION="O2 (No LTO)"
+        else
+          COMPILER_INFO="Clang $(clang --version | head -n1)"
+          BUILD_DESC="FFmpeg Clang LTO Static Build Information"
+          OPTIMIZATION="O3 with Thin LTO"
+        fi
+        
+        cat > package-${{ matrix.compiler }}/BUILD_INFO.txt << EOF
+        $BUILD_DESC
+        ==================================
+        Build Date: $(date -u)
+        Compiler: $COMPILER_INFO
+        FFmpeg Version: $(./bin/ffmpeg.exe -version | head -n1)
+        
+        Optimization: $OPTIMIZATION
+        Static Linking: Yes
+        EOF
+        
+        if [ "$COMPILER_TYPE" = "clang" ]; then
+          echo "Linker: LLD with LTO" >> package-${{ matrix.compiler }}/BUILD_INFO.txt
+          echo "Binary Size: $(ls -lh bin/ffmpeg.exe | awk '{print $5}')" >> package-${{ matrix.compiler }}/BUILD_INFO.txt
+        fi
+        
+        cd package-${{ matrix.compiler }}
+        zip -9 -r ../${{ matrix.package_name }}.zip .
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.package_name }}
+        path: ${{ matrix.prefix }}/${{ matrix.package_name }}.zip
+        retention-days: 7
