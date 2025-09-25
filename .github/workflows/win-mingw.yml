@@ -93,7 +93,7 @@ jobs:
               mingw-w64-clang-x86_64-libx264
               mingw-w64-clang-x86_64-SDL2
               mingw-w64-clang-x86_64-lld
-            optimization_flags: "-O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
+            optimization_flags: "-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
             link_flags: "-static -flto=thin"
 
           # UCRT64 Clang
@@ -121,7 +121,7 @@ jobs:
               mingw-w64-ucrt-x86_64-libx264
               mingw-w64-ucrt-x86_64-SDL2
               mingw-w64-ucrt-x86_64-lld
-            optimization_flags: "-target x86_64-pc-windows-msvc -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00"
+            optimization_flags: "fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00"
             link_flags: "-static -flto=thin"
 
     outputs:
@@ -405,11 +405,11 @@ jobs:
           echo ::endgroup::
         fi
 
-        # For VVC codecs, use full LTO flags for Clang
+        # For VVC codecs, use thin LTO flags for Clang
         if [ "$COMPILER_TYPE" = "clang" ]; then
           export STRIP=$(which llvm-strip)
-          export CFLAGS="-O3 -flto=full -static -I$PREFIX/include"
-          export CXXFLAGS="-O3 -flto=full -static -std=c++17 -I$PREFIX/include"
+          export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -I$PREFIX/include"
+          export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -std=c++17 -I$PREFIX/include"
         else
           export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
           export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
@@ -460,14 +460,14 @@ jobs:
 
         # Reset flags for remaining builds
         if [ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "clang64" ]; then
-          export CFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
-          export CXXFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
+          export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
+          export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
         elif [ "$COMPILER_TYPE" = "gcc" && "$RUNTIME_TYPE" = "mingw64" ]; then
           export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
           export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
         elif [ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt64" ]; then
-          export CFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
-          export CXXFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
+          export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
+          export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
         else
           export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
           export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
@@ -746,7 +746,7 @@ jobs:
           LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic"
         else
           export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/clang64/lib/pkgconfig"
-          export LDFLAGS_LTO="-fuse-ld=lld $LDFLAGS"
+          export LDFLAGS_LTO="$LDFLAGS"
           export LD=$(which ld.lld)
           CONFIGURE_EXTRA_FLAGS="--enable-lto --cc=clang --cxx=clang++ --ar=llvm-ar --ranlib=llvm-ranlib --nm=llvm-nm --strip=llvm-strip --ld=clang"
           LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lc++ -Wl,--no-whole-archive -Wl,-Bstatic"
