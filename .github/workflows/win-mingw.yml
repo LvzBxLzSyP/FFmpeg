@@ -20,7 +20,8 @@ jobs:
       matrix:
         include:
           # MINGW64 GCC
-          - compiler: gcc
+          - buildrt: gcc-mingw64
+            compiler: gcc
             runtime: mingw64
             msystem: MINGW64
             prefix: /d/ffmpeg-build-gcc-mingw64
@@ -44,7 +45,8 @@ jobs:
             link_flags: "-static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
 
           # UCRT64 GCC  
-          - compiler: gcc
+          - buildrt: gcc-ucrt64
+            compiler: gcc
             runtime: ucrt64
             msystem: UCRT64
             prefix: /d/ffmpeg-build-gcc-ucrt64
@@ -68,7 +70,8 @@ jobs:
             link_flags: "-static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00"
 
           # CLANG64 Clang
-          - compiler: clang
+          - buildrt: clang-clang64
+            compiler: clang
             runtime: clang64
             msystem: CLANG64
             prefix: /d/ffmpeg-build-clang-clang64
@@ -93,7 +96,8 @@ jobs:
             link_flags: "-static -flto=thin"
 
           # UCRT64 Clang
-          - compiler: clang
+          - buildrt: clang-ucrt64
+            compiler: clang
             runtime: ucrt64
             msystem: UCRT64
             prefix: /d/ffmpeg-build-clang-ucrt64
@@ -453,12 +457,18 @@ jobs:
         fi
 
         # Reset flags for remaining builds
-        if [ "$COMPILER_TYPE" = "clang" ]; then
+        if [ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "clang64" ]; then
           export CFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
           export CXXFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
-        else
+        elif [ "$COMPILER_TYPE" = "gcc" && "$RUNTIME_TYPE" = "mingw64" ]; then
           export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
           export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
+        elif [ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt64" ];
+          export CFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
+          export CXXFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
+        else
+          export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
+          export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
         fi
 
         # Build XEVE
@@ -789,32 +799,50 @@ jobs:
         make -j$(nproc)
         make install
 
-    - name: Package build
+    - - name: Package build
       shell: msys2 {0}
       run: |
         cd "$PREFIX"
-        mkdir -p package-${{ matrix.compiler }}/bin
+        mkdir -p package-${{ matrix.compiler }}-${{ matrix.runtime }}/bin
         
-        cp bin/ffmpeg.exe package-${{ matrix.compiler }}/bin/
-        cp bin/ffprobe.exe package-${{ matrix.compiler }}/bin/
-        [ -f bin/ffplay.exe ] && cp bin/ffplay.exe package-${{ matrix.compiler }}/bin/
+        cp bin/ffmpeg.exe package-${{ matrix.compiler }}-${{ matrix.runtime }}/bin/
+        cp bin/ffprobe.exe package-${{ matrix.compiler }}-${{ matrix.runtime }}/bin/
+        [ -f bin/ffplay.exe ] && cp bin/ffplay.exe package-${{ matrix.compiler }}-${{ matrix.runtime }}/bin/
         
         # Create build info
         if [ "$COMPILER_TYPE" = "gcc" ]; then
           COMPILER_INFO="GCC $(gcc --version | head -n1)"
-          BUILD_DESC="FFmpeg GCC Static Build Information"
+          BUILD_DESC="FFmpeg GCC/${{ matrix.runtime }} Static Build Information"
           OPTIMIZATION="O2 (No LTO)"
         else
           COMPILER_INFO="Clang $(clang --version | head -n1)"
-          BUILD_DESC="FFmpeg Clang LTO Static Build Information"
+          BUILD_DESC="FFmpeg Clang/${{ matrix.runtime }} LTO Static Build Information"
           OPTIMIZATION="O3 with Thin LTO"
         fi
         
-        cat > package-${{ matrix.compiler }}/BUILD_INFO.txt << EOF
+        # Determine runtime info
+        case "${{ matrix.runtime }}" in
+          mingw64)
+            RUNTIME_INFO="MinGW-w64 Runtime (MSVCRT)"
+            WIN_TARGET="Windows 7+"
+            ;;
+          ucrt64)
+            RUNTIME_INFO="Universal CRT Runtime (UCRT)"
+            WIN_TARGET="Windows 10+"
+            ;;
+          clang64)
+            RUNTIME_INFO="Clang Runtime (MSVCRT)"  
+            WIN_TARGET="Windows 7+"
+            ;;
+        esac
+        
+        cat > package-${{ matrix.compiler }}-${{ matrix.runtime }}/BUILD_INFO.txt << EOF
         $BUILD_DESC
         ==================================
         Build Date: $(date -u)
         Compiler: $COMPILER_INFO
+        Runtime: $RUNTIME_INFO
+        Target: $WIN_TARGET
         FFmpeg Version: $(./bin/ffmpeg.exe -version | head -n1)
         
         Optimization: $OPTIMIZATION
@@ -822,11 +850,11 @@ jobs:
         EOF
         
         if [ "$COMPILER_TYPE" = "clang" ]; then
-          echo "Linker: LLD with LTO" >> package-${{ matrix.compiler }}/BUILD_INFO.txt
-          echo "Binary Size: $(ls -lh bin/ffmpeg.exe | awk '{print $5}')" >> package-${{ matrix.compiler }}/BUILD_INFO.txt
+          echo "Linker: LLD with LTO" >> package-${{ matrix.compiler }}-${{ matrix.runtime }}/BUILD_INFO.txt
+          echo "Binary Size: $(ls -lh bin/ffmpeg.exe | awk '{print $5}')" >> package-${{ matrix.compiler }}-${{ matrix.runtime }}/BUILD_INFO.txt
         fi
         
-        cd package-${{ matrix.compiler }}
+        cd package-${{ matrix.compiler }}-${{ matrix.runtime }}
         zip -9 -r ../${{ matrix.package_name }}.zip .
 
     - name: Upload build artifact
