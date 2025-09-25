@@ -94,7 +94,7 @@ jobs:
               mingw-w64-clang-x86_64-SDL2
               mingw-w64-clang-x86_64-lld
             optimization_flags: "-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
-            link_flags: "-static -flto=thin"
+            link_flags: "-fuse-ld=lld -static -flto=thin"
 
           # UCRT64 Clang
           - buildrt: clang-ucrt64
@@ -122,7 +122,7 @@ jobs:
               mingw-w64-ucrt-x86_64-SDL2
               mingw-w64-ucrt-x86_64-lld
             optimization_flags: "-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00"
-            link_flags: "-static -flto=thin"
+            link_flags: "-fuse-ld=lld -static -flto=thin"
 
     outputs:
       tag_name: ${{ steps.tagger.outputs.tag_name }}
