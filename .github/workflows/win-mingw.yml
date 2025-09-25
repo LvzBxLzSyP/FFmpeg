@@ -121,7 +121,7 @@ jobs:
               mingw-w64-ucrt-x86_64-libx264
               mingw-w64-ucrt-x86_64-SDL2
               mingw-w64-ucrt-x86_64-lld
-            optimization_flags: "fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00"
+            optimization_flags: "-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00"
             link_flags: "-static -flto=thin"
 
     outputs:
