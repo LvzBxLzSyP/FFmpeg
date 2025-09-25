@@ -116,7 +116,7 @@ jobs:
   # Job 4: Performance Benchmarking (Optional)
   benchmark:
     runs-on: windows-latest
-    needs: [build-ffmpeg-gcc, build-ffmpeg-clang]
+    needs: [windows-x86_64-build]
     if: github.event_name == 'workflow_dispatch'  # Only run on manual trigger
     timeout-minutes: 60
     
