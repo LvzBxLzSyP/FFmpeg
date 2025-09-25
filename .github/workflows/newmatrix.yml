@@ -665,7 +665,8 @@ jobs:
           export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/clang64/lib/pkgconfig"
           export LDFLAGS_LTO="$LDFLAGS"
           export LD=$(which ld.lld)
-          CONFIGURE_EXTRA_FLAGS="--enable-lto --cc=clang --cxx=clang++ --ar=llvm-ar --ranlib=llvm-ranlib --nm=llvm-nm --strip=llvm-strip --ld=\"clang -fuse-ld=lld\""
+          LD_CMD="clang -fuse-ld=lld"
+          CONFIGURE_EXTRA_FLAGS="--enable-lto --cc=clang --cxx=clang++ --ar=llvm-ar --ranlib=llvm-ranlib --nm=llvm-nm --strip=llvm-strip --ld=$LD_CMD"
           LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lc++ -Wl,--no-whole-archive -Wl,-Bstatic"
         fi
 
