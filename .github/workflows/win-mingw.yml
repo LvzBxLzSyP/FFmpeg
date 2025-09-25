@@ -799,7 +799,7 @@ jobs:
         make -j$(nproc)
         make install
 
-    - - name: Package build
+    - name: Package build
       shell: msys2 {0}
       run: |
         cd "$PREFIX"
