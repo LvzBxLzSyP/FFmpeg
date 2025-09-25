@@ -33,10 +33,11 @@ jobs:
               mingw-w64-x86_64-yasm
               mingw-w64-x86_64-pkg-config
               mingw-w64-x86_64-zlib
-              mingw-w64-x86_64-rust
+              mingw-w64-x86_64-rav1e
               mingw-w64-x86_64-diffutils
               mingw-w64-x86_64-SDL2
               mingw-w64-x86_64-libvpl
+              mingw-w64-x86_64-libx264
             optimization_flags: "-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
             link_flags: "-static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
           - compiler: clang
@@ -185,18 +186,6 @@ jobs:
           CMAKE_CXX_COMPILER="-DCMAKE_CXX_COMPILER=clang++"
         fi
 
-        # Build x264 (GCC only - Clang uses package)
-        if [ "$COMPILER_TYPE" = "gcc" ] && [ ! -f "$PREFIX/lib/libx264.a" ]; then
-          echo "::group::Build libx264"
-          git clone --depth=1 https://code.videolan.org/videolan/x264.git
-          cd x264
-          ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli --enable-pic
-          make -j$(nproc)
-          make install
-          cd ..
-          echo ::endgroup::
-        fi
-
         # Build x265
         if [ ! -f "$PREFIX/lib/libx265.a" ]; then
           echo "::group::Build libx265"
@@ -214,8 +203,8 @@ jobs:
             -DCMAKE_C_FLAGS="$CFLAGS" \
             -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
-            $([ "$COMPILER_TYPE" = "clang" ] && echo "-DCMAKE_CXX_IMPLICIT_LINK_LIBRARIES=\"stdc++;m;pthread\"") \
-            $([ "$COMPILER_TYPE" = "gcc" ] && echo "-DSTATIC_LINK_CRT=ON -DCMAKE_CXX_FLAGS=\"-static-libgcc -static-libstdc++\" -DCMAKE_C_FLAGS=\"-static-libgcc\"") \
+            $([ "$COMPILER_TYPE" = "clang" ] && echo "-DCMAKE_CXX_IMPLICIT_LINK_LIBRARIES='stdc++;m;pthread'") \
+            $([ "$COMPILER_TYPE" = "gcc" ] && echo "-DSTATIC_LINK_CRT=ON -DCMAKE_CXX_FLAGS='-static-libgcc -static-libstdc++' -DCMAKE_C_FLAGS='-static-libgcc'") \
             ../source
           ninja -j$(nproc)
           ninja install
@@ -245,7 +234,7 @@ jobs:
             -Denable_tools=false \
             -Denable_tests=false \
             -Dc_args="$CFLAGS" \
-            $([ "$COMPILER_TYPE" = "clang" ] && echo "-Dcpp_args=\"$CXXFLAGS\" -Dc_link_args=\"$LDFLAGS\" -Dcpp_link_args=\"$LDFLAGS\"")
+            $([ "$COMPILER_TYPE" = "clang" ] && echo "-Dcpp_args='$CXXFLAGS' -Dc_link_args='$LDFLAGS' -Dcpp_link_args='$LDFLAGS'") 
           meson compile -C build -j$(nproc)
           meson install -C build
           cd ..
@@ -270,21 +259,6 @@ jobs:
             .
           ninja -j$(nproc)
           ninja install
-          cd ..
-          echo ::endgroup::
-        fi
-
-        # Build rav1e (GCC only - Clang uses package)
-        if [ "$COMPILER_TYPE" = "gcc" ] && [ ! -f "$PREFIX/lib/librav1e.a" ]; then
-          echo "::group::Build librav1e"
-          export PATH="/mingw64/bin:$PATH"
-          export CARGO_BUILD_TARGET=x86_64-pc-windows-gnu
-          git clone --depth=1 https://github.com/xiph/rav1e.git
-          cd rav1e
-          cargo install cargo-c --force
-          cargo cinstall --release --target x86_64-pc-windows-gnu \
-            --library-type staticlib \
-            --prefix="$PREFIX"
           cd ..
           echo ::endgroup::
         fi
