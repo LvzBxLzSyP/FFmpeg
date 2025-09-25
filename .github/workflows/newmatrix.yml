@@ -180,7 +180,7 @@ jobs:
         # Set compiler-specific cmake flags
         if [ "$COMPILER_TYPE" = "gcc" ]; then
           export CC=gcc
-          export CXX=clang++
+          export CXX=g++
         else
           export CC=clang
           export CXX=clang++
