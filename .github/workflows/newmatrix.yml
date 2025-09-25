@@ -23,6 +23,7 @@ jobs:
           - compiler: gcc
             msystem: MINGW64
             prefix: /d/ffmpeg-build-gcc
+            win_style_prefix: D:\ffmpeg-build-gcc
             package_name: ffmpeg-win64-gcc-static
             toolchain_packages: >-
               mingw-w64-x86_64-toolchain
@@ -43,6 +44,7 @@ jobs:
           - compiler: clang
             msystem: CLANG64
             prefix: /d/ffmpeg-build-clang
+            win_style_prefix: D:\ffmpeg-build-clang
             package_name: ffmpeg-win64-clang-lto-static
             toolchain_packages: >-
               mingw-w64-clang-x86_64-toolchain
@@ -663,10 +665,9 @@ jobs:
           LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic"
         else
           export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/clang64/lib/pkgconfig"
-          export LDFLAGS_LTO="$LDFLAGS"
+          export LDFLAGS_LTO="-fuse-ld=lld $LDFLAGS"
           export LD=$(which ld.lld)
-          LD_CMD="clang -fuse-ld=lld"
-          CONFIGURE_EXTRA_FLAGS="--enable-lto --cc=clang --cxx=clang++ --ar=llvm-ar --ranlib=llvm-ranlib --nm=llvm-nm --strip=llvm-strip --ld=$LD_CMD"
+          CONFIGURE_EXTRA_FLAGS="--enable-lto --cc=clang --cxx=clang++ --ar=llvm-ar --ranlib=llvm-ranlib --nm=llvm-nm --strip=llvm-strip --ld=clang"
           LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lc++ -Wl,--no-whole-archive -Wl,-Bstatic"
         fi
 
