@@ -94,7 +94,7 @@ jobs:
 
     - name: Set UTC datetime tag & release name
       shell: msys2 {0}
-      if: matrix.compiler == 'clang'
+      if: matrix.compiler == 'gcc'
       id: tagger
       run: |
         DATE=$(date -u +"%Y-%m-%d-%H-%M-%S")
