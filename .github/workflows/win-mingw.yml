@@ -18,13 +18,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        compiler: [gcc, clang]
         include:
+          # MINGW64 GCC
           - compiler: gcc
+            runtime: mingw64
             msystem: MINGW64
-            prefix: /d/ffmpeg-build-gcc
-            win_style_prefix: D:\ffmpeg-build-gcc
-            package_name: ffmpeg-win64-gcc-static
+            prefix: /d/ffmpeg-build-gcc-mingw64
+            win_style_prefix: D:\ffmpeg-build-gcc-mingw64
+            package_name: ffmpeg-win64-gcc-mingw64-static
             toolchain_packages: >-
               mingw-w64-x86_64-toolchain
               mingw-w64-x86_64-cmake
@@ -41,11 +42,38 @@ jobs:
               mingw-w64-x86_64-libx264
             optimization_flags: "-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
             link_flags: "-static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
+
+          # UCRT64 GCC  
+          - compiler: gcc
+            runtime: ucrt64
+            msystem: UCRT64
+            prefix: /d/ffmpeg-build-gcc-ucrt64
+            win_style_prefix: D:\ffmpeg-build-gcc-ucrt64
+            package_name: ffmpeg-win64-gcc-ucrt64-static
+            toolchain_packages: >-
+              mingw-w64-ucrt-x86_64-toolchain
+              mingw-w64-ucrt-x86_64-cmake
+              mingw-w64-ucrt-x86_64-meson
+              mingw-w64-ucrt-x86_64-ninja
+              mingw-w64-ucrt-x86_64-nasm
+              mingw-w64-ucrt-x86_64-yasm
+              mingw-w64-ucrt-x86_64-pkg-config
+              mingw-w64-ucrt-x86_64-zlib
+              mingw-w64-ucrt-x86_64-rav1e
+              mingw-w64-ucrt-x86_64-diffutils
+              mingw-w64-ucrt-x86_64-SDL2
+              mingw-w64-ucrt-x86_64-libvpl
+              mingw-w64-ucrt-x86_64-libx264
+            optimization_flags: "-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00"
+            link_flags: "-static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00"
+
+          # CLANG64 Clang
           - compiler: clang
+            runtime: clang64
             msystem: CLANG64
-            prefix: /d/ffmpeg-build-clang
-            win_style_prefix: D:\ffmpeg-build-clang
-            package_name: ffmpeg-win64-clang-lto-static
+            prefix: /d/ffmpeg-build-clang-clang64
+            win_style_prefix: D:\ffmpeg-build-clang-clang64
+            package_name: ffmpeg-win64-clang-clang64-lto-static
             toolchain_packages: >-
               mingw-w64-clang-x86_64-toolchain
               mingw-w64-clang-x86_64-cmake
@@ -62,6 +90,32 @@ jobs:
               mingw-w64-clang-x86_64-SDL2
               mingw-w64-clang-x86_64-lld
             optimization_flags: "-O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
+            link_flags: "-static -flto=thin"
+
+          # UCRT64 Clang
+          - compiler: clang
+            runtime: ucrt64
+            msystem: UCRT64
+            prefix: /d/ffmpeg-build-clang-ucrt64
+            win_style_prefix: D:\ffmpeg-build-clang-ucrt64
+            package_name: ffmpeg-win64-clang-ucrt64-lto-static
+            toolchain_packages: >-
+              mingw-w64-ucrt-x86_64-clang
+              mingw-w64-ucrt-x86_64-clang-tools-extra
+              mingw-w64-ucrt-x86_64-cmake
+              mingw-w64-ucrt-x86_64-meson
+              mingw-w64-ucrt-x86_64-ninja
+              mingw-w64-ucrt-x86_64-nasm
+              mingw-w64-ucrt-x86_64-yasm
+              mingw-w64-ucrt-x86_64-pkg-config
+              mingw-w64-ucrt-x86_64-zlib
+              mingw-w64-ucrt-x86_64-diffutils
+              mingw-w64-ucrt-x86_64-rav1e
+              mingw-w64-ucrt-x86_64-libvpl
+              mingw-w64-ucrt-x86_64-libx264
+              mingw-w64-ucrt-x86_64-SDL2
+              mingw-w64-ucrt-x86_64-lld
+            optimization_flags: "-O3 -flto=thin -static -D_WIN32_WINNT=0x0A00"
             link_flags: "-static -flto=thin"
 
     outputs:
@@ -94,7 +148,7 @@ jobs:
 
     - name: Set UTC datetime tag & release name
       shell: msys2 {0}
-      if: matrix.compiler == 'gcc'
+      if: matrix.compiler == 'gcc' && matrix.runtime == 'mingw64'
       id: tagger
       run: |
         DATE=$(date -u +"%Y-%m-%d-%H-%M-%S")
@@ -107,7 +161,7 @@ jobs:
         # Create build directory
         mkdir -p ${{ matrix.prefix }}
         
-        # Set compiler-specific variables
+        # Set compiler and runtime specific variables
         if [ "${{ matrix.compiler }}" = "gcc" ]; then
           CC_CMD="gcc"
           CXX_CMD="g++"
@@ -115,7 +169,11 @@ jobs:
           RANLIB_CMD="ranlib"
           NM_CMD="nm"
           STRIP_CMD="strip"
-          PATH_PREFIX="${{ matrix.prefix }}/bin:$PATH"
+          if [ "${{ matrix.runtime }}" = "ucrt64" ]; then
+            PATH_PREFIX="${{ matrix.prefix }}/bin:/ucrt64/bin:$PATH"
+          else
+            PATH_PREFIX="${{ matrix.prefix }}/bin:/mingw64/bin:$PATH"
+          fi
         else
           CC_CMD="clang"
           CXX_CMD="clang++"
@@ -123,7 +181,11 @@ jobs:
           RANLIB_CMD="$(which llvm-ranlib)"
           NM_CMD="$(which llvm-nm)"
           STRIP_CMD="$(which llvm-strip)"
-          PATH_PREFIX="${{ matrix.prefix }}/bin:/clang64/bin:$PATH"
+          if [ "${{ matrix.runtime }}" = "ucrt64" ]; then
+            PATH_PREFIX="${{ matrix.prefix }}/bin:/ucrt64/bin:$PATH"
+          else
+            PATH_PREFIX="${{ matrix.prefix }}/bin:/clang64/bin:$PATH"
+          fi
         fi
         
         # Environment variables
@@ -142,6 +204,7 @@ jobs:
           echo "NM=$NM_CMD"
           echo "STRIP=$STRIP_CMD"
           echo "COMPILER_TYPE=${{ matrix.compiler }}"
+          echo "RUNTIME_TYPE=${{ matrix.runtime }}"
         } >> $GITHUB_ENV
 
     - name: Cache build dependencies
@@ -149,30 +212,36 @@ jobs:
       with:
         path: |
           ${{ matrix.prefix }}
-        key: ffmpeg-deps-${{ matrix.compiler }}-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.patch') }}
+        key: ffmpeg-deps-${{ matrix.compiler }}-${{ matrix.runtime }}-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', '**/*.patch') }}
         restore-keys: |
-          ffmpeg-deps-${{ matrix.compiler }}-${{ runner.os }}-
+          ffmpeg-deps-${{ matrix.compiler }}-${{ matrix.runtime }}-${{ runner.os }}-
 
-    - name: Debug toolchain (Clang only)
-      if: matrix.compiler == 'clang'
+    - name: Debug toolchain
       shell: msys2 {0}
       run: |
-        echo "=== 調試工具鏈 ==="
+        echo "=== 調試工具鏈 (${{ matrix.compiler }}/${{ matrix.runtime }}) ==="
         echo "CC: $CC"
         echo "CXX: $CXX"
         echo "CFLAGS: $CFLAGS"
         echo "LDFLAGS: $LDFLAGS"
         echo "PATH: $PATH"
+        echo "Runtime: ${{ matrix.runtime }}"
         
         echo "=== 檢查工具 ==="
-        which clang
-        which ld.lld
-        clang --version
-        ld.lld --version
+        which $CC
+        $CC --version
+        
+        if [ "${{ matrix.compiler }}" = "clang" ]; then
+          if [ "${{ matrix.runtime }}" = "ucrt64" ]; then
+            which /ucrt64/bin/ld.lld || which ld.lld || echo "LLD not found"
+          else
+            which /clang64/bin/ld.lld || which ld.lld || echo "LLD not found" 
+          fi
+        fi
         
         echo "=== 測試編譯 ==="
         echo "int main(){return 0;}" > test.c
-        clang $CFLAGS $LDFLAGS test.c -o test.exe -v
+        $CC $CFLAGS $LDFLAGS test.c -o test.exe -v
         echo "編譯測試結果: $?"
         rm -f test.c test.exe
 
