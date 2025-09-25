@@ -764,5 +764,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.package_name }}
-        path: ${{ matrix.prefix }}/${{ matrix.package_name }}.zip
+        path: ${{ matrix.win_style_prefix }}/${{ matrix.package_name }}.zip
         retention-days: 7
