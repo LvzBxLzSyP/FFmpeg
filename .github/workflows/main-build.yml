@@ -11,16 +11,12 @@ env:
   CLANG_PREFIX: /d/ffmpeg-build-clang
 
 jobs:
-  # Job 1: GCC Build
-  build-ffmpeg-gcc:
-    uses: ./.github/workflows/win-gcc-msys.yml
-  # Job 2: Clang Build with Full LTO
-  build-ffmpeg-clang:
-    uses: ./.github/workflows/win-clang-msys.yml
+  windows-x86_64-build:
+    uses: ./.github/workflows/win.yml
   # Job 3: Create Release (depends on both builds)
   create-release:
     runs-on: ubuntu-latest
-    needs: [build-ffmpeg-gcc, build-ffmpeg-clang]
+    needs: [windows-x86_64-build]
     if: github.event_name == 'schedule' && success()
     
     steps:
