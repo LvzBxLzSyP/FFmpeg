@@ -632,7 +632,7 @@ jobs:
           wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
           tar xf fribidi-1.0.13.tar.xz
           cd fribidi-1.0.13
-          CC_LD=clang meson setup builddir \
+          meson setup builddir \
             --buildtype=release \
             --prefix="$PREFIX" \
             -Ddefault_library=static \
