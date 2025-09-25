@@ -333,6 +333,9 @@ jobs:
           export STRIP=$(which llvm-strip)
           export CFLAGS="-O3 -flto=full -static -I$PREFIX/include"
           export CXXFLAGS="-O3 -flto=full -static -std=c++17 -I$PREFIX/include"
+        else
+          export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
+          export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
         fi
 
         # Build VVenC
@@ -380,8 +383,11 @@ jobs:
 
         # Reset flags for remaining builds
         if [ "$COMPILER_TYPE" = "clang" ]; then
-          export CFLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
-          export CXXFLAGS="-O3 -flto=full -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
+          export CFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
+          export CXXFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
+        else
+          export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
+          export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
         fi
 
         # Build XEVE
@@ -586,14 +592,24 @@ jobs:
         if [ ! -f "$PREFIX/lib/libass.a" ]; then
           git clone --depth=1 https://github.com/libass/libass.git
           cd libass
+        
           export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig
+        
+          EXTRA_ARGS=()
+          if [ "$COMPILER_TYPE" = "clang" ]; then
+            EXTRA_ARGS+=("-Dcpp_args=$CXXFLAGS")
+            EXTRA_ARGS+=("-Dc_link_args=$LDFLAGS")
+            EXTRA_ARGS+=("-Dcpp_link_args=$LDFLAGS")
+          fi
+        
           meson setup builddir \
             --buildtype=release \
             --prefix="$PREFIX" \
             -Ddefault_library=static \
             -Dc_args="$CFLAGS" \
-            $([ "$COMPILER_TYPE" = "clang" ] && echo "-Dcpp_args=\"$CXXFLAGS\" -Dc_link_args=\"$LDFLAGS\" -Dcpp_link_args=\"$LDFLAGS\"")
-          meson compile -C builddir -j$(nproc)
+            "${EXTRA_ARGS[@]}"
+        
+          meson compile -C builddir -j"$(nproc)"
           meson install -C builddir
           cd ..
         fi
