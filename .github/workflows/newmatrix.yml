@@ -204,7 +204,7 @@ jobs:
             -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
             $([ "$COMPILER_TYPE" = "clang" ] && echo "-DCMAKE_CXX_IMPLICIT_LINK_LIBRARIES='stdc++;m;pthread'") \
-            $([ "$COMPILER_TYPE" = "gcc" ] && echo "-DSTATIC_LINK_CRT=ON -DCMAKE_CXX_FLAGS='-static-libgcc -static-libstdc++' -DCMAKE_C_FLAGS='-static-libgcc'") \
+            $([ "$COMPILER_TYPE" = "gcc" ] && echo "-DSTATIC_LINK_CRT=ON -DCMAKE_CXX_FLAGS=-static-libgcc\ -static-libstdc++ -DCMAKE_C_FLAGS=-static-libgcc")
             ../source
           ninja -j$(nproc)
           ninja install
@@ -234,7 +234,7 @@ jobs:
             -Denable_tools=false \
             -Denable_tests=false \
             -Dc_args="$CFLAGS" \
-            $([ "$COMPILER_TYPE" = "clang" ] && echo "-Dcpp_args='$CXXFLAGS' -Dc_link_args='$LDFLAGS' -Dcpp_link_args='$LDFLAGS'") 
+            $([ "$COMPILER_TYPE" = "clang" ] && echo "-Dcpp_args='$CXXFLAGS'\ -Dc_link_args='$LDFLAGS'\ -Dcpp_link_args='$LDFLAGS'") 
           meson compile -C build -j$(nproc)
           meson install -C build
           cd ..
