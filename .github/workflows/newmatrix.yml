@@ -191,25 +191,32 @@ jobs:
           echo "::group::Build libx265"
           git clone https://bitbucket.org/multicoreware/x265_git x265
           cd x265/build
-          cmake -G "Ninja" \
+          
+          EXTRA_ARGS=()
+          if [ "$COMPILER_TYPE" = "clang" ]; then
+            EXTRA_ARGS+=("-DCMAKE_CXX_IMPLICIT_LINK_LIBRARIES=stdc++;m;pthread")
+          elif [ "$COMPILER_TYPE" = "gcc" ]; then
+            EXTRA_ARGS+=("-DSTATIC_LINK_CRT=ON")
+            EXTRA_ARGS+=("-DCMAKE_CXX_FLAGS=-static-libgcc -static-libstdc++")
+            EXTRA_ARGS+=("-DCMAKE_C_FLAGS=-static-libgcc")
+          fi
+          
+          cmake -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=$PREFIX \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
             -DENABLE_SHARED=OFF \
             -DENABLE_CLI=OFF \
             -DENABLE_TESTS=OFF \
             -DENABLE_DOCS=OFF \
-            $CMAKE_C_COMPILER \
-            $CMAKE_CXX_COMPILER \
+            -DCMAKE_C_COMPILER="$CMAKE_C_COMPILER" \
+            -DCMAKE_CXX_COMPILER="$CMAKE_CXX_COMPILER" \
             -DCMAKE_C_FLAGS="$CFLAGS" \
             -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
-            $([ "$COMPILER_TYPE" = "clang" ] && echo "-DCMAKE_CXX_IMPLICIT_LINK_LIBRARIES='stdc++;m;pthread'") \
-            $([ "$COMPILER_TYPE" = "gcc" ] && echo "-DSTATIC_LINK_CRT=ON -DCMAKE_CXX_FLAGS=-static-libgcc\ -static-libstdc++ -DCMAKE_C_FLAGS=-static-libgcc")
+            "${EXTRA_ARGS[@]}" \
             ../source
-          ninja -j$(nproc)
+          ninja -j"$(nproc)"
           ninja install
-
-          # Fix x265.pc for Clang
           if [ "$COMPILER_TYPE" = "clang" ] && [ -f "$PREFIX/lib/pkgconfig/x265.pc" ]; then
             echo "Before fixing:"
             cat "$PREFIX/lib/pkgconfig/x265.pc"
@@ -219,7 +226,7 @@ jobs:
             cat "$PREFIX/lib/pkgconfig/x265.pc"
           fi
           cd ../..
-          echo ::endgroup::
+          echo "::endgroup::"
         fi
 
         # Build dav1d
@@ -227,6 +234,14 @@ jobs:
           echo "::group::Build libdav1d"
           git clone --depth=1 https://code.videolan.org/videolan/dav1d.git
           cd dav1d
+          
+          EXTRA_ARGS=()
+          if [ "$COMPILER_TYPE" = "clang" ]; then
+            EXTRA_ARGS+=("-Dcpp_args=$CXXFLAGS")
+            EXTRA_ARGS+=("-Dc_link_args=$LDFLAGS")
+            EXTRA_ARGS+=("-Dcpp_link_args=$LDFLAGS")
+          fi
+          
           meson setup build \
             --buildtype=release \
             --prefix="$PREFIX" \
@@ -234,11 +249,12 @@ jobs:
             -Denable_tools=false \
             -Denable_tests=false \
             -Dc_args="$CFLAGS" \
-            $([ "$COMPILER_TYPE" = "clang" ] && echo "-Dcpp_args='$CXXFLAGS'\ -Dc_link_args='$LDFLAGS'\ -Dcpp_link_args='$LDFLAGS'") 
-          meson compile -C build -j$(nproc)
+            "${EXTRA_ARGS[@]}"
+          
+          meson compile -C build -j"$(nproc)"
           meson install -C build
           cd ..
-          echo ::endgroup::
+          echo "::endgroup::"
         fi
 
         # Build SVT-AV1
