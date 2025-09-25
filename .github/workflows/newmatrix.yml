@@ -179,11 +179,11 @@ jobs:
       run: |
         # Set compiler-specific cmake flags
         if [ "$COMPILER_TYPE" = "gcc" ]; then
-          CMAKE_C_COMPILER=""
-          CMAKE_CXX_COMPILER=""
+          export CC=gcc
+          export CXX=clang++
         else
-          CMAKE_C_COMPILER="-DCMAKE_C_COMPILER=clang"
-          CMAKE_CXX_COMPILER="-DCMAKE_CXX_COMPILER=clang++"
+          export CC=clang
+          export CXX=clang++
         fi
 
         # Build x265
@@ -208,8 +208,6 @@ jobs:
             -DENABLE_CLI=OFF \
             -DENABLE_TESTS=OFF \
             -DENABLE_DOCS=OFF \
-            -DCMAKE_C_COMPILER="$CMAKE_C_COMPILER" \
-            -DCMAKE_CXX_COMPILER="$CMAKE_CXX_COMPILER" \
             -DCMAKE_C_FLAGS="$CFLAGS" \
             -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
             -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
