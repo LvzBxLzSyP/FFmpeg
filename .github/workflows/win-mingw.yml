@@ -18,6 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        buildrt: [gcc-mingw64, gcc-ucrt64, clang-clang64, clang-ucrt64]
         include:
           # MINGW64 GCC
           - buildrt: gcc-mingw64
