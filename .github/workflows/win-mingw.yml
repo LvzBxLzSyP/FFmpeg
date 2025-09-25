@@ -107,6 +107,7 @@ jobs:
             toolchain_packages: >-
               mingw-w64-ucrt-x86_64-clang
               mingw-w64-ucrt-x86_64-clang-tools-extra
+              mingw-w64-ucrt-x86_64-llvm-tools
               mingw-w64-ucrt-x86_64-cmake
               mingw-w64-ucrt-x86_64-meson
               mingw-w64-ucrt-x86_64-ninja
@@ -464,7 +465,7 @@ jobs:
         elif [ "$COMPILER_TYPE" = "gcc" && "$RUNTIME_TYPE" = "mingw64" ]; then
           export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
           export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
-        elif [ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt64" ];
+        elif [ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt64" ]; then
           export CFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
           export CXXFLAGS="-O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
         else
