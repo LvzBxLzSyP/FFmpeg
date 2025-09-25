@@ -1,0 +1,8 @@
+name: Windows x86_64 Build Reusable Workflows
+on: 
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build-mingw:
+    uses: ./.github/workflows/win-mingw.yml
