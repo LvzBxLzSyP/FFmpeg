@@ -39,14 +39,14 @@ jobs:
       run: |
         git config --global user.email "action@github.com"
         git config --global user.name "GitHub Action"
-        git tag ${{ needs.build-ffmpeg-gcc.outputs.tag_name }}
-        git push origin ${{ needs.build-ffmpeg-gcc.outputs.tag_name }}
+        git tag ${{ needs.windows-x86_64-build.outputs.tag_name }}
+        git push origin ${{ needs.windows-x86_64-build.outputs.tag_name }}
 
     - name: Create GitHub Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ needs.build-ffmpeg-gcc.outputs.tag_name }}
-        name: ${{ needs.build-ffmpeg-gcc.outputs.release_name }}
+        tag_name: ${{ needs.windows-x86_64-build.outputs.tag_name }}
+        name: ${{ needs.windows-x86_64-build.outputs.release_name }}
         files: |
           ./artifacts/ffmpeg-win64-gcc-static.zip
           ./artifacts/ffmpeg-win64-clang-lto-static.zip
