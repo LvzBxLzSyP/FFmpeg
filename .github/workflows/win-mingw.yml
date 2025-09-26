@@ -637,7 +637,8 @@ jobs:
             --prefix="$PREFIX" \
             -Ddefault_library=static \
             -Ddocs=false \
-            -Dc_args="$CFLAGS" 
+            -Dc_args="$CFLAGS" \
+            -Db_lundef=false
           meson compile -C builddir -j$(nproc)
           meson install -C builddir 
           cd ..
