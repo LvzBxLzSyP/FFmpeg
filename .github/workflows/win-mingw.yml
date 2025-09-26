@@ -639,6 +639,9 @@ jobs:
             -Ddocs=false \
             -Dc_args="$CFLAGS" \
             -Dc_link_args="$LDFLAGS"
+          if [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "msvcrt" ]]; then
+            sed -i 's/-Wl,--allow-shlib-undefined//g' builddir/build.ninja
+          fi
           meson compile -C builddir -j$(nproc)
           meson install -C builddir 
           cd ..
