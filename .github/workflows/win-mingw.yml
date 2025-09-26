@@ -459,13 +459,13 @@ jobs:
         fi
 
         # Reset flags for remaining builds
-        if [ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "clang64" ]; then
+        if [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "clang64" ]]; then
           export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
           export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
-        elif [ "$COMPILER_TYPE" = "gcc" && "$RUNTIME_TYPE" = "mingw64" ]; then
+        elif [[ "$COMPILER_TYPE" = "gcc" && "$RUNTIME_TYPE" = "mingw64" ]]; then
           export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
           export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
-        elif [ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt64" ]; then
+        elif [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt64" ]]; then
           export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
           export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
         else
@@ -638,7 +638,7 @@ jobs:
             -Ddefault_library=static \
             -Ddocs=false \
             -Dc_args="$CFLAGS" \
-            -Db_lundef=false
+            -Dc_link_args="$LDFLAGS"
           meson compile -C builddir -j$(nproc)
           meson install -C builddir 
           cd ..
