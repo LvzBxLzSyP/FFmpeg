@@ -18,16 +18,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        buildrt: [gcc-mingw64, gcc-ucrt64, clang-clang64, clang-ucrt64]
+        buildrt: [gcc-msvcrt, gcc-ucrt, clang-ucrt, clang-msvcrt]
         include:
           # MINGW64 GCC
-          - buildrt: gcc-mingw64
+          - buildrt: gcc-msvcrt
             compiler: gcc
-            runtime: mingw64
+            runtime: msvcrt
             msystem: MINGW64
-            prefix: /d/ffmpeg-build-gcc-mingw64
-            win_style_prefix: D:\ffmpeg-build-gcc-mingw64
-            package_name: ffmpeg-win64-gcc-mingw64-static
+            prefix: /d/ffmpeg-build-gcc-msvcrt
+            win_style_prefix: D:\ffmpeg-build-gcc-msvcrt
+            package_name: ffmpeg-win64-gcc-msvcrt-static
             toolchain_packages: >-
               mingw-w64-x86_64-toolchain
               mingw-w64-x86_64-cmake
@@ -46,13 +46,13 @@ jobs:
             link_flags: "-static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601"
 
           # UCRT64 GCC  
-          - buildrt: gcc-ucrt64
+          - buildrt: gcc-ucrt
             compiler: gcc
-            runtime: ucrt64
+            runtime: ucrt
             msystem: UCRT64
-            prefix: /d/ffmpeg-build-gcc-ucrt64
-            win_style_prefix: D:\ffmpeg-build-gcc-ucrt64
-            package_name: ffmpeg-win64-gcc-ucrt64-static
+            prefix: /d/ffmpeg-build-gcc-ucrt
+            win_style_prefix: D:\ffmpeg-build-gcc-ucrt
+            package_name: ffmpeg-win64-gcc-ucrt-static
             toolchain_packages: >-
               mingw-w64-ucrt-x86_64-toolchain
               mingw-w64-ucrt-x86_64-cmake
@@ -71,13 +71,13 @@ jobs:
             link_flags: "-static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00"
 
           # CLANG64 Clang
-          - buildrt: clang-clang64
+          - buildrt: clang-ucrt
             compiler: clang
-            runtime: clang64
+            runtime: ucrt
             msystem: CLANG64
-            prefix: /d/ffmpeg-build-clang-clang64
-            win_style_prefix: D:\ffmpeg-build-clang-clang64
-            package_name: ffmpeg-win64-clang-clang64-lto-static
+            prefix: /d/ffmpeg-build-clang-ucrt
+            win_style_prefix: D:\ffmpeg-build-clang-ucrt
+            package_name: ffmpeg-win64-clang-ucrt-static
             toolchain_packages: >-
               mingw-w64-clang-x86_64-toolchain
               mingw-w64-clang-x86_64-cmake
@@ -93,35 +93,35 @@ jobs:
               mingw-w64-clang-x86_64-libx264
               mingw-w64-clang-x86_64-SDL2
               mingw-w64-clang-x86_64-lld
-            optimization_flags: "-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
+            optimization_flags: "-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00"
             link_flags: "-fuse-ld=lld -static -flto=thin"
 
           # UCRT64 Clang
-          - buildrt: clang-ucrt64
+          - buildrt: clang-msvcrt
             compiler: clang
-            runtime: ucrt64
-            msystem: UCRT64
-            prefix: /d/ffmpeg-build-clang-ucrt64
-            win_style_prefix: D:\ffmpeg-build-clang-ucrt64
-            package_name: ffmpeg-win64-clang-ucrt64-lto-static
+            runtime: msvcrt
+            msystem: MINGW64
+            prefix: /d/ffmpeg-build-clang-msvcrt
+            win_style_prefix: D:\ffmpeg-build-clang-msvcrt
+            package_name: ffmpeg-win64-clang-msvcrt-static
             toolchain_packages: >-
-              mingw-w64-ucrt-x86_64-clang
-              mingw-w64-ucrt-x86_64-clang-tools-extra
-              mingw-w64-ucrt-x86_64-llvm-tools
-              mingw-w64-ucrt-x86_64-cmake
-              mingw-w64-ucrt-x86_64-meson
-              mingw-w64-ucrt-x86_64-ninja
-              mingw-w64-ucrt-x86_64-nasm
-              mingw-w64-ucrt-x86_64-yasm
-              mingw-w64-ucrt-x86_64-pkg-config
-              mingw-w64-ucrt-x86_64-zlib
-              mingw-w64-ucrt-x86_64-diffutils
-              mingw-w64-ucrt-x86_64-rav1e
-              mingw-w64-ucrt-x86_64-libvpl
-              mingw-w64-ucrt-x86_64-libx264
-              mingw-w64-ucrt-x86_64-SDL2
-              mingw-w64-ucrt-x86_64-lld
-            optimization_flags: "-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00"
+              mingw-w64-x86_64-clang
+              mingw-w64-x86_64-clang-tools-extra
+              mingw-w64-x86_64-llvm-tools
+              mingw-w64-x86_64-cmake
+              mingw-w64-x86_64-meson
+              mingw-w64-x86_64-ninja
+              mingw-w64-x86_64-nasm
+              mingw-w64-x86_64-yasm
+              mingw-w64-x86_64-pkg-config
+              mingw-w64-x86_64-zlib
+              mingw-w64-x86_64-diffutils
+              mingw-w64-x86_64-rav1e
+              mingw-w64-x86_64-libvpl
+              mingw-w64-x86_64-libx264
+              mingw-w64-x86_64-SDL2
+              mingw-w64-x86_64-lld
+            optimization_flags: "-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601"
             link_flags: "-fuse-ld=lld -static -flto=thin"
 
     outputs:
@@ -154,7 +154,7 @@ jobs:
 
     - name: Set UTC datetime tag & release name
       shell: msys2 {0}
-      if: matrix.compiler == 'gcc' && matrix.runtime == 'mingw64'
+      if: matrix.compiler == 'gcc' && matrix.runtime == 'msvcrt'
       id: tagger
       run: |
         DATE=$(date -u +"%Y-%m-%d-%H-%M-%S")
@@ -175,7 +175,7 @@ jobs:
           RANLIB_CMD="ranlib"
           NM_CMD="nm"
           STRIP_CMD="strip"
-          if [ "${{ matrix.runtime }}" = "ucrt64" ]; then
+          if [ "${{ matrix.runtime }}" = "ucrt" ]; then
             PATH_PREFIX="${{ matrix.prefix }}/bin:/ucrt64/bin:$PATH"
           else
             PATH_PREFIX="${{ matrix.prefix }}/bin:/mingw64/bin:$PATH"
@@ -187,7 +187,7 @@ jobs:
           RANLIB_CMD="$(which llvm-ranlib)"
           NM_CMD="$(which llvm-nm)"
           STRIP_CMD="$(which llvm-strip)"
-          if [ "${{ matrix.runtime }}" = "ucrt64" ]; then
+          if [ "${{ matrix.runtime }}" = "ucrt" ]; then
             PATH_PREFIX="${{ matrix.prefix }}/bin:/ucrt64/bin:$PATH"
           else
             PATH_PREFIX="${{ matrix.prefix }}/bin:/clang64/bin:$PATH"
@@ -238,10 +238,10 @@ jobs:
         $CC --version
         
         if [ "${{ matrix.compiler }}" = "clang" ]; then
-          if [ "${{ matrix.runtime }}" = "ucrt64" ]; then
-            which /ucrt64/bin/ld.lld || which ld.lld || echo "LLD not found"
+          if [ "${{ matrix.runtime }}" = "ucrt" ]; then
+            which /clang64/bin/ld.lld || which ld.lld || echo "LLD not found"
           else
-            which /clang64/bin/ld.lld || which ld.lld || echo "LLD not found" 
+            which /mingw64/bin/ld.lld || which ld.lld || echo "LLD not found" 
           fi
         fi
         
@@ -459,13 +459,13 @@ jobs:
         fi
 
         # Reset flags for remaining builds
-        if [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "clang64" ]]; then
+        if [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "msvcrt" ]]; then
           export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
           export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
-        elif [[ "$COMPILER_TYPE" = "gcc" && "$RUNTIME_TYPE" = "mingw64" ]]; then
+        elif [[ "$COMPILER_TYPE" = "gcc" && "$RUNTIME_TYPE" = "msvcrt" ]]; then
           export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
           export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
-        elif [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt64" ]]; then
+        elif [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt" ]]; then
           export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
           export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
         else
@@ -825,17 +825,13 @@ jobs:
         
         # Determine runtime info
         case "${{ matrix.runtime }}" in
-          mingw64)
+          msvcrt)
             RUNTIME_INFO="MinGW-w64 Runtime (MSVCRT)"
             WIN_TARGET="Windows 7+"
             ;;
-          ucrt64)
+          ucrt)
             RUNTIME_INFO="Universal CRT Runtime (UCRT)"
             WIN_TARGET="Windows 10+"
-            ;;
-          clang64)
-            RUNTIME_INFO="Clang Runtime (MSVCRT)"  
-            WIN_TARGET="Windows 7+"
             ;;
         esac
         
