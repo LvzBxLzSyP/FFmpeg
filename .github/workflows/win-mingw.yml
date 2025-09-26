@@ -748,12 +748,18 @@ jobs:
           export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
           CONFIGURE_EXTRA_FLAGS=""
           LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic"
-        else
+        elif [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt" ]]; then
           export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/clang64/lib/pkgconfig"
           export LDFLAGS_LTO="$LDFLAGS"
           export LD=$(which ld.lld)
           CONFIGURE_EXTRA_FLAGS="--enable-lto --cc=clang --cxx=clang++ --ar=llvm-ar --ranlib=llvm-ranlib --nm=llvm-nm --strip=llvm-strip --ld=clang"
           LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lc++ -Wl,--no-whole-archive -Wl,-Bstatic"
+        else
+          export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:/mingw64/lib/pkgconfig"
+          export LDFLAGS_LTO="$LDFLAGS"
+          export LD=$(which ld.lld)
+          CONFIGURE_EXTRA_FLAGS="--enable-lto --cc=clang --cxx=clang++ --ar=llvm-ar --ranlib=llvm-ranlib --nm=llvm-nm --strip=llvm-strip --ld=clang"
+          LDEXE_FLAGS="-L$PREFIX/lib/xevd -L$PREFIX/lib/xeve -Wl,--whole-archive -lstdc++ -Wl,--no-whole-archive -Wl,-Bstatic"
         fi
 
         ./configure \
