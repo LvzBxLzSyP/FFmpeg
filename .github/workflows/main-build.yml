@@ -23,10 +23,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Download GCC build artifact
+    - name: Download All build artifact
       uses: actions/download-artifact@v4
       with:
         path: ./artifacts/
+        merge-multiple: true
 
     - name: Create Git Tag
       run: |
