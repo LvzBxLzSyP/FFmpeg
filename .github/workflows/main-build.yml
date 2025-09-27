@@ -41,10 +41,10 @@ jobs:
         tag_name: ${{ needs.windows-x86_64-build.outputs.tag_name }}
         name: ${{ needs.windows-x86_64-build.outputs.release_name }}
         files: |
-          ./artifacts/ffmpeg-win64-gcc-mingw64-static.zip
-          ./artifacts/ffmpeg-win64-clang-clang64-lto-static.zip
-          ./artifacts/ffmpeg-win64-gcc-ucrt64-static.zip
-          ./artifacts/ffmpeg-win64-clang-ucrt64-lto-static.zip
+          ./artifacts/ffmpeg-win64-gcc-msvcrt-static.zip
+          ./artifacts/ffmpeg-win64-clang-msvcrt-static.zip
+          ./artifacts/ffmpeg-win64-gcc-ucrt-static.zip
+          ./artifacts/ffmpeg-win64-clang-ucrt-static.zip
         body: |
           ## Automated FFmpeg Builds - Dual Compiler Support
           
