@@ -24,6 +24,7 @@ jobs:
         update: true
         install: >
           mingw-w64-x86_64-cmake
+          mingw-w64-x86_64-make
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-meson
           mingw-w64-x86_64-pkgconf
@@ -63,6 +64,9 @@ jobs:
     - name: Build Dependencies
       shell: msys2 {0}
       run: |
+        export PATH="$PATH"
+        export LIB="$LIB"
+        export INCLUDE="$INCLUDE"
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
         cd x264
         CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli || cat config.log
