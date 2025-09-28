@@ -58,8 +58,8 @@ jobs:
       shell: msys2 {0}
       run: |
         # 將 Windows PATH 轉 Unix PATH
-        export PATH=$(echo $TPATH | tr ';' '\n' | while read p; do cygpath -u "$p"; done | paste -sd:)
-        echo $TPATH | tr ';' '\n' | while read p; do cygpath -u "$p"; done | paste -sd: >> $GITHUB_ENV
+        export PATH=$(cygpath -u -p "$TPATH")
+        cygpath -u -p "$TPATH" >> $GITHUB_ENV
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
         cd x264
         CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli
