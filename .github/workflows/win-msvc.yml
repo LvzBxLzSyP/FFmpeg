@@ -60,6 +60,7 @@ jobs:
         echo LIB=%MSYS2_LIB%>>%GITHUB_ENV%
         echo CC=cl>>%GITHUB_ENV%
         echo CXX=cl>>%GITHUB_ENV%
+        
 
     - name: Build Dependencies
       shell: msys2 {0}
@@ -85,14 +86,14 @@ jobs:
         cd ../..
         git clone https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
-        cmake -G Ninja ^
-          -DCMAKE_INSTALL_PREFIX=%PREFIX% ^
-          -DENABLE_SHARED=OFF ^
-          -DENABLE_CLI=OFF ^
-          -DENABLE_TESTS=OFF ^
-          -DENABLE_DOCS=OFF ^
-          -DCMAKE_C_FLAGS_RELEASE="/O2 /GL /MT" ^
-          -DCMAKE_CXX_FLAGS_RELEASE="/O2 /GL /MT /std:c++17" ^
+        cmake -G Ninja \
+          -DCMAKE_INSTALL_PREFIX=%PREFIX% \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_CLI=OFF \
+          -DENABLE_TESTS=OFF \
+          -DENABLE_DOCS=OFF \
+          -DCMAKE_C_FLAGS_RELEASE="/O2 /GL /MT" \
+          -DCMAKE_CXX_FLAGS_RELEASE="/O2 /GL /MT /std:c++17" \
           ../source
         ninja
         ninja install
@@ -100,17 +101,17 @@ jobs:
         
         git clone https://code.videolan.org/videolan/dav1d.git
         cd dav1d
-        meson setup build ^
-          --buildtype=release ^
-          --prefix=%PREFIX% ^
-          -Ddefault_library=static ^
-          -Denable_tools=false ^
-          -Denable_tests=false ^
-          -Dc_args="%CFLAGS%" ^
-          -Dcpp_args="%CXXFLAGS%" ^
-          -Dc_link_args="%LDFLAGS%" ^
+        meson setup build \
+          --buildtype=release \
+          --prefix=%PREFIX% \
+          -Ddefault_library=static \
+          -Denable_tools=false \
+          -Denable_tests=false \
+          -Dc_args="%CFLAGS%" \
+          -Dcpp_args="%CXXFLAGS%" \
+          -Dc_link_args="%LDFLAGS%" \
           -Dcpp_link_args="%LDFLAGS%"
-        meson compile -C build -j %NUMBER_OF_PROCESSORS%
+        meson compile -C build -j $(nproc)
         meson install -C build
         cd ..
 
