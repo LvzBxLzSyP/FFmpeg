@@ -44,17 +44,15 @@ jobs:
       shell: cmd
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        echo PREFIX=%globalprefix% >> %GITHUB_ENV%
-        echo CFLAGS=/O2 /GL /MT /D_WIN32_WINNT=0x0601 /I%globalprefix%\include >> %GITHUB_ENV%
-        echo CXXFLAGS=/O2 /GL /MT /std:c++17 /I%globalprefix%\include >> %GITHUB_ENV%
-        echo LDFLAGS=/LTCG /LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
-        echo PKG_CONFIG_PATH=%globalprefix%\lib\pkgconfig >> %GITHUB_ENV%
-        echo PATH=%globalprefix%\bin;%PATH% >> %GITHUB_ENV%
-        echo LIB="%LIB%" >> %GITHUB_ENV%
-        echo INCLUDE="%INCLUDE" >> %GITHUB_ENV%
-        echo MAKEFLAGS=/M >> %GITHUB_ENV%
-        echo CC=cl >> %GITHUB_ENV%
-        echo CXX=cl >> %GITHUB_ENV%
+        :: 將環境變數轉換為 MSYS2 可以讀的形式
+        set MSYS2_PATH=%PATH:C:\=\/c/% 
+        set MSYS2_INCLUDE=%INCLUDE:C:\=\/c/%
+        set MSYS2_LIB=%LIB:C:\=\/c/%
+        echo PATH=%MSYS2_PATH%>>%GITHUB_ENV%
+        echo INCLUDE=%MSYS2_INCLUDE%>>%GITHUB_ENV%
+        echo LIB=%MSYS2_LIB%>>%GITHUB_ENV%
+        echo CC=cl>>%GITHUB_ENV%
+        echo CXX=cl>>%GITHUB_ENV%
 
     - name: Build Dependencies
       shell: msys2 {0}
