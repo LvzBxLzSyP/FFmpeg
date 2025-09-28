@@ -55,7 +55,7 @@ jobs:
         set MSYS2_LIB=%LIB:C:\=/c/% 
         set MSYS2_LIB=%MSYS2_LIB:;=:%
         set MSYS2_LIB=%MSYS2_LIB:\=/%
-        echo PATH=%MSYS2_PATH%>>%GITHUB_ENV%
+        echo %MSYS2_PATH% > winpath.txt
         echo INCLUDE=%MSYS2_INCLUDE%>>%GITHUB_ENV%
         echo LIB=%MSYS2_LIB%>>%GITHUB_ENV%
         echo CC=cl>>%GITHUB_ENV%
@@ -64,10 +64,12 @@ jobs:
     - name: Build Dependencies
       shell: msys2 {0}
       run: |
+        mv /bin/link.exe /bin/link.exe.bk
         echo $PATH
         echo $LIB
         echo $INCLUDE
-        export PATH="$PATH"
+        WIN_PATH=$(cat winpath.txt)
+        export PATH="$PATH:$WIN_PATH"
         export LIB="$LIB"
         export INCLUDE="$INCLUDE"
         echo $PATH
