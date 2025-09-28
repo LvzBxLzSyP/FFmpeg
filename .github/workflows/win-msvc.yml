@@ -64,9 +64,15 @@ jobs:
     - name: Build Dependencies
       shell: msys2 {0}
       run: |
+        echo $PATH
+        echo $LIB
+        echo $INCLUDE
         export PATH="$PATH"
         export LIB="$LIB"
         export INCLUDE="$INCLUDE"
+        echo $PATH
+        echo $LIB
+        echo $INCLUDE
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
         cd x264
         CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli || cat config.log
