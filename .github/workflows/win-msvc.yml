@@ -52,8 +52,8 @@ jobs:
         set MSYS2_INCLUDE=%MSYS2_INCLUDE:;=:%
         set MSYS2_INCLIDE=%MSYS2_INCLUDE:\=/%
         set MSYS2_LIB=%LIB:C:\=/c/% 
-        set MSYS2_PATH=%MSYS2_LIB:;=:%
-        set MSYS2_PATH=%MSYS2_LIB:\=/%
+        set MSYS2_LIB=%MSYS2_LIB:;=:%
+        set MSYS2_LIB=%MSYS2_LIB:\=/%
         echo PATH=%MSYS2_PATH%>>%GITHUB_ENV%
         echo INCLUDE=%MSYS2_INCLUDE%>>%GITHUB_ENV%
         echo LIB=%MSYS2_LIB%>>%GITHUB_ENV%
