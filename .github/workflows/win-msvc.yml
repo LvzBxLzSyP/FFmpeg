@@ -49,7 +49,9 @@ jobs:
         echo CXXFLAGS=/O2 /GL /MT /std:c++17 /I%globalprefix%\include >> %GITHUB_ENV%
         echo LDFLAGS=/LTCG /LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
         echo PKG_CONFIG_PATH=%globalprefix%\lib\pkgconfig >> %GITHUB_ENV%
-        echo TPATH=%globalprefix%\bin;%PATH% >> %GITHUB_ENV%
+        echo PATH=%globalprefix%\bin;%PATH% >> %GITHUB_ENV%
+        echo LIB="%LIB%" >> %GITHUB_ENV%
+        echo INCLUDE="%INCLUDE" >> %GITHUB_ENV%
         echo MAKEFLAGS=/M >> %GITHUB_ENV%
         echo CC=cl >> %GITHUB_ENV%
         echo CXX=cl >> %GITHUB_ENV%
@@ -57,12 +59,9 @@ jobs:
     - name: Build Dependencies
       shell: msys2 {0}
       run: |
-        # 將 Windows PATH 轉 Unix PATH
-        export PATH=$(cygpath -u -p "$TPATH")
-        cygpath -u -p "$TPATH" >> $GITHUB_ENV
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
         cd x264
-        CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli
+        CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli || cat config.log
         make -j$(nproc)
         make install
         cd ..
