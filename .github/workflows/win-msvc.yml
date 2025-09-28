@@ -6,6 +6,7 @@ on:
 
 env:
   globalprefix: D:\a\FFmpeg\msvc\
+  unixprefix: /d/a/FFmpeg/msvc/
 
 jobs:
   build:
