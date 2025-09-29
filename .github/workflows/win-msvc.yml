@@ -19,6 +19,10 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
+    - run: |
+        dir "C:\Program Files (x86)\Windows Kits\10\bin\rc.exe" /s /b
+        exit
+
     - name: Setup MSYS2
       uses: msys2/setup-msys2@v2
       with:
