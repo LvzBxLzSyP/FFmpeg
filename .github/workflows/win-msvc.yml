@@ -54,8 +54,8 @@ jobs:
         set MSYS2_LIB=%MSYS2_LIB:;=:%
         set MSYS2_LIB=%MSYS2_LIB:\=/%
         echo %MSYS2_PATH% > winpath.txt
-        echo INCLUDE=%MSYS2_INCLUDE%>>%GITHUB_ENV%
-        echo LIB=%MSYS2_LIB%>>%GITHUB_ENV%
+        echo INCLUDE=%INCLUDE%>>%GITHUB_ENV%
+        echo LIB=%LIB%>>%GITHUB_ENV%
         echo CC=cl>>%GITHUB_ENV%
         echo CXX=cl>>%GITHUB_ENV%
         
