@@ -67,14 +67,17 @@ jobs:
         echo $PATH
         echo $LIB
         echo $INCLUDE
+        which cl
+        which rc
+        which mt
+        which link
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
         cd x264
         CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli || cat config.log
         make -j$(nproc)
         make install
         cd ..
-
-        cd ../..
+        
         git clone https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
         cmake -G Ninja \
