@@ -19,7 +19,8 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
 
-    - run: |
+    - shell: cmd
+      run: |
         dir "C:\Program Files (x86)\Windows Kits\10\bin\rc.exe" /s /b
         exit
 
