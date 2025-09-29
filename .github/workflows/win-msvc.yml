@@ -30,10 +30,10 @@ jobs:
         update: true
         install: >
           mingw-w64-x86_64-cmake
-          make
           mingw-w64-x86_64-ninja
           mingw-w64-x86_64-meson
           mingw-w64-x86_64-pkgconf
+          make
           git
 
     - name: Install ASM for Visual Studio
@@ -51,6 +51,7 @@ jobs:
       shell: cmd
       run: |
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        echo PREFIX=%unixprefix%>>%GITHUB_ENV%
         echo INCLUDE=%INCLUDE%>>%GITHUB_ENV%
         echo LIB=%LIB%>>%GITHUB_ENV%
         echo CC=cl>>%GITHUB_ENV%
@@ -88,7 +89,7 @@ jobs:
         git clone https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
         cmake -G Ninja \
-          -DCMAKE_INSTALL_PREFIX=%PREFIX% \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DENABLE_SHARED=OFF \
           -DENABLE_CLI=OFF \
           -DENABLE_TESTS=OFF \
@@ -104,7 +105,7 @@ jobs:
         cd dav1d
         meson setup build \
           --buildtype=release \
-          --prefix=%PREFIX% \
+          --prefix=$PREFIX \
           -Ddefault_library=static \
           -Denable_tools=false \
           -Denable_tests=false \
