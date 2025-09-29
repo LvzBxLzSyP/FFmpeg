@@ -56,9 +56,9 @@ jobs:
         echo LIB=%LIB%>>%GITHUB_ENV%
         echo CC=cl>>%GITHUB_ENV%
         echo CXX=cl>>%GITHUB_ENV%
-        echo CFLAGS=/O2 /GL /MT /D_WIN32_WINNT=0x0A00 /I%globalprefix%\include >> %GITHUB_ENV%
-        echo CXXFLAGS=/O2 /GL /MT /std:c++17 /I%globalprefix%\include >> %GITHUB_ENV%
-        echo LDFLAGS=/LTCG /LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
+        echo CFLAGS=-O2 -GL -MT -D_WIN32_WINNT=0x0A00 -I%globalprefix%\include >> %GITHUB_ENV%
+        echo CXXFLAGS=-O2 -GL -MT -std:c++17 -I%globalprefix%\include >> %GITHUB_ENV%
+        echo LDFLAGS=-LTCG -LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
         
     - name: Build Dependencies
       shell: msys2 {0}
