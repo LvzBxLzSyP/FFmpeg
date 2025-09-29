@@ -56,7 +56,6 @@ jobs:
         echo CC=cl>>%GITHUB_ENV%
         echo CXX=cl>>%GITHUB_ENV%
         
-
     - name: Build Dependencies
       shell: msys2 {0}
       run: |
@@ -67,10 +66,10 @@ jobs:
         MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
         MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
         MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
-        WINKIT_BASE="/c/Program Files (x86)/Windows Kits/10/bin/"
-        WINKIT_VER=$(ls "$WINKIT_BASE" | sort -V | tail -n1)
-        WINKIT_BIN="$WINKIT_BASE/$WINKIT_VER/x64"
-        export PATH="$MSVC_BIN:$WINKIT_BIN:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
+        # 找到最新版本的 Windows Kits x64 rc.exe 路徑
+        WIN_KITS_BASE="/c/Program Files (x86)/Windows Kits/10/bin"
+        RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" | sort -V | tail -n 1)/x64
+        export PATH="$MSVC_BIN:$RC_PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
         echo "PATH=$MSVC_BIN:$PATH" >> $GITHUB_ENV
         echo $PATH
         echo $LIB
