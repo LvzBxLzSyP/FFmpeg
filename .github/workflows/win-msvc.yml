@@ -52,8 +52,8 @@ jobs:
         echo LIB=%LIB%>>%GITHUB_ENV%
         echo CC=cl>>%GITHUB_ENV%
         echo CXX=cl>>%GITHUB_ENV%
-        echo CFLAGS=-O2 -GL -MT -D_WIN32_WINNT=0x0A00 -I%globalprefix%\include >> %GITHUB_ENV%
-        echo CXXFLAGS=-O2 -GL -MT -std:c++17 -I%globalprefix%\include >> %GITHUB_ENV%
+        echo CFLAGS=-O2 -GL -MD -D_WIN32_WINNT=0x0A00 -I%globalprefix%\include >> %GITHUB_ENV%
+        echo CXXFLAGS=-O2 -GL -MD -std:c++17 -I%globalprefix%\include >> %GITHUB_ENV%
         echo LDFLAGS=-LTCG -LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
         
     - name: Build Dependencies
@@ -70,7 +70,7 @@ jobs:
         echo "PATH=$PATH" >> $GITHUB_ENV
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
         cd x264
-        CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli || cat config.log
+        CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS" || cat config.log
         make -j$(nproc)
         make install
         cd ..
@@ -83,8 +83,8 @@ jobs:
           -DENABLE_CLI=OFF \
           -DENABLE_TESTS=OFF \
           -DENABLE_DOCS=OFF \
-          -DCMAKE_C_FLAGS_RELEASE="/O2 /GL /MT" \
-          -DCMAKE_CXX_FLAGS_RELEASE="/O2 /GL /MT /std:c++17" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
           ../source
         ninja
