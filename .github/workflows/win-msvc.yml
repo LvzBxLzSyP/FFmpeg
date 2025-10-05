@@ -95,7 +95,7 @@ jobs:
         cd dav1d
         meson setup build \
           --buildtype=release \
-          -Db_vscrt=dynamic \
+          -Db_vscrt=md \
           --prefix=$PREFIX \
           -Ddefault_library=static \
           -Denable_tools=false \
