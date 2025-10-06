@@ -251,6 +251,8 @@ jobs:
 
         git clone https://chromium.googlesource.com/webm/libvpx
         cd libvpx
+        wget https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/0002-fix-msvc-warning-error-args.patch
+        git apply 0002-fix-msvc-warning-error-args.patch
         mkdir -p builddir
         cd builddir
         LDFLAGS="$LDFLAGS" ../configure \
