@@ -1,10 +1,14 @@
 diff --git a/build/make/configure.sh b/build/make/configure.sh
-index 679f12df7..23a247ccb 100644
+index 679f12df7..d314a3cd8 100644
 --- a/build/make/configure.sh
 +++ b/build/make/configure.sh
-@@ -277,11 +277,23 @@ else
+@@ -276,12 +276,27 @@ elif test ! -z "$TEMPDIR" ; then
+ else
    TMPDIRx="/tmp"
  fi
++if echo "$CC" | grep -qi "cl.exe"; then
++    TMPDIRx=$(cygpath -m "$TMPDIRx")
++fi
  RAND=$(awk 'BEGIN { srand(); printf "%d\n",(rand() * 32768)}')
 +
 +case "$CC" in
@@ -28,7 +32,7 @@ index 679f12df7..23a247ccb 100644
  TMP_ASM="${TMPDIRx}/vpx-conf-$$-${RAND}.asm"
  
  clean_temp_files() {
-@@ -344,27 +356,42 @@ EOF
+@@ -344,27 +359,42 @@ EOF
  }
  
  check_cflags() {
