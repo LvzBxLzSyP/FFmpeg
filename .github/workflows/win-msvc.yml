@@ -269,7 +269,8 @@ jobs:
           --enable-libsvtav1 \
           --extra-cflags="$CFLAGS" \
           --extra-cxxflags="$CXXFLAGS" \
-          --extra-ldflags="$LDFLAGS" || (cat ffbuild/config.log && exit 1)
+          --extra-ldflags="$LDFLAGS" \
+          --toolchain=msvc || (cat ffbuild/config.log && exit 1)
         
         echo "Building FFmpeg..."
         make -j$(nproc)
