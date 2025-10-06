@@ -10,7 +10,7 @@ env:
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-2025
     
     steps:
     - name: Checkout repository
@@ -110,7 +110,7 @@ jobs:
         restore-keys: |
           msvc-deps-
 
-    - name: Build x264
+    - name: Build All Dependencies and FFmpeg
       shell: msys2 {0}
       run: |
         set -e
@@ -120,19 +120,39 @@ jobs:
           mv /bin/link.exe /bin/link.exe.bk
         fi
         
-        # Setup MSVC paths
-        export PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/$(ls '/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC' | sort -V | tail -n1)/bin/HostX64/x64:$PATH"
+        # Setup MSVC paths - find the latest version dynamically
+        MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
+        if [ ! -d "$MSVC_BASE" ]; then
+          echo "Error: MSVC not found at $MSVC_BASE"
+          exit 1
+        fi
+        
+        MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
+        MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
         
         # Find Windows Kits RC.exe
         WIN_KITS_BASE="/c/Program Files (x86)/Windows Kits/10/bin"
         RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" 2>/dev/null | sort -V | tail -n 1)/x64
-        export PATH="$RC_PATH:$PATH"
         
+        # Add MSVC to PATH
+        export PATH="$MSVC_BIN:$RC_PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
+        
+        # Verify compilers are available
+        echo "Checking for cl.exe..."
+        which cl.exe || (echo "cl.exe not found in PATH"; exit 1)
+        
+        # Set compiler explicitly for CMake
+        export CC="cl.exe"
+        export CXX="cl.exe"
+        
+        # Build x264
+        echo "==========================="
         echo "Building x264..."
+        echo "==========================="
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
         cd x264
         
-        CC=cl ./configure \
+        ./configure \
           --prefix=$PREFIX \
           --enable-static \
           --disable-opencl \
@@ -143,17 +163,17 @@ jobs:
         make -j$(nproc)
         make install
         cd ..
-
-    - name: Build x265
-      shell: msys2 {0}
-      run: |
-        set -e
         
+        # Build x265
+        echo "==========================="
         echo "Building x265..."
+        echo "==========================="
         git clone --depth=1 https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
         
         cmake -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_CXX_COMPILER=cl.exe \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DENABLE_SHARED=OFF \
           -DENABLE_CLI=OFF \
@@ -168,13 +188,11 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
-
-    - name: Build dav1d
-      shell: msys2 {0}
-      run: |
-        set -e
         
+        # Build dav1d
+        echo "==========================="
         echo "Building dav1d..."
+        echo "==========================="
         git clone --depth=1 https://code.videolan.org/videolan/dav1d.git
         cd dav1d
         
@@ -193,26 +211,24 @@ jobs:
         meson compile -C build -j$(nproc)
         meson install -C build
         cd ..
-
-    - name: Install rav1e
-      shell: msys2 {0}
-      run: |
-        set -e
         
-        echo "Downloading rav1e prebuilt..."
+        # Install rav1e
+        echo "==========================="
+        echo "Installing rav1e..."
+        echo "==========================="
         curl -L -o rav1e-x86_64.zip https://github.com/LvzBxLzSyP/rav1e/releases/latest/download/rav1e-x86_64.zip
         7z x rav1e-x86_64.zip -o$PREFIX -y
-
-    - name: Build SVT-AV1
-      shell: msys2 {0}
-      run: |
-        set -e
         
+        # Build SVT-AV1
+        echo "==========================="
         echo "Building SVT-AV1..."
+        echo "==========================="
         git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
         cd SVT-AV1/Build
         
         cmake -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_CXX_COMPILER=cl.exe \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DBUILD_SHARED_LIBS=OFF \
           -DBUILD_APPS=OFF \
@@ -227,13 +243,11 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
-
-    - name: Build FFmpeg
-      shell: msys2 {0}
-      run: |
-        set -e
         
-        echo "Cloning FFmpeg..."
+        # Build FFmpeg
+        echo "==========================="
+        echo "Building FFmpeg..."
+        echo "==========================="
         git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
         cd ffmpeg
         
@@ -258,7 +272,9 @@ jobs:
         make -j$(nproc)
         make install
         
-        echo "FFmpeg build complete!"
+        echo "==========================="
+        echo "Build complete!"
+        echo "==========================="
 
     - name: Package Artifacts
       shell: pwsh
