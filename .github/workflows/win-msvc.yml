@@ -136,6 +136,9 @@ jobs:
         
         # Add MSVC to PATH
         export PATH="$MSVC_BIN:$RC_PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
+
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+        echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
         
         # Verify compilers are available
         echo "Checking for cl.exe..."
