@@ -1,8 +1,34 @@
 diff --git a/build/make/configure.sh b/build/make/configure.sh
-index 679f12df7..f9f1e6061 100644
+index 679f12df7..23a247ccb 100644
 --- a/build/make/configure.sh
 +++ b/build/make/configure.sh
-@@ -344,27 +344,42 @@ EOF
+@@ -277,11 +277,23 @@ else
+   TMPDIRx="/tmp"
+ fi
+ RAND=$(awk 'BEGIN { srand(); printf "%d\n",(rand() * 32768)}')
++
++case "$CC" in
++    *cl.exe | *clang-cl.exe)
++        OBJEXT="obj"
++        EXEEXT="exe"
++        ;;
++    *)
++        OBJEXT="o"
++        EXEEXT="x"
++        ;;
++esac
++
+ TMP_H="${TMPDIRx}/vpx-conf-$$-${RAND}.h"
+ TMP_C="${TMPDIRx}/vpx-conf-$$-${RAND}.c"
+ TMP_CC="${TMPDIRx}/vpx-conf-$$-${RAND}.cc"
+-TMP_O="${TMPDIRx}/vpx-conf-$$-${RAND}.o"
+-TMP_X="${TMPDIRx}/vpx-conf-$$-${RAND}.x"
++TMP_O="${TMPDIRx}/vpx-conf-$$-${RAND}.${OBJEXT}"
++TMP_X="${TMPDIRx}/vpx-conf-$$-${RAND}.${EXEEXT}"
+ TMP_ASM="${TMPDIRx}/vpx-conf-$$-${RAND}.asm"
+ 
+ clean_temp_files() {
+@@ -344,27 +356,42 @@ EOF
  }
  
  check_cflags() {
