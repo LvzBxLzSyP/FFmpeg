@@ -133,9 +133,11 @@ jobs:
         # Find Windows Kits RC.exe
         WIN_KITS_BASE="/c/Program Files (x86)/Windows Kits/10/bin"
         RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" 2>/dev/null | sort -V | tail -n 1)/x64
+
+        MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin"
         
         # Add MSVC to PATH
-        export PATH="$MSVC_BIN:$RC_PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
+        export PATH="$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
 
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
         echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
@@ -246,6 +248,25 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
+
+        git clone https://chromium.googlesource.com/webm/libvpx
+        cd libvpx
+        mkdir -p builddir
+        cd builddir
+        LDFLAGS="$LDFLAGS" ../configure \
+          --prefix=$PREFIX \
+          --disable-examples \
+          --disable-unit-tests \
+          --disable-tools \
+          --disable-docs \
+          --enable-vp8 \
+          --enable-vp9 \
+          --enable-vp9-highbitdepth \
+          --enable-static \
+          --disable-shared \
+          --extra-cflags="$CFLAGS" || { cat config.log; exit 1; }
+        make -j$(nproc)
+        make install
 
         echo "==========================="
         echo "Normalizing library naming for MSVC..."
