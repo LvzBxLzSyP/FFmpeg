@@ -264,7 +264,8 @@ jobs:
           --enable-vp9-highbitdepth \
           --enable-static \
           --disable-shared \
-          --extra-cflags="$CFLAGS" || { cat config.log; exit 1; }
+          --extra-cflags="$CFLAGS" \
+          --target=x86_64-win64-vs17 || { cat config.log; exit 1; }
         make -j$(nproc)
         make install
 
