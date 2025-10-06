@@ -268,7 +268,7 @@ jobs:
         [ -f rav1e.dll.lib ] && ! [ -f rav1e.lib ] && ln -sf rav1e.dll.lib rav1e.lib && echo "Created rav1e.lib"
         
         # SVT-AV1 might have different variations
-        [ -f libSvtAv1Enc.a ] && ! [ -f SvtAv1Enc.lib ] && cp libSvtAv1Enc.a SvtAv1Enc.lib && echo "Created SvtAv1Enc.l
+        [ -f libSvtAv1Enc.a ] && ! [ -f SvtAv1Enc.lib ] && cp libSvtAv1Enc.a SvtAv1Enc.lib && echo "Created SvtAv1Enc.lib"
         
         # Build FFmpeg
         echo "==========================="
