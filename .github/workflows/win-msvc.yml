@@ -5,13 +5,13 @@ on:
   workflow_dispatch:
 
 env:
-  globalprefix: D:\a\FFmpeg\msvc\
-  unixprefix: /d/a/FFmpeg/msvc/
+  GLOBAL_PREFIX: D:\a\FFmpeg\msvc
+  UNIX_PREFIX: /d/a/FFmpeg/msvc
 
 jobs:
   build:
-    runs-on: windows-2025
-
+    runs-on: windows-2022
+    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -29,70 +29,155 @@ jobs:
           mingw-w64-x86_64-meson
           mingw-w64-x86_64-pkgconf
           mingw-w64-x86_64-7zip
+          mingw-w64-x86_64-nasm
           make
           git
+          diffutils
+          yasm
 
-    - name: Install ASM for Visual Studio
+    - name: Install NASM for Visual Studio
       shell: pwsh
       run: |
-        Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip" -OutFile "NASM.zip"
-        Invoke-WebRequest -Uri "https://github.com/ShiftMediaProject/VSNASM/releases/download/1.0/VSNASM.zip" -OutFile "VSNASM.zip"
-        Expand-Archive -Path "NASM.zip" -DestinationPath ".\NASM" -Force
-        Copy-Item -Path ".\NASM\nasm-2.16.03\nasm.exe" -Destination "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\nasm.exe"
-        Expand-Archive -Path "VSNASM.zip" -DestinationPath ".\VSNASM" -Force
-        cd VSNASM
-        & ".\install_script.bat"
-
-    - name: Set Environment Variable
-      shell: cmd
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        echo PREFIX=%unixprefix%>>%GITHUB_ENV%
-        echo INCLUDE=%INCLUDE%>>%GITHUB_ENV%
-        echo LIB=%LIB%>>%GITHUB_ENV%
-        echo CC=cl>>%GITHUB_ENV%
-        echo CXX=cl>>%GITHUB_ENV%
-        echo CFLAGS=-O2 -GL -MD -D_WIN32_WINNT=0x0A00 -I%globalprefix%\include >> %GITHUB_ENV%
-        echo CXXFLAGS=-O2 -GL -MD -std:c++17 -I%globalprefix%\include >> %GITHUB_ENV%
-        echo LDFLAGS=-LTCG -LIBPATH:%globalprefix%\lib >> %GITHUB_ENV%
+        $ErrorActionPreference = "Stop"
         
-    - name: Build Dependencies
+        Write-Host "Downloading NASM..."
+        Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip" -OutFile "NASM.zip"
+        
+        Write-Host "Downloading VSNASM..."
+        Invoke-WebRequest -Uri "https://github.com/ShiftMediaProject/VSNASM/releases/download/1.0/VSNASM.zip" -OutFile "VSNASM.zip"
+        
+        Write-Host "Extracting NASM..."
+        Expand-Archive -Path "NASM.zip" -DestinationPath ".\NASM" -Force
+        
+        $vsPath = vswhere -latest -property installationPath
+        $nasmDest = Join-Path $vsPath "VC\nasm.exe"
+        Copy-Item -Path ".\NASM\nasm-2.16.03\nasm.exe" -Destination $nasmDest -Force
+        
+        Write-Host "Installing VSNASM..."
+        Expand-Archive -Path "VSNASM.zip" -DestinationPath ".\VSNASM" -Force
+        Push-Location VSNASM
+        & ".\install_script.bat"
+        Pop-Location
+        
+        Write-Host "NASM installation complete"
+
+    - name: Setup MSVC Environment
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        
+        # Find vcvars64.bat using vswhere
+        $vsPath = vswhere -latest -property installationPath
+        $vcvarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvars64.bat"
+        
+        # Create a batch file to capture environment
+        $batchScript = @"
+        @echo off
+        call "$vcvarsPath"
+        set
+        "@
+        
+        $batchScript | Out-File -FilePath "setup_env.bat" -Encoding ASCII
+        
+        # Run batch and parse environment
+        $output = & cmd /c "setup_env.bat"
+        
+        foreach ($line in $output) {
+            if ($line -match '^([^=]+)=(.*)$') {
+                $name = $matches[1]
+                $value = $matches[2]
+                
+                # Add important variables to GITHUB_ENV
+                if ($name -in @('INCLUDE', 'LIB', 'PATH', 'LIBPATH')) {
+                    "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                }
+            }
+        }
+        
+        # Add custom build flags
+        "CC=cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CXX=cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "PREFIX=$env:UNIX_PREFIX" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CFLAGS=-O2 -GL -MD -D_WIN32_WINNT=0x0A00 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CXXFLAGS=-O2 -GL -MD -std:c++17 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "LDFLAGS=-LTCG -LIBPATH:$env:GLOBAL_PREFIX\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Cache Dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.GLOBAL_PREFIX }}
+        key: msvc-deps-${{ hashFiles('.github/workflows/**') }}
+        restore-keys: |
+          msvc-deps-
+
+    - name: Build x264
       shell: msys2 {0}
       run: |
-        mv /bin/link.exe /bin/link.exe.bk
-        MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
-        MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
-        MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
-        # 找到最新版本的 Windows Kits x64 rc.exe 路徑
+        set -e
+        
+        # Backup MSYS2 link.exe to avoid conflict with MSVC link.exe
+        if [ -f /bin/link.exe ]; then
+          mv /bin/link.exe /bin/link.exe.bk
+        fi
+        
+        # Setup MSVC paths
+        export PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/$(ls '/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC' | sort -V | tail -n1)/bin/HostX64/x64:$PATH"
+        
+        # Find Windows Kits RC.exe
         WIN_KITS_BASE="/c/Program Files (x86)/Windows Kits/10/bin"
-        RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" | sort -V | tail -n 1)/x64
-        export PATH="$MSVC_BIN:$RC_PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
-        echo "PATH=$PATH" >> $GITHUB_ENV
+        RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" 2>/dev/null | sort -V | tail -n 1)/x64
+        export PATH="$RC_PATH:$PATH"
+        
+        echo "Building x264..."
         git clone --depth=1 https://code.videolan.org/videolan/x264.git
         cd x264
-        CC=cl ./configure --prefix=$PREFIX --enable-static --disable-opencl --disable-cli --extra-cflags="$CFLAGS" --extra-ldflags="$LDFLAGS" || cat config.log
+        
+        CC=cl ./configure \
+          --prefix=$PREFIX \
+          --enable-static \
+          --disable-opencl \
+          --disable-cli \
+          --extra-cflags="$CFLAGS" \
+          --extra-ldflags="$LDFLAGS" || (cat config.log && exit 1)
+        
         make -j$(nproc)
         make install
         cd ..
+
+    - name: Build x265
+      shell: msys2 {0}
+      run: |
+        set -e
         
-        git clone https://bitbucket.org/multicoreware/x265_git.git x265
+        echo "Building x265..."
+        git clone --depth=1 https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
+        
         cmake -G Ninja \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DENABLE_SHARED=OFF \
           -DENABLE_CLI=OFF \
           -DENABLE_TESTS=OFF \
           -DENABLE_DOCS=OFF \
-          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
           ../source
-        ninja
+        
+        ninja -j$(nproc)
         ninja install
         cd ../..
+
+    - name: Build dav1d
+      shell: msys2 {0}
+      run: |
+        set -e
         
-        git clone https://code.videolan.org/videolan/dav1d.git
+        echo "Building dav1d..."
+        git clone --depth=1 https://code.videolan.org/videolan/dav1d.git
         cd dav1d
+        
         meson setup build \
           --buildtype=release \
           -Db_vscrt=md \
@@ -104,28 +189,106 @@ jobs:
           -Dcpp_args="$CXXFLAGS" \
           -Dc_link_args="$LDFLAGS" \
           -Dcpp_link_args="$LDFLAGS"
-        meson compile -C build -j $(nproc)
+        
+        meson compile -C build -j$(nproc)
         meson install -C build
         cd ..
 
+    - name: Install rav1e
+      shell: msys2 {0}
+      run: |
+        set -e
+        
+        echo "Downloading rav1e prebuilt..."
         curl -L -o rav1e-x86_64.zip https://github.com/LvzBxLzSyP/rav1e/releases/latest/download/rav1e-x86_64.zip
-        7z x rav1e-x86_64.zip -o%PREFIX%
+        7z x rav1e-x86_64.zip -o$PREFIX -y
 
-        git clone https://gitlab.com/AOMediaCodec/SVT-AV1.git
-        cd SVT-AV1
-        mkdir -p build
-        cd build
-        cmake -G "Ninja" \
+    - name: Build SVT-AV1
+      shell: msys2 {0}
+      run: |
+        set -e
+        
+        echo "Building SVT-AV1..."
+        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+        cd SVT-AV1/Build
+        
+        cmake -G Ninja \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DBUILD_SHARED_LIBS=OFF \
           -DBUILD_APPS=OFF \
           -DBUILD_DEC=OFF \
+          -DBUILD_TESTING=OFF \
+          -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
-          -DCMAKE_BUILD_TYPE=Release \
-          ../
-        ninja -j $(nproc)
-        ninja install
-        cd ..
+          ..
         
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+
+    - name: Build FFmpeg
+      shell: msys2 {0}
+      run: |
+        set -e
+        
+        echo "Cloning FFmpeg..."
+        git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
+        cd ffmpeg
+        
+        echo "Configuring FFmpeg..."
+        ./configure \
+          --prefix=$PREFIX \
+          --toolchain=msvc \
+          --enable-gpl \
+          --enable-version3 \
+          --disable-doc \
+          --disable-debug \
+          --enable-libx264 \
+          --enable-libx265 \
+          --enable-libdav1d \
+          --enable-librav1e \
+          --enable-libsvtav1 \
+          --extra-cflags="$CFLAGS" \
+          --extra-cxxflags="$CXXFLAGS" \
+          --extra-ldflags="$LDFLAGS" || (cat ffbuild/config.log && exit 1)
+        
+        echo "Building FFmpeg..."
+        make -j$(nproc)
+        make install
+        
+        echo "FFmpeg build complete!"
+
+    - name: Package Artifacts
+      shell: pwsh
+      run: |
+        $artifactPath = "ffmpeg-msvc-build"
+        
+        if (Test-Path $env:GLOBAL_PREFIX) {
+            Compress-Archive -Path "$env:GLOBAL_PREFIX\*" -DestinationPath "$artifactPath.zip"
+            Write-Host "Created artifact: $artifactPath.zip"
+        } else {
+            Write-Error "Build prefix not found: $env:GLOBAL_PREFIX"
+            exit 1
+        }
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ffmpeg-msvc-x64
+        path: ffmpeg-msvc-build.zip
+        retention-days: 7
+
+    - name: Verify Build
+      shell: pwsh
+      run: |
+        $ffmpegExe = Join-Path $env:GLOBAL_PREFIX "bin\ffmpeg.exe"
+        
+        if (Test-Path $ffmpegExe) {
+            Write-Host "FFmpeg executable found!"
+            & $ffmpegExe -version
+        } else {
+            Write-Error "FFmpeg executable not found at: $ffmpegExe"
+            exit 1
+        }
