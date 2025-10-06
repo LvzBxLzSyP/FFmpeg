@@ -1,8 +1,8 @@
 diff --git a/build/make/configure.sh b/build/make/configure.sh
-index 679f12df7..d03c0725d 100644
+index 679f12df7..9b84048d2 100644
 --- a/build/make/configure.sh
 +++ b/build/make/configure.sh
-@@ -344,27 +344,40 @@ EOF
+@@ -344,27 +344,42 @@ EOF
  }
  
  check_cflags() {
@@ -11,7 +11,8 @@ index 679f12df7..d03c0725d 100644
 +    log check_cflags "$@"
 +    case "$CC" in
 +        *cl | *clang-cl)
-+            check_cc /WX "$@" <<EOF
++            args=$(echo "$args" | sed 's/-Werror//g')
++            check_cc /WX $args <<EOF
  int x;
  EOF
 +            ;;
@@ -41,7 +42,8 @@ index 679f12df7..d03c0725d 100644
 -      check_cxx -Werror "$@" <<EOF
 +            ;;
 +        *cl | *clang-cl)
-+            check_cxx /WX "$@" <<EOF
++            args=$(echo "$args" | sed 's/-Werror//g')
++            check_cxx /WX $args <<EOF
  int x;
  EOF
 -      ;;
