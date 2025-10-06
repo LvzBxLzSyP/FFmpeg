@@ -60,6 +60,10 @@ jobs:
         Pop-Location
         
         Write-Host "NASM installation complete"
+    - name: Setup vcpkg (bootstrap only)
+      uses: lukka/run-vcpkg@v11
+      with:
+        runVcpkgInstall: false
 
     - name: Setup MSVC Environment
       shell: pwsh
@@ -249,27 +253,7 @@ jobs:
         ninja install
         cd ../..
 
-        git clone https://chromium.googlesource.com/webm/libvpx
-        cd libvpx
-        wget https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/0002-fix-msvc-warning-error-args.patch
-        git apply 0002-fix-msvc-warning-error-args.patch
-        mkdir -p builddir
-        cd builddir
-        LDFLAGS="$LDFLAGS" ../configure \
-          --prefix=$PREFIX \
-          --disable-examples \
-          --disable-unit-tests \
-          --disable-tools \
-          --disable-docs \
-          --enable-vp8 \
-          --enable-vp9 \
-          --enable-vp9-highbitdepth \
-          --enable-static \
-          --disable-shared \
-          --extra-cflags="$CFLAGS" \
-          --target=x86_64-win64-vs17 || { cat config.log; exit 1; }
-        make -j$(nproc)
-        make install
+        $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx
 
         echo "==========================="
         echo "Normalizing library naming for MSVC..."
