@@ -246,6 +246,29 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
+
+        echo "==========================="
+        echo "Normalizing library naming for MSVC..."
+        echo "==========================="
+        # Create a standard naming scheme: libname.lib (without lib prefix)
+        # This handles all the different naming conventions
+        
+        cd $PREFIX/lib
+        
+        # x264: libx264.lib -> also create x264.lib
+        [ -f libx264.lib ] && ! [ -f x264.lib ] && ln -sf libx264.lib x264.lib && echo "Created x264.lib"
+        
+        # x265: x265-static.lib -> x265.lib
+        [ -f x265-static.lib ] && ! [ -f x265.lib ] && ln -sf x265-static.lib x265.lib && echo "Created x265.lib"
+        
+        # dav1d: libdav1d.a -> dav1d.lib
+        [ -f libdav1d.a ] && ! [ -f dav1d.lib ] && cp libdav1d.a dav1d.lib && echo "Created dav1d.lib"
+        
+        # rav1e might be rav1e.dll.lib
+        [ -f rav1e.dll.lib ] && ! [ -f rav1e.lib ] && ln -sf rav1e.dll.lib rav1e.lib && echo "Created rav1e.lib"
+        
+        # SVT-AV1 might have different variations
+        [ -f libSvtAv1Enc.a ] && ! [ -f SvtAv1Enc.lib ] && cp libSvtAv1Enc.a SvtAv1Enc.lib && echo "Created SvtAv1Enc.l
         
         # Build FFmpeg
         echo "==========================="
