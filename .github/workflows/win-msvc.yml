@@ -149,7 +149,7 @@ jobs:
         echo "==========================="
         echo "Building x264..."
         echo "==========================="
-        git clone --depth=1 https://code.videolan.org/videolan/x264.git
+        git clone https://code.videolan.org/videolan/x264.git
         cd x264
         
         ./configure \
@@ -168,7 +168,7 @@ jobs:
         echo "==========================="
         echo "Building x265..."
         echo "==========================="
-        git clone --depth=1 https://bitbucket.org/multicoreware/x265_git.git x265
+        git clone https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
         
         cmake -G Ninja \
@@ -193,7 +193,7 @@ jobs:
         echo "==========================="
         echo "Building dav1d..."
         echo "==========================="
-        git clone --depth=1 https://code.videolan.org/videolan/dav1d.git
+        git clone https://code.videolan.org/videolan/dav1d.git
         cd dav1d
         
         meson setup build \
@@ -223,7 +223,7 @@ jobs:
         echo "==========================="
         echo "Building SVT-AV1..."
         echo "==========================="
-        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+        git clone https://gitlab.com/AOMediaCodec/SVT-AV1.git
         cd SVT-AV1/Build
         
         cmake -G Ninja \
