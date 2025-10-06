@@ -92,6 +92,7 @@ void checkasm_check_blockdsp(void);
 void checkasm_check_bswapdsp(void);
 void checkasm_check_colordetect(void);
 void checkasm_check_colorspace(void);
+void checkasm_check_dcadsp(void);
 void checkasm_check_diracdsp(void);
 void checkasm_check_exrdsp(void);
 void checkasm_check_fdctdsp(void);
@@ -110,6 +111,7 @@ void checkasm_check_hevc_deblock(void);
 void checkasm_check_hevc_idct(void);
 void checkasm_check_hevc_pel(void);
 void checkasm_check_hevc_sao(void);
+void checkasm_check_hpeldsp(void);
 void checkasm_check_huffyuvdsp(void);
 void checkasm_check_idctdsp(void);
 void checkasm_check_idet(void);
@@ -124,6 +126,7 @@ void checkasm_check_mpegvideoencdsp(void);
 void checkasm_check_nlmeans(void);
 void checkasm_check_opusdsp(void);
 void checkasm_check_pixblockdsp(void);
+void checkasm_check_qpeldsp(void);
 void checkasm_check_sbrdsp(void);
 void checkasm_check_rv34dsp(void);
 void checkasm_check_rv40dsp(void);
@@ -184,7 +187,7 @@ int double_near_abs_eps_array(const double *a, const double *b, double eps,
 extern AVLFG checkasm_lfg;
 #define rnd() av_lfg_get(&checkasm_lfg)
 
-static av_unused void *func_ref, *func_new;
+av_unused static void *func_ref, *func_new;
 
 extern uint64_t bench_runs;
 

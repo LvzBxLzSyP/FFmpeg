@@ -9,6 +9,7 @@ FATE_CHECKASM = fate-checkasm-aacencdsp                                 \
                 fate-checkasm-av_tx                                     \
                 fate-checkasm-blockdsp                                  \
                 fate-checkasm-bswapdsp                                  \
+                fate-checkasm-dcadsp                                    \
                 fate-checkasm-diracdsp                                  \
                 fate-checkasm-exrdsp                                    \
                 fate-checkasm-fdctdsp                                   \
@@ -27,6 +28,7 @@ FATE_CHECKASM = fate-checkasm-aacencdsp                                 \
                 fate-checkasm-hevc_idct                                 \
                 fate-checkasm-hevc_pel                                  \
                 fate-checkasm-hevc_sao                                  \
+                fate-checkasm-hpeldsp                                   \
                 fate-checkasm-huffyuvdsp                                \
                 fate-checkasm-idctdsp                                   \
                 fate-checkasm-jpeg2000dsp                               \
@@ -39,6 +41,7 @@ FATE_CHECKASM = fate-checkasm-aacencdsp                                 \
                 fate-checkasm-mpegvideoencdsp                           \
                 fate-checkasm-opusdsp                                   \
                 fate-checkasm-pixblockdsp                               \
+                fate-checkasm-qpeldsp                                   \
                 fate-checkasm-sbrdsp                                    \
                 fate-checkasm-rv34dsp                                   \
                 fate-checkasm-rv40dsp                                   \
