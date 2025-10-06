@@ -19,8 +19,8 @@ index 356bbe26f..99fe14b45
 +    
 +             if echo "$toolchain" | grep -qi "clangcl"; then
 +                 log_echo "Detected clang-cl toolchain; enabling /arch:SSE4.1"
-+                 add_cflags "/arch:SSE4.1"
-+                 add_cflags "-msse4.1"
++                 check_add_cflags "/arch:SSE4.1"
++                 check_add_cflags "-msse4.1"
 +             fi
          ;;
      esac
