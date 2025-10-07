@@ -253,10 +253,9 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
-
-        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
-        cd vvenc
-        mkdir -p build && cd build
+        
+        git clone --depth=1 https://aomedia.googlesource.com/aom.git
+        mkdir -p aom/build && cd aom/build
         cmake .. -G "Ninja" \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
