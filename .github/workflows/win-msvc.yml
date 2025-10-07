@@ -113,7 +113,7 @@ jobs:
         path: ${{ env.GLOBAL_PREFIX }}
         key: msvc-deps-${{ hashFiles('.github/workflows/**') }}
         restore-keys: |
-          msvc-deps-
+          msvc-deps-*
 
     - name: Build All Dependencies and FFmpeg
       shell: msys2 {0}
@@ -318,6 +318,7 @@ jobs:
           --enable-libdav1d \
           --enable-librav1e \
           --enable-libsvtav1 \
+          --enable-libaom \
           --enable-libvpx \
           --extra-cflags="$CFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/include" \
           --extra-cxxflags="$CXXFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/include" \
@@ -338,7 +339,7 @@ jobs:
         $artifactPath = "ffmpeg-msvc-build"
         
         if (Test-Path $env:GLOBAL_PREFIX) {
-            Compress-Archive -Path "$env:GLOBAL_PREFIX\*" -DestinationPath "$artifactPath.zip"
+            Compress-Archive -Path "$env:GLOBAL_PREFIX\bin\*" -DestinationPath "$artifactPath.zip"
             Write-Host "Created artifact: $artifactPath.zip"
         } else {
             Write-Error "Build prefix not found: $env:GLOBAL_PREFIX"
