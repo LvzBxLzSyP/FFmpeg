@@ -255,6 +255,7 @@ jobs:
         cd ../..
 
         $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx
+        export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/lib/pkgconfig"):$PKG_CONFIG_PATH
 
         echo "==========================="
         echo "Normalizing library naming for MSVC..."
