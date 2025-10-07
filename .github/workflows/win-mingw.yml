@@ -197,8 +197,8 @@ jobs:
         # Environment variables
         {
           echo "PREFIX=${{ matrix.prefix }}"
-          echo "CFLAGS=${{ matrix.optimization_flags }} -I${{ matrix.prefix }}/include"
-          echo "CXXFLAGS=${{ matrix.optimization_flags }} -std=c++17 -I${{ matrix.prefix }}/include"  
+          echo "CFLAGS=-U_WIN32_WINNT ${{ matrix.optimization_flags }} -I${{ matrix.prefix }}/include"
+          echo "CXXFLAGS=-U_WIN32_WINNT ${{ matrix.optimization_flags }} -std=c++17 -I${{ matrix.prefix }}/include"  
           echo "LDFLAGS=${{ matrix.link_flags }} -L${{ matrix.prefix }}/lib"
           echo "PKG_CONFIG_PATH=${{ matrix.prefix }}/lib/pkgconfig"
           echo "PATH=$PATH_PREFIX"
@@ -405,16 +405,6 @@ jobs:
           echo ::endgroup::
         fi
 
-        # For VVC codecs, use thin LTO flags for Clang
-        if [ "$COMPILER_TYPE" = "clang" ]; then
-          export STRIP=$(which llvm-strip)
-          export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -I$PREFIX/include"
-          export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -std=c++17 -I$PREFIX/include"
-        else
-          export CFLAGS="-O2 -static -static-libgcc -fno-lto -I$PREFIX/include"
-          export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -std=c++17 -I$PREFIX/include"
-        fi
-
         # Build VVenC
         if [ ! -f "$PREFIX/lib/libvvenc.a" ]; then
           echo "::group::Build libvvenc"
@@ -456,21 +446,6 @@ jobs:
           ninja -j$(nproc)
           ninja install
           echo ::endgroup::
-        fi
-
-        # Reset flags for remaining builds
-        if [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "msvcrt" ]]; then
-          export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
-          export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
-        elif [[ "$COMPILER_TYPE" = "gcc" && "$RUNTIME_TYPE" = "msvcrt" ]]; then
-          export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -I$PREFIX/include"
-          export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0601 -std=c++17 -I$PREFIX/include"
-        elif [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "ucrt" ]]; then
-          export CFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
-          export CXXFLAGS="-fuse-ld=lld -O3 -flto=thin -static -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
-        else
-          export CFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00 -I$PREFIX/include"
-          export CXXFLAGS="-O2 -static -static-libgcc -static-libstdc++ -fno-lto -D_WIN32_WINNT=0x0A00 -std=c++17 -I$PREFIX/include"
         fi
 
         # Build XEVE
