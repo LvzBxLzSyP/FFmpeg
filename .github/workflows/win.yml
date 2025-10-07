@@ -13,3 +13,6 @@ on:
 jobs:
   build-mingw:
     uses: ./.github/workflows/win-mingw.yml
+
+  build-msvc:
+    uses: ./.github/workflows/win-msvc.yml
