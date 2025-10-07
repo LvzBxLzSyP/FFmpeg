@@ -336,7 +336,7 @@ jobs:
     - name: Package Artifacts
       shell: pwsh
       run: |
-        $artifactPath = "ffmpeg-msvc-build"
+        $artifactPath = "ffmpeg-win64-msvc-msvc"
         
         if (Test-Path $env:GLOBAL_PREFIX) {
             Compress-Archive -Path "$env:GLOBAL_PREFIX\bin\*" -DestinationPath "$artifactPath.zip"
@@ -349,8 +349,8 @@ jobs:
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: ffmpeg-msvc-x64
-        path: ffmpeg-msvc-build.zip
+        name: ffmpeg-win64-msvc-msvc
+        path: ffmpeg-win64-msvc-msvc.zip
         retention-days: 7
 
     - name: Verify Build
