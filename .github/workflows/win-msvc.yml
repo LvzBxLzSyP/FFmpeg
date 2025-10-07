@@ -254,6 +254,25 @@ jobs:
         ninja install
         cd ../..
 
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
+        cd vvenc
+        mkdir -p build && cd build
+        cmake .. -G "Ninja" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_NASM=ON \
+          -DENABLE_TOOLS=OFF \
+          -DENABLE_EXAMPLES=OFF \
+          -DENABLE_DOCS=OFF \
+          -DENABLE_TESTS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          ..
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+
         $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx[highbitdepth,realtime]:x64-windows
         export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/lib/pkgconfig"):$PKG_CONFIG_PATH
 
