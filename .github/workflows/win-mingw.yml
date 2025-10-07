@@ -27,7 +27,7 @@ jobs:
             msystem: MINGW64
             prefix: /d/ffmpeg-build-gcc-msvcrt
             win_style_prefix: D:\ffmpeg-build-gcc-msvcrt
-            package_name: ffmpeg-win64-gcc-msvcrt-static
+            package_name: ffmpeg-win64-gcc-msvcrt
             toolchain_packages: >-
               mingw-w64-x86_64-toolchain
               mingw-w64-x86_64-cmake
@@ -52,7 +52,7 @@ jobs:
             msystem: UCRT64
             prefix: /d/ffmpeg-build-gcc-ucrt
             win_style_prefix: D:\ffmpeg-build-gcc-ucrt
-            package_name: ffmpeg-win64-gcc-ucrt-static
+            package_name: ffmpeg-win64-gcc-ucrt
             toolchain_packages: >-
               mingw-w64-ucrt-x86_64-toolchain
               mingw-w64-ucrt-x86_64-cmake
@@ -77,7 +77,7 @@ jobs:
             msystem: CLANG64
             prefix: /d/ffmpeg-build-clang-ucrt
             win_style_prefix: D:\ffmpeg-build-clang-ucrt
-            package_name: ffmpeg-win64-clang-ucrt-static
+            package_name: ffmpeg-win64-clang-ucrt
             toolchain_packages: >-
               mingw-w64-clang-x86_64-toolchain
               mingw-w64-clang-x86_64-cmake
@@ -103,7 +103,7 @@ jobs:
             msystem: MINGW64
             prefix: /d/ffmpeg-build-clang-msvcrt
             win_style_prefix: D:\ffmpeg-build-clang-msvcrt
-            package_name: ffmpeg-win64-clang-msvcrt-static
+            package_name: ffmpeg-win64-clang-msvcrt
             toolchain_packages: >-
               mingw-w64-x86_64-clang
               mingw-w64-x86_64-clang-tools-extra
