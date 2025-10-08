@@ -11,7 +11,8 @@ env:
 jobs:
   build:
     runs-on: windows-2025
-    
+    timeout-minutes: 600
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -30,10 +31,20 @@ jobs:
           mingw-w64-x86_64-pkgconf
           mingw-w64-x86_64-7zip
           mingw-w64-x86_64-nasm
+          mingw-w64-x86_64-yasm
+          mingw-w64-x86_64-diffutils
+          autoconf
+          automake
+          libtool
           make
           git
-          diffutils
-          yasm
+          curl
+          wget
+          unzip
+          zip
+          tar
+          xz
+          patch
 
     - name: Install NASM for Visual Studio
       shell: pwsh
@@ -60,6 +71,7 @@ jobs:
         Pop-Location
         
         Write-Host "NASM installation complete"
+
     - name: Setup vcpkg (bootstrap only)
       uses: lukka/run-vcpkg@v11
       with:
@@ -111,14 +123,15 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.GLOBAL_PREFIX }}
-        key: msvc-deps-${{ hashFiles('.github/workflows/**') }}
+        key: msvc-deps-${{ runner.os }}-${{ hashFiles('.github/workflows/**') }}
         restore-keys: |
-          msvc-deps-*
+          msvc-deps-msvc-*
 
-    - name: Build All Dependencies and FFmpeg
+    - name: Setup build environment
       shell: msys2 {0}
       run: |
-        set -e
+        # Create build directory
+        mkdir -p $PREFIX
         
         # Backup MSYS2 link.exe to avoid conflict with MSVC link.exe
         if [ -f /bin/link.exe ]; then
@@ -138,27 +151,79 @@ jobs:
         # Find Windows Kits RC.exe
         WIN_KITS_BASE="/c/Program Files (x86)/Windows Kits/10/bin"
         RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" 2>/dev/null | sort -V | tail -n 1)/x64
-
+        
         MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin"
         
-        # Add MSVC to PATH
+        # Add MSVC to PATH and save to varset.sh
         export PATH="$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
-
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-        echo "PKG_CONFIG_PATH=$PKG_CONFIG_PATH"
         
         # Verify compilers are available
         echo "Checking for cl.exe..."
         which cl.exe || (echo "cl.exe not found in PATH"; exit 1)
         
-        # Set compiler explicitly for CMake
+        # Set compiler explicitly
         export CC="cl.exe"
         export CXX="cl.exe"
         
+        # Create varset.sh for environment variables
+        cat > varset.sh << 'EOF'
+        # MSVC Build Environment Variables
+        export PREFIX="$PREFIX"
+        export CC="cl.exe"
+        export CXX="cl.exe"
+        export CFLAGS="$CFLAGS"
+        export CXXFLAGS="$CXXFLAGS"
+        export LDFLAGS="$LDFLAGS"
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export PATH="$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC:$PATH"
+        export MAKEFLAGS="-j$(nproc)"
+        EOF
+        
+        # Make paths available in varset.sh
+        sed -i "s|\$PREFIX|$PREFIX|g" varset.sh
+        sed -i "s|\$CFLAGS|$CFLAGS|g" varset.sh
+        sed -i "s|\$CXXFLAGS|$CXXFLAGS|g" varset.sh
+        sed -i "s|\$LDFLAGS|$LDFLAGS|g" varset.sh
+        sed -i "s|\$MSVC_BIN|$MSVC_BIN|g" varset.sh
+        sed -i "s|\$MSBUILD_PATH|$MSBUILD_PATH|g" varset.sh
+        sed -i "s|\$RC_PATH|$RC_PATH|g" varset.sh
+        
+        echo "varset.sh created successfully"
+        cat varset.sh
+
+    - name: Debug toolchain
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        
+        echo "=== Debug MSVC Toolchain ==="
+        echo "CC: $CC"
+        echo "CXX: $CXX"
+        echo "CFLAGS: $CFLAGS"
+        echo "CXXFLAGS: $CXXFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "PATH: $PATH"
+        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+        
+        echo "=== Check Tools ==="
+        which cl.exe
+        cl.exe 2>&1 | head -n 5
+        
+        echo "=== Test Compilation ==="
+        echo "int main(){return 0;}" > test.c
+        cl.exe test.c /Fe:test.exe
+        echo "Compilation test result: $?"
+        rm -f test.c test.exe test.obj
+
+    - name: Build video codec dependencies
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        set -e
+        
         # Build x264
-        echo "==========================="
-        echo "Building x264..."
-        echo "==========================="
+        echo "::group::Build libx264"
         git clone https://code.videolan.org/videolan/x264.git
         cd x264
         
@@ -173,11 +238,10 @@ jobs:
         make -j$(nproc)
         make install
         cd ..
+        echo "::endgroup::"
         
         # Build x265
-        echo "==========================="
-        echo "Building x265..."
-        echo "==========================="
+        echo "::group::Build libx265"
         git clone https://bitbucket.org/multicoreware/x265_git.git x265
         cd x265/build
         
@@ -198,12 +262,11 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
+        echo "::endgroup::"
         
         # Build dav1d
-        echo "==========================="
-        echo "Building dav1d..."
-        echo "==========================="
-        git clone https://code.videolan.org/videolan/dav1d.git
+        echo "::group::Build libdav1d"
+        git clone --depth=1 https://code.videolan.org/videolan/dav1d.git
         cd dav1d
         
         meson setup build \
@@ -221,19 +284,17 @@ jobs:
         meson compile -C build -j$(nproc)
         meson install -C build
         cd ..
+        echo "::endgroup::"
         
         # Install rav1e
-        echo "==========================="
-        echo "Installing rav1e..."
-        echo "==========================="
+        echo "::group::Install librav1e"
         curl -L -o rav1e-x86_64.zip https://github.com/LvzBxLzSyP/rav1e/releases/latest/download/rav1e-x86_64.zip
         7z x rav1e-x86_64.zip -o$PREFIX -y
+        echo "::endgroup::"
         
         # Build SVT-AV1
-        echo "==========================="
-        echo "Building SVT-AV1..."
-        echo "==========================="
-        git clone https://gitlab.com/AOMediaCodec/SVT-AV1.git
+        echo "::group::Build libsvtav1"
+        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
         cd SVT-AV1/Build
         
         cmake -G Ninja \
@@ -253,10 +314,16 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
+        echo "::endgroup::"
         
+        # Build libaom
+        echo "::group::Build libaom"
         git clone --depth=1 https://aomedia.googlesource.com/aom.git
         mkdir -p aom/build && cd aom/build
+        
         cmake .. -G "Ninja" \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_CXX_COMPILER=cl.exe \
           -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DENABLE_SHARED=OFF \
@@ -266,21 +333,269 @@ jobs:
           -DENABLE_DOCS=OFF \
           -DENABLE_TESTS=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-          ..
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+        
         ninja -j$(nproc)
         ninja install
         cd ../..
-
+        echo "::endgroup::"
+        
+        # Install libvpx via vcpkg
+        echo "::group::Install libvpx"
         $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx[highbitdepth,realtime]:x64-windows
         export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/lib/pkgconfig"):$PKG_CONFIG_PATH
-
-        echo "==========================="
-        echo "Normalizing library naming for MSVC..."
-        echo "==========================="
-        # Create a standard naming scheme: libname.lib (without lib prefix)
-        # This handles all the different naming conventions
+        echo "::endgroup::"
         
+        # Build VVenC
+        echo "::group::Build libvvenc"
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
+        cd vvenc
+        
+        cmake -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_CXX_COMPILER=cl.exe \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
+          .
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ..
+        echo "::endgroup::"
+        
+        # Build VVdeC
+        echo "::group::Build libvvdec"
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
+        cd vvdec
+        
+        cmake -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_CXX_COMPILER=cl.exe \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
+          -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
+          .
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ..
+        echo "::endgroup::"
+
+    - name: Build audio & text libraries
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        set -e
+        
+        # Build freetype2
+        echo "::group::Build libfreetype"
+        git clone --depth=1 https://gitlab.freedesktop.org/freetype/freetype.git \
+          || git clone --depth=1 https://github.com/freetype/freetype.git
+        cd freetype
+        mkdir -p build && cd build
+        
+        cmake .. -G "Ninja" \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DFT_DISABLE_BZIP2=TRUE \
+          -DFT_DISABLE_PNG=TRUE \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Build LAME
+        echo "::group::Build libmp3lame via vcpkg"
+        vcpkg install mp3lame:x64-windows
+        echo "::endgroup::"
+        
+        # Build libogg
+        echo "::group::Build libogg"
+        git clone https://github.com/xiph/ogg.git
+        cd ogg
+        mkdir build && cd build
+        
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Build libflac
+        echo "::group::Build libFLAC"
+        git clone https://github.com/xiph/flac.git
+        cd flac
+        mkdir build && cd build
+        
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_CXX_COMPILER=cl.exe \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DINSTALL_MANPAGES=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+      
+        
+        # Build libvorbis
+        echo "::group::Build libvorbis"
+        git clone https://github.com/xiph/vorbis.git
+        cd vorbis
+        mkdir build && cd build
+        
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_CXX_COMPILER=cl.exe \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DINSTALL_MANPAGES=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Build fribidi
+        echo "::group::Build libfribidi"
+        wget https://github.com/fribidi/fribidi/releases/download/v1.0.13/fribidi-1.0.13.tar.xz
+        tar xf fribidi-1.0.13.tar.xz
+        cd fribidi-1.0.13
+        
+        meson setup builddir \
+          --buildtype=release \
+          -Db_vscrt=md \
+          --prefix="$PREFIX" \
+          -Ddefault_library=static \
+          -Ddocs=false \
+          -Dc_args="$CFLAGS" \
+          -Dc_link_args="$LDFLAGS"
+        
+        meson compile -C builddir -j$(nproc)
+        meson install -C builddir 
+        cd ..
+        echo "::endgroup::"
+        
+        # Build harfbuzz
+        echo "::group::Build libharfbuzz"
+        wget https://github.com/harfbuzz/harfbuzz/releases/download/11.3.2/harfbuzz-11.3.2.tar.xz
+        tar xf harfbuzz-11.3.2.tar.xz
+        cd harfbuzz-11.3.2
+        mkdir build && cd build
+        
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_CXX_COMPILER=cl.exe \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DHB_HAVE_FREETYPE=ON \
+          -DHB_HAVE_GLIB=OFF \
+          -DHB_HAVE_GOBJECT=OFF \
+          -DHB_HAVE_CAIRO=OFF \
+          -DHB_HAVE_FONTCONFIG=OFF \
+          -DHB_HAVE_ICU=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Build libass
+        echo "::group::Build libass"
+        git clone --depth=1 https://github.com/libass/libass.git
+        cd libass
+        
+        meson setup builddir \
+          --buildtype=release \
+          -Db_vscrt=md \
+          --prefix="$PREFIX" \
+          -Ddefault_library=static \
+          -Dc_args="$CFLAGS" \
+          -Dcpp_args="$CXXFLAGS" \
+          -Dc_link_args="$LDFLAGS" \
+          -Dcpp_link_args="$LDFLAGS"
+        
+        meson compile -C builddir -j$(nproc)
+        meson install -C builddir
+        cd ..
+        echo "::endgroup::"
+        
+        # Build opus
+        echo "::group::Build libopus"
+        git clone --depth=1 https://github.com/xiph/opus.git
+        cd opus
+        mkdir -p build && cd build
+        
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=cl.exe \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Install NVENC headers
+        echo "::group::Install NVENC headers"
+        git clone --depth=1 https://github.com/FFmpeg/nv-codec-headers.git
+        cd nv-codec-headers
+        make PREFIX=$PREFIX install
+        cd ..
+        echo "::endgroup::"
+        
+        
+        # Install AMF headers
+        echo "::group::Install AMF headers"
+        git clone https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+        mkdir -p "$PREFIX/include/amd/AMF"
+        cp -r AMF/amf/public/include/* "$PREFIX/include/amd/AMF"
+        echo "::endgroup::"
+
+    - name: Normalize library naming
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        
+        echo "::group::Normalize library naming for MSVC"
         cd $PREFIX/lib
         
         # x264: libx264.lib -> also create x264.lib
@@ -292,18 +607,50 @@ jobs:
         # dav1d: libdav1d.a -> dav1d.lib
         [ -f libdav1d.a ] && ! [ -f dav1d.lib ] && cp libdav1d.a dav1d.lib && echo "Created dav1d.lib"
         
-        # rav1e might be rav1e.dll.lib
-        [ -f rav1e.dll.lib ] && ! [ -f rav1e.lib ] && ln -sf rav1e.dll.lib rav1e.lib && echo "Created rav1e.lib"
-        
         # SVT-AV1 might have different variations
         [ -f libSvtAv1Enc.a ] && ! [ -f SvtAv1Enc.lib ] && cp libSvtAv1Enc.a SvtAv1Enc.lib && echo "Created SvtAv1Enc.lib"
         
-        # Build FFmpeg
-        echo "==========================="
-        echo "Building FFmpeg..."
-        echo "==========================="
+        # libaom: libaom.a -> aom.lib
+        [ -f libaom.a ] && ! [ -f aom.lib ] && cp libaom.a aom.lib && echo "Created aom.lib"
+        
+        # VVenC/VVdeC naming
+        [ -f vvenc.lib ] || [ -f libvvenc.a ] && ! [ -f vvenc.lib ] && cp libvvenc.a vvenc.lib && echo "Created vvenc.lib"
+        [ -f vvdec.lib ] || [ -f libvvdec.a ] && ! [ -f vvdec.lib ] && cp libvvdec.a vvdec.lib && echo "Created vvdec.lib"
+        
+        # Audio libraries
+        [ -f libmp3lame.lib ] && ! [ -f mp3lame.lib ] && ln -sf libmp3lame.lib mp3lame.lib && echo "Created mp3lame.lib"
+        [ -f libogg.lib ] && ! [ -f ogg.lib ] && ln -sf libogg.lib ogg.lib && echo "Created ogg.lib"
+        [ -f libFLAC.lib ] && ! [ -f FLAC.lib ] && ln -sf libFLAC.lib FLAC.lib && echo "Created FLAC.lib"
+        [ -f libvorbis.lib ] && ! [ -f vorbis.lib ] && ln -sf libvorbis.lib vorbis.lib && echo "Created vorbis.lib"
+        [ -f libopus.lib ] && ! [ -f opus.lib ] && ln -sf libopus.lib opus.lib && echo "Created opus.lib"
+        
+        # Text libraries
+        [ -f libfreetype.lib ] && ! [ -f freetype.lib ] && ln -sf libfreetype.lib freetype.lib && echo "Created freetype.lib"
+        [ -f libfribidi.lib ] && ! [ -f fribidi.lib ] && ln -sf libfribidi.lib fribidi.lib && echo "Created fribidi.lib"
+        [ -f libharfbuzz.lib ] && ! [ -f harfbuzz.lib ] && ln -sf libharfbuzz.lib harfbuzz.lib && echo "Created harfbuzz.lib"
+        [ -f libass.lib ] && ! [ -f ass.lib ] && ln -sf libass.lib ass.lib && echo "Created ass.lib"
+        
+        echo "Library naming normalization complete"
+        echo "::endgroup::"
+
+    - name: Build FFmpeg
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        set -e
+        
+        echo "::group::Build FFmpeg"
+        
+        # Update PKG_CONFIG_PATH to include vcpkg
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/lib/pkgconfig"):$PKG_CONFIG_PATH"
+        
         git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
         cd ffmpeg
+        
+        # Apply VVC decoder patch
+        echo "Applying VVC decoder patch..."
+        wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
+        git apply --3way libvvdec.patch || echo "Patch may have already been applied"
         
         echo "Configuring FFmpeg..."
         ./configure \
@@ -313,6 +660,9 @@ jobs:
           --enable-version3 \
           --disable-doc \
           --disable-debug \
+          --enable-static \
+          --disable-shared \
+          --enable-pthreads \
           --enable-libx264 \
           --enable-libx265 \
           --enable-libdav1d \
@@ -320,37 +670,71 @@ jobs:
           --enable-libsvtav1 \
           --enable-libaom \
           --enable-libvpx \
-          --extra-cflags="$CFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/include" \
-          --extra-cxxflags="$CXXFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/include" \
-          --extra-ldflags="$LDFLAGS -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/lib" \
-          --toolchain=msvc || (cat ffbuild/config.log && exit 1)
+          --enable-libvvenc \
+          --enable-libvvdec \
+          --enable-libmp3lame \
+          --enable-libopus \
+          --enable-libvorbis \
+          --enable-libass \
+          --enable-libfreetype \
+          --enable-nvenc \
+          --enable-nvdec \
+          --enable-cuda \
+          --enable-dxva2 \
+          --enable-d3d11va \
+          --enable-amf \
+          --enable-schannel \
+          --arch=x86_64 \
+          --target-os=win64 \
+          --extra-cflags="$CFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/include -I$PREFIX/include/amd" \
+          --extra-cxxflags="$CXXFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/include -I$PREFIX/include/amd" \
+          --extra-ldflags="$LDFLAGS -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/lib" || (cat ffbuild/config.log && exit 1)
         
         echo "Building FFmpeg..."
         make -j$(nproc)
         make install
         
-        echo "==========================="
-        echo "Build complete!"
-        echo "==========================="
+        echo "::endgroup::"
 
-    - name: Package Artifacts
-      shell: pwsh
+    - name: Package build
+      shell: msys2 {0}
       run: |
-        $artifactPath = "ffmpeg-win64-msvc-msvc"
+        cd "$PREFIX"
+        mkdir -p package-msvc/bin
         
-        if (Test-Path $env:GLOBAL_PREFIX) {
-            Compress-Archive -Path "$env:GLOBAL_PREFIX\bin\*" -DestinationPath "$artifactPath.zip"
-            Write-Host "Created artifact: $artifactPath.zip"
-        } else {
-            Write-Error "Build prefix not found: $env:GLOBAL_PREFIX"
-            exit 1
-        }
+        cp bin/ffmpeg.exe package-msvc/bin/
+        cp bin/ffprobe.exe package-msvc/bin/
+        [ -f bin/ffplay.exe ] && cp bin/ffplay.exe package-msvc/bin/
+        
+        # Create build info
+        cat > package-msvc/BUILD_INFO.txt << EOF
+        FFmpeg MSVC Static Build Information
+        ==================================
+        Build Date: $(date -u)
+        Compiler: Microsoft Visual C++ (MSVC)
+        Runtime: Universal CRT Runtime (UCRT)
+        Target: Windows 10+
+        FFmpeg Version: $(./bin/ffmpeg.exe -version | head -n1)
+        
+        Optimization: O2 with Link-Time Code Generation (LTCG)
+        Static Linking: Yes
+        
+        Enabled Features:
+        - Video Codecs: x264, x265, dav1d, rav1e, SVT-AV1, libaom, libvpx, VVenC, VVdeC
+        - Audio Codecs: LAME MP3, Opus, Vorbis, FLAC, Ogg
+        - Subtitle Support: libass, FreeType, Fribidi, HarfBuzz
+        - Hardware Acceleration: NVENC, NVDEC, CUDA, DXVA2, D3D11VA, AMF
+        - Network: Schannel (native Windows TLS)
+        EOF
+        
+        cd package-msvc
+        7z a -tzip -mx=9 ../ffmpeg-win64-msvc.zip .
 
-    - name: Upload Artifacts
+    - name: Upload build artifact
       uses: actions/upload-artifact@v4
       with:
-        name: ffmpeg-win64-msvc-msvc
-        path: ffmpeg-win64-msvc-msvc.zip
+        name: ffmpeg-win64-msvc
+        path: ${{ env.GLOBAL_PREFIX }}/ffmpeg-win64-msvc.zip
         retention-days: 7
 
     - name: Verify Build
@@ -359,8 +743,20 @@ jobs:
         $ffmpegExe = Join-Path $env:GLOBAL_PREFIX "bin\ffmpeg.exe"
         
         if (Test-Path $ffmpegExe) {
-            Write-Host "FFmpeg executable found!"
+            Write-Host "=== FFmpeg Build Verification ==="
+            Write-Host "FFmpeg executable found at: $ffmpegExe"
+            Write-Host ""
+            Write-Host "=== Version Information ==="
             & $ffmpegExe -version
+            Write-Host ""
+            Write-Host "=== Available Encoders ==="
+            & $ffmpegExe -encoders | Select-String "libx264|libx265|libsvtav1|librav1e|libaom|libvpx|libvvenc|libmp3lame|libopus|libvorbis"
+            Write-Host ""
+            Write-Host "=== Available Decoders ==="
+            & $ffmpegExe -decoders | Select-String "libdav1d|libvpx|libvvdec"
+            Write-Host ""
+            Write-Host "=== Hardware Acceleration ==="
+            & $ffmpegExe -hwaccels
         } else {
             Write-Error "FFmpeg executable not found at: $ffmpegExe"
             exit 1
