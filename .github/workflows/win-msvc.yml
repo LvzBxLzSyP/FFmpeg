@@ -362,16 +362,16 @@ jobs:
         set(CMAKE_CXX_FLAGS_RELEASE "$CXXFLAGS" CACHE STRING "CXX flags" FORCE)
         EOF
 
-        cmake -G Ninja \
+        cmake -G "NMake Makefiles" \
           -DCMAKE_TOOLCHAIN_FILE=ci_toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
           .
-        
-        ninja -j$(nproc)
-        ninja install
+
+        nmake /f Makefile
+        nmake install
         cd ..
         echo "::endgroup::"
         
@@ -380,7 +380,7 @@ jobs:
         git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
         cd vvdec
         
-        cmake -G Ninja \
+        cmake -G "NMake Makefiles" \
           -DCMAKE_C_COMPILER=cl.exe \
           -DCMAKE_CXX_COMPILER=cl.exe \
           -DCMAKE_BUILD_TYPE=Release \
@@ -392,9 +392,9 @@ jobs:
           -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
           -DCMAKE_RC_FLAGS_RELEASE="" \
           .
-        
-        ninja -j$(nproc)
-        ninja install
+
+        nmake /f Makefile
+        nmake install
         cd ..
         echo "::endgroup::"
 
