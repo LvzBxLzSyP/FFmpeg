@@ -350,18 +350,24 @@ jobs:
         echo "::group::Build libvvenc"
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
         cd vvenc
+
+        cat > ci_toolchain.cmake <<EOF
+        # CI 專用 toolchain file
         
+        # RC 不要任何額外 flag
+        set(CMAKE_RC_FLAGS "" CACHE STRING "RC flags" FORCE)
+        
+        # C/C++ flags
+        set(CMAKE_C_FLAGS_RELEASE "$CFLAGS" CACHE STRING "C flags" FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "$CXXFLAGS" CACHE STRING "CXX flags" FORCE)
+        EOF
+
         cmake -G Ninja \
-          -DCMAKE_C_COMPILER=cl.exe \
-          -DCMAKE_CXX_COMPILER=cl.exe \
+          -DCMAKE_TOOLCHAIN_FILE=ci_toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
-          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
-          -DCMAKE_RC_FLAGS_RELEASE="" \
           .
         
         ninja -j$(nproc)
