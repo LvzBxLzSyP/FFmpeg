@@ -361,6 +361,7 @@ jobs:
           -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
+          -DCMAKE_RC_FLAGS_RELEASE="" \
           .
         
         ninja -j$(nproc)
@@ -383,6 +384,7 @@ jobs:
           -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
+          -DCMAKE_RC_FLAGS_RELEASE="" \
           .
         
         ninja -j$(nproc)
