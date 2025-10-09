@@ -387,6 +387,7 @@ jobs:
       run: |
         source varset.sh
         set -e
+        export VCPKG_FORCE_SYSTEM_BINARIES=0
         
         # Build freetype2
         echo "::group::Build libfreetype"
