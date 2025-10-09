@@ -581,9 +581,9 @@ jobs:
           --enable-schannel \
           --arch=x86_64 \
           --target-os=win64 \
-          --extra-cflags="$CFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/include -I$PREFIX/include/amd" \
-          --extra-cxxflags="$CXXFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/include -I$PREFIX/include/amd" \
-          --extra-ldflags="$LDFLAGS -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/lib" || (cat ffbuild/config.log && exit 1)
+          --extra-cflags="$CFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
+          --extra-cxxflags="$CXXFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
+          --extra-ldflags="$LDFLAGS -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib" || (cat ffbuild/config.log && exit 1)
         
         echo "Building FFmpeg..."
         make -j$(nproc)
