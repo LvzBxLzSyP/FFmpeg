@@ -350,21 +350,14 @@ jobs:
         echo "::group::Build libvvenc"
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
         cd vvenc
-
-        cat > ci_toolchain.cmake <<EOF
-        # CI 專用 toolchain file
         
-        # RC 不要任何額外 flag
-        set(CMAKE_RC_FLAGS "" CACHE STRING "RC flags" FORCE)
-        
-        # C/C++ flags
-        set(CMAKE_C_FLAGS_RELEASE "$CFLAGS" CACHE STRING "C flags" FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "$CXXFLAGS" CACHE STRING "CXX flags" FORCE)
-        EOF
-
         mkdir -p build
-        cmake -G "Visual Studio 17 2022" \
-          -DCMAKE_TOOLCHAIN_FILE=ci_toolchain.cmake \
+        cmake -G "Ninja" \
+          -DCMAKE_RC_COMPILER="" \
+          -DCMAKE_RC_FLAGS="" \
+          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
@@ -381,7 +374,7 @@ jobs:
         cd vvdec
 
         mkdir -p build
-        cmake -G "Visual Studio 17 2022" \
+        cmake -G "Ninja" \
           -DCMAKE_C_COMPILER=cl.exe \
           -DCMAKE_CXX_COMPILER=cl.exe \
           -DCMAKE_BUILD_TYPE=Release \
@@ -391,7 +384,8 @@ jobs:
           -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
-          -DCMAKE_RC_FLAGS_RELEASE="" \
+          -DCMAKE_RC_COMPILER="" \
+          -DCMAKE_RC_FLAGS="" \
           -S . -B build
 
         cmake --build build --config Release --target install
