@@ -481,7 +481,7 @@ jobs:
         echo ::endgroup::
 
         echo ::group::Build libFLAC
-        vcpkg install libflac[asm]:x64-windows-static-md
+        vcpkg install libflac:x64-windows-static-md
         echo ::endgroup::
 
     - name: Normalize library naming
