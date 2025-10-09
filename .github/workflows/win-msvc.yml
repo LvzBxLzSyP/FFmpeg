@@ -422,7 +422,9 @@ jobs:
           -DINSTALL_MANPAGES=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          -DCMAKE_RC_FLAGS_INIT="" \
+          -DCMAKE_RC_FLAGS=""
         
         ninja -j$(nproc)
         ninja install
@@ -445,7 +447,9 @@ jobs:
           -DINSTALL_MANPAGES=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
-          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          -DCMAKE_RC_FLAGS_INIT="" \
+          -DCMAKE_RC_FLAGS=""
         
         ninja -j$(nproc)
         ninja install
@@ -463,7 +467,9 @@ jobs:
           -DCMAKE_INSTALL_PREFIX=$PREFIX \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
-          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          -DCMAKE_RC_FLAGS_INIT="" \
+          -DCMAKE_RC_FLAGS=""
         
         ninja -j$(nproc)
         ninja install
