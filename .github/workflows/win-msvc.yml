@@ -362,15 +362,16 @@ jobs:
         set(CMAKE_CXX_FLAGS_RELEASE "$CXXFLAGS" CACHE STRING "CXX flags" FORCE)
         EOF
 
-        cmake -G "NMake Makefiles" \
+        mkdir -p build
+        cmake -G "Visual Studio 17 2022" \
           -DCMAKE_TOOLCHAIN_FILE=ci_toolchain.cmake \
           -DCMAKE_BUILD_TYPE=Release \
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_INSTALL_PREFIX="$PREFIX" \
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
-          .
+          -S . -B build
 
-        cmake --build . --config Release --target install
+        cmake --build build --config Release --target install
         cd ..
         echo "::endgroup::"
         
@@ -378,8 +379,9 @@ jobs:
         echo "::group::Build libvvdec"
         git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
         cd vvdec
-        
-        cmake -G "NMake Makefiles" \
+
+        mkdir -p build
+        cmake -G "Visual Studio 17 2022" \
           -DCMAKE_C_COMPILER=cl.exe \
           -DCMAKE_CXX_COMPILER=cl.exe \
           -DCMAKE_BUILD_TYPE=Release \
@@ -390,9 +392,9 @@ jobs:
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
           -DCMAKE_RC_FLAGS_RELEASE="" \
-          .
+          -S . -B build
 
-        cmake --build . --config Release --target install
+        cmake --build build --config Release --target install
         cd ..
         echo "::endgroup::"
 
