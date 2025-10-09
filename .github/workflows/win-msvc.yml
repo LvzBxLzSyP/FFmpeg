@@ -345,52 +345,42 @@ jobs:
         $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx[highbitdepth,realtime]:x64-windows
         export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows/lib/pkgconfig"):$PKG_CONFIG_PATH
         echo "::endgroup::"
-        
-        # Build VVenC
-        echo "::group::Build libvvenc"
+
+    - name: Build video codec libraries as cmd for VVC
+      shell: cmd
+      run: |
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
         cd vvenc
-        
-        mkdir -p build
-        cmake -G "Ninja" \
-          -DCMAKE_RC_COMPILER="rc.exe" \
-          -DCMAKE_RC_FLAGS="" \
-          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
-          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-          -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
-          -S . -B build
-
-        cmake --build build --config Release --target install
+        "C:\Program Files\CMake\bin\cmake.exe" ^
+          -DCMAKE_C_COMPILER=cl.exe ^
+          -DCMAKE_CXX_COMPILER=cl.exe ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DBUILD_SHARED_LIBS=OFF ^
+          -DCMAKE_INSTALL_PREFIX="%GLOBAL_PREFIX%" ^
+          -DCMAKE_C_FLAGS_RELEASE="%CFLAGS%" ^
+          -DCMAKE_CXX_FLAGS_RELEASE="%CXXFLAGS%" ^
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="%LDFLAGS%" ^
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
+          -G "Visual Studio 17 2022" ^
+          .
+        "C:\Program Files\CMake\bin\cmake.exe" --build . --target install
         cd ..
-        echo "::endgroup::"
-        
-        # Build VVdeC
-        echo "::group::Build libvvdec"
+
         git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
         cd vvdec
-
-        mkdir -p build
-        cmake -G "Ninja" \
-          -DCMAKE_C_COMPILER=cl.exe \
-          -DCMAKE_CXX_COMPILER=cl.exe \
-          -DCMAKE_BUILD_TYPE=Release \
-          -DBUILD_SHARED_LIBS=OFF \
-          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-          -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
-          -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
-          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
-          -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
-          -DCMAKE_RC_COMPILER="rc.exe" \
-          -DCMAKE_RC_FLAGS="" \
-          -S . -B build
-
-        cmake --build build --config Release --target install
+        cmake -G "Visual Studio 17 2022" ^
+          -DCMAKE_C_COMPILER=cl.exe ^
+          -DCMAKE_CXX_COMPILER=cl.exe ^
+          -DCMAKE_C_FLAGS_RELEASE="%CFLAGS%" ^
+          -DCMAKE_CXX_FLAGS_RELEASE="%CXXFLAGS%" ^
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="%LDFLAGS%" ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DBUILD_SHARED_LIBS=OFF ^
+          -DCMAKE_INSTALL_PREFIX="%GLOBAL_PREFIX%" ^
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
+          .
+        "C:\Program Files\CMake\bin\cmake.exe" --build . --target install
         cd ..
-        echo "::endgroup::"
 
     - name: Build audio & text libraries
       shell: msys2 {0}
