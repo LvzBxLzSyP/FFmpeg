@@ -353,7 +353,7 @@ jobs:
         
         mkdir -p build
         cmake -G "Ninja" \
-          -DCMAKE_RC_COMPILER=":" \
+          -DCMAKE_RC_COMPILER="rc.exe" \
           -DCMAKE_RC_FLAGS="" \
           -DCMAKE_C_FLAGS_RELEASE="$CFLAGS" \
           -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
@@ -384,7 +384,7 @@ jobs:
           -DCMAKE_CXX_FLAGS_RELEASE="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="$LDFLAGS" \
           -DVVDEC_ENABLE_LINK_TIME_OPT=OFF \
-          -DCMAKE_RC_COMPILER=":" \
+          -DCMAKE_RC_COMPILER="rc.exe" \
           -DCMAKE_RC_FLAGS="" \
           -S . -B build
 
