@@ -390,12 +390,12 @@ jobs:
         
         # Build freetype2
         echo "::group::Build libfreetype"
-        vcpkg install freetype[brotli,bzip2,error-strings,png,subpixel-rendering,zlib]:x64-windows-static-md
+        $GITHUB_WORKSPACE/vcpkg/vcpkg install freetype[brotli,bzip2,error-strings,png,subpixel-rendering,zlib]:x64-windows-static-md
         echo "::endgroup::"
         
         # Build LAME
         echo "::group::Build libmp3lame via vcpkg"
-        vcpkg install mp3lame:x64-windows-static-md
+        $GITHUB_WORKSPACE/vcpkg/vcpkg install mp3lame:x64-windows-static-md
         echo "::endgroup::"
         
         # Build libogg
@@ -464,7 +464,7 @@ jobs:
         
         # Build libass
         echo "::group::Build libass"
-        vcpkg install libass:x64-windows-static-md
+        $GITHUB_WORKSPACE/vcpkg/vcpkg install libass:x64-windows-static-md
         echo "::endgroup::"
         
         # Build opus
