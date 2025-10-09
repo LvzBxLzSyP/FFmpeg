@@ -370,8 +370,7 @@ jobs:
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF \
           .
 
-        nmake /f Makefile
-        nmake install
+        cmake --build . --config Release --target install
         cd ..
         echo "::endgroup::"
         
@@ -393,8 +392,7 @@ jobs:
           -DCMAKE_RC_FLAGS_RELEASE="" \
           .
 
-        nmake /f Makefile
-        nmake install
+        cmake --build . --config Release --target install
         cd ..
         echo "::endgroup::"
 
