@@ -363,7 +363,7 @@ jobs:
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
           -G "Visual Studio 17 2022" ^
           .
-        "C:\Program Files\CMake\bin\cmake.exe" --build . --target install
+        "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         cd ..
 
         git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
@@ -379,7 +379,7 @@ jobs:
           -DCMAKE_INSTALL_PREFIX="%GLOBAL_PREFIX%" ^
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
           .
-        "C:\Program Files\CMake\bin\cmake.exe" --build . --target install
+        "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         cd ..
 
     - name: Build audio & text libraries
