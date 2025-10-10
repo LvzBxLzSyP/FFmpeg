@@ -542,7 +542,7 @@ jobs:
       run: |
         source varset.sh
         set -e
-        cat > $PREFIX/lib/pkgconfig/libmp3lame.pc < 'EOF'
+        cat > $PREFIX/lib/pkgconfig/libmp3lame.pc << 'EOF'
         prefix=D:/a/FFmpeg/msvc
         exec_prefix=${prefix}
         libdir=${prefix}/lib
