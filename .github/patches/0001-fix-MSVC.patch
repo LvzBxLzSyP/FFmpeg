@@ -1,0 +1,14 @@
+diff --git a/include/vvdec/sei.h b/include/vvdec/sei.h
+index 1117d84..e96ca08 100644
+--- a/include/vvdec/sei.h
++++ b/include/vvdec/sei.h
+@@ -296,6 +296,9 @@ typedef struct vvdecSEIMasteringDisplayColourVolume
+ 
+ typedef struct vvdecSEIDependentRapIndication
+ {
++#ifdef _MSC_VER
++    int dummy91kr92o2ksk;
++#endif
+ } vvdecSEIDependentRapIndication;
+ 
+ typedef struct vvdecSEIEquirectangularProjection
