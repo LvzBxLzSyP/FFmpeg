@@ -475,7 +475,19 @@ jobs:
         echo ::endgroup::
 
         echo ::group::Build mp3lame
-        %GITHUB_WORKSPACE%\vcpkg\vcpkg install mp3lame:x64-windows-static
+        git clone https://github.com/ShiftMediaProject/lame.git
+        cd lame\SMP
+
+        msbuild libmp3lame.vcxproj ^
+          /p:Configuration=Release ^
+          /p:Platform=x64 ^
+          /p:WholeProgramOptimization=true ^
+          /p:LinkTimeCodeGeneration=true
+        mkdir "%PREFIX%\include\lame" 2>nul
+        mkdir "%PREFIX%\lib" 2>nul
+        
+        xcopy /Y /I Release\x64\include\lame\*.h "%PREFIX%\include\lame\"
+        xcopy /Y /I Release\x64\*.lib "%PREFIX%\lib\"
 
         echo ::group::Build libFLAC
         %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static
