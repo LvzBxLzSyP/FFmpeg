@@ -387,6 +387,15 @@ jobs:
       run: |
         source varset.sh
         set -e
+
+        wget -q https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
+        tar xzf lame-3.100.tar.gz
+        cd lame-3.100
+        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend \
+          CC=cl \
+          CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
+        make -j$(nproc)
+        make install
         
         # Build libogg
         echo "::group::Build libogg"
@@ -472,11 +481,6 @@ jobs:
       run: |
         echo ::group::Build libfreetype
         %GITHUB_WORKSPACE%\vcpkg\vcpkg install freetype[brotli,bzip2,error-strings,png,subpixel-rendering,zlib]:x64-windows-static-md
-        echo ::endgroup::
-        
-        echo ::group::Build libmp3lame via vcpkg
-        %GITHUB_WORKSPACE%\vcpkg\vcpkg install mp3lame:x64-windows-static-md
-        copy %GITHUB_WORKSPACE%\vcpkg\installed\x64-windows-static-md\lib\libmp3lame-static.lib %GITHUB_WORKSPACE%\vcpkg\installed\x64-windows-static-md\lib\mp3lame.lib
         echo ::endgroup::
 
         echo ::group::Build libFLAC
