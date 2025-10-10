@@ -484,11 +484,8 @@ jobs:
           /p:Platform=x64 ^
           /p:WholeProgramOptimization=true ^
           /p:LinkTimeCodeGeneration=true
-        mkdir "%PREFIX%\include\lame" 2>nul
-        mkdir "%PREFIX%\lib" 2>nul
-        
-        xcopy /Y /I Release\x64\include\lame\*.h "%PREFIX%\include\lame\"
-        xcopy /Y /I Release\x64\*.lib "%PREFIX%\lib\"
+
+        copy D:\a\FFmpeg\msvc\libmp3lame.lib D:\a\FFmpeg\msvc\lib\mp3lame.lib
 
         echo ::group::Build libFLAC
         %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static
