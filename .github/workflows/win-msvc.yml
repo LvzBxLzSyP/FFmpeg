@@ -115,8 +115,8 @@ jobs:
         "CC=cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "CXX=cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "PREFIX=$env:UNIX_PREFIX" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "CFLAGS=-O2 -GL -MD -D_WIN32_WINNT=0x0A00 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "CXXFLAGS=-O2 -GL -MD -std:c++17 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CFLAGS=-O2 -GL -MT -D_WIN32_WINNT=0x0A00 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CXXFLAGS=-O2 -GL -MT -std:c++17 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "LDFLAGS=-LTCG -LIBPATH:$env:GLOBAL_PREFIX\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Cache Dependencies
@@ -342,8 +342,8 @@ jobs:
         
         # Install libvpx via vcpkg
         echo "::group::Install libvpx"
-        $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx[highbitdepth,realtime]:x64-windows-static-md
-        export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib/pkgconfig"):$PKG_CONFIG_PATH
+        $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx[highbitdepth,realtime]:x64-windows-static
+        export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/lib/pkgconfig"):$PKG_CONFIG_PATH
         echo "::endgroup::"
 
     - name: Build video codec libraries as cmd for VVC
@@ -480,15 +480,18 @@ jobs:
       shell: cmd
       run: |
         echo ::group::Build libfreetype
-        %GITHUB_WORKSPACE%\vcpkg\vcpkg install freetype[brotli,bzip2,error-strings,png,subpixel-rendering,zlib]:x64-windows-static-md
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install freetype[brotli,bzip2,error-strings,png,subpixel-rendering,zlib]:x64-windows-static
         echo ::endgroup::
 
+        echo ::group::Build mp3lame
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install mp3lame:x64-windows-static
+
         echo ::group::Build libFLAC
-        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static-md
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static
         echo ::endgroup::
 
         echo ::group::Build libass
-        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libass:x64-windows-static-md
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libass:x64-windows-static
 
     - name: Normalize library naming
       shell: msys2 {0}
