@@ -387,15 +387,6 @@ jobs:
       run: |
         source varset.sh
         set -e
-
-        wget -q https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz
-        tar xzf lame-3.100.tar.gz
-        cd lame-3.100
-        ./configure --prefix=$PREFIX --disable-shared --enable-static --disable-frontend \
-          CC=cl \
-          CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS"
-        make -j$(nproc)
-        make install
         
         # Build libogg
         echo "::group::Build libogg"
@@ -545,7 +536,7 @@ jobs:
         echo "::group::Build FFmpeg"
         
         # Update PKG_CONFIG_PATH to include vcpkg
-        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib/pkgconfig"):$PKG_CONFIG_PATH"
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/lib/pkgconfig"):$PKG_CONFIG_PATH"
         
         git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
         cd ffmpeg
@@ -589,9 +580,9 @@ jobs:
           --enable-schannel \
           --arch=x86_64 \
           --target-os=win64 \
-          --extra-cflags="$CFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
-          --extra-cxxflags="$CXXFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
-          --extra-ldflags="$LDFLAGS -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib" || (cat ffbuild/config.log && exit 1)
+          --extra-cflags="$CFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/include -I$PREFIX/include/amd" \
+          --extra-cxxflags="$CXXFLAGS -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/include -I$PREFIX/include/amd" \
+          --extra-ldflags="$LDFLAGS -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/lib" || (cat ffbuild/config.log && exit 1)
         
         echo "Building FFmpeg..."
         make -j$(nproc)
