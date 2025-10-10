@@ -430,6 +430,9 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
+        lib -OUT:vorbis_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/ogg.lib
+        rm -f $PREFIX/lib/vorbis.lib
+        cp ./vorbis_full.lib $PREFIX/lib/vorbis.lib
         echo "::endgroup::"
         
         # Build opus
