@@ -476,7 +476,7 @@ jobs:
         
         echo ::group::Build libmp3lame via vcpkg
         %GITHUB_WORKSPACE%\vcpkg\vcpkg install mp3lame:x64-windows-static-md
-        copy %GITHUB_WORKSPACE%\installed\x64-windows-static-md\lib\libmp3lame-static.lib %GITHUB_WORKSPACE%\installed\x64-windows-static-md\lib\mp3lame.lib
+        copy %GITHUB_WORKSPACE%\vcpkg\installed\x64-windows-static-md\lib\libmp3lame-static.lib %GITHUB_WORKSPACE%\vcpkg\installed\x64-windows-static-md\lib\mp3lame.lib
         echo ::endgroup::
 
         echo ::group::Build libFLAC
