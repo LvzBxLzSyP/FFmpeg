@@ -485,7 +485,7 @@ jobs:
           /p:WholeProgramOptimization=true ^
           /p:LinkTimeCodeGeneration=true
 
-        copy D:\a\FFmpeg\msvc\libmp3lame.lib D:\a\FFmpeg\msvc\lib\mp3lame.lib
+        copy D:\a\FFmpeg\msvc\lib\x64\libmp3lame.lib D:\a\FFmpeg\msvc\lib\mp3lame.lib
 
         echo ::group::Build libFLAC
         %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static
