@@ -496,6 +496,7 @@ jobs:
           /p:LinkTimeCodeGeneration=true
 
         copy D:\a\FFmpeg\msvc\lib\x64\libmp3lame.lib D:\a\FFmpeg\msvc\lib\mp3lame.lib
+        echo::endgroup::
 
         echo ::group::Build libFLAC
         %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static-md
@@ -503,6 +504,11 @@ jobs:
 
         echo ::group::Build libass
         %GITHUB_WORKSPACE%\vcpkg\vcpkg install libass:x64-windows-static-md
+        echo ::endgroup::
+
+        echo ::group::Build SDL2
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install sdl2:x64-windows-static-md
+        echo ::endgroup::
 
     - name: Normalize library naming
       shell: msys2 {0}
@@ -588,13 +594,16 @@ jobs:
           --disable-debug \
           --enable-static \
           --disable-shared \
+          --enable-ffplay \
           --enable-libx264 \
+          --enable-libx264rgb \
           --enable-libx265 \
           --enable-libdav1d \
           --enable-librav1e \
           --enable-libsvtav1 \
           --enable-libaom \
           --enable-libvpx \
+          --enable-vp9-highbitdepth \
           --enable-libvvenc \
           --enable-libvvdec \
           --enable-libmp3lame \
@@ -609,6 +618,7 @@ jobs:
           --enable-d3d11va \
           --enable-amf \
           --enable-schannel \
+          --enable-sdl2 \
           --arch=x86_64 \
           --target-os=win64 \
           --extra-cflags="-O2 -GL -MD -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/msvc/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
