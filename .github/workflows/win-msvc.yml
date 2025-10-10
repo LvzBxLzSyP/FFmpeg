@@ -588,7 +588,6 @@ jobs:
           --disable-debug \
           --enable-static \
           --disable-shared \
-          --enable-pthreads \
           --enable-libx264 \
           --enable-libx265 \
           --enable-libdav1d \
