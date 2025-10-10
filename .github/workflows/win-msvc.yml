@@ -115,8 +115,8 @@ jobs:
         "CC=cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "CXX=cl" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "PREFIX=$env:UNIX_PREFIX" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "CFLAGS=-O2 -GL -MT -D_WIN32_WINNT=0x0A00 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "CXXFLAGS=-O2 -GL -MT -std:c++17 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CFLAGS=-O2 -GL -MD -D_WIN32_WINNT=0x0A00 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CXXFLAGS=-O2 -GL -MD -std:c++17 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         "LDFLAGS=-LTCG -LIBPATH:$env:GLOBAL_PREFIX\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Cache Dependencies
@@ -342,8 +342,8 @@ jobs:
         
         # Install libvpx via vcpkg
         echo "::group::Install libvpx"
-        $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx[highbitdepth,realtime]:x64-windows-static
-        export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/lib/pkgconfig"):$PKG_CONFIG_PATH
+        $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx[highbitdepth,realtime]:x64-windows-static-md
+        export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib/pkgconfig"):$PKG_CONFIG_PATH
         echo "::endgroup::"
 
     - name: Build video codec libraries as cmd for VVC
@@ -471,7 +471,7 @@ jobs:
       shell: cmd
       run: |
         echo ::group::Build libfreetype
-        %GITHUB_WORKSPACE%\vcpkg\vcpkg install freetype[brotli,bzip2,error-strings,png,subpixel-rendering,zlib]:x64-windows-static
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install freetype[brotli,bzip2,error-strings,png,subpixel-rendering,zlib]:x64-windows-static-md
         echo ::endgroup::
 
         echo ::group::Build mp3lame
@@ -488,11 +488,11 @@ jobs:
         copy D:\a\FFmpeg\msvc\lib\x64\libmp3lame.lib D:\a\FFmpeg\msvc\lib\mp3lame.lib
 
         echo ::group::Build libFLAC
-        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static-md
         echo ::endgroup::
 
         echo ::group::Build libass
-        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libass:x64-windows-static
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libass:x64-windows-static-md
 
     - name: Normalize library naming
       shell: msys2 {0}
@@ -558,7 +558,7 @@ jobs:
         echo "::group::Build FFmpeg"
         
         # Update PKG_CONFIG_PATH to include vcpkg
-        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/lib/pkgconfig"):$PKG_CONFIG_PATH"
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib/pkgconfig"):$PKG_CONFIG_PATH"
         
         git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
         cd ffmpeg
@@ -602,9 +602,9 @@ jobs:
           --enable-schannel \
           --arch=x86_64 \
           --target-os=win64 \
-          --extra-cflags="-O2 -GL -MT -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/msvc/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/include -I$PREFIX/include/amd" \
-          --extra-cxxflags="-O2 -GL -MT -D_WIN32_WINNT=0x0A00 -std:c++17 -ID:/a/FFmpeg/msvc/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/include -I$PREFIX/include/amd" \
-          --extra-ldflags="-LTCG -LIBPATH:D:/a/FFmpeg/msvc/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static/lib" || (cat ffbuild/config.log && exit 1)
+          --extra-cflags="-O2 -GL -MT -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/msvc/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
+          --extra-cxxflags="-O2 -GL -MT -D_WIN32_WINNT=0x0A00 -std:c++17 -ID:/a/FFmpeg/msvc/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
+          --extra-ldflags="-LTCG -LIBPATH:D:/a/FFmpeg/msvc/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib" || (cat ffbuild/config.log && exit 1)
         
         echo "Building FFmpeg..."
         make -j$(nproc)
