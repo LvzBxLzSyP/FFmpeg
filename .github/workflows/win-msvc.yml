@@ -444,8 +444,8 @@ jobs:
           -DBUILD_SHARED_LIBS=OFF \
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
-          -DCMAKE_RC_FLAGS_INIT="" \
-          -DCMAKE_RC_FLAGS=""
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
         
         ninja -j$(nproc)
         ninja install
