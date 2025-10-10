@@ -475,6 +475,7 @@ jobs:
         echo ::endgroup::
 
         echo ::group::Build mp3lame
+        set PREFIX=%GLOBAL_PREFIX%
         git clone https://github.com/ShiftMediaProject/lame.git
         cd lame\SMP
 
@@ -544,6 +545,18 @@ jobs:
       run: |
         source varset.sh
         set -e
+        cat > $PREFIX/lib/pkgconfig/libmp3lame.pc < 'EOF'
+        prefix=D:/a/FFmpeg/msvc
+        exec_prefix=${prefix}
+        libdir=${prefix}/lib
+        includedir=${prefix}/include
+        
+        Name: libmp3lame
+        Description: MP3 encoder library
+        Version: 3.100
+        Libs: ${libdir}/mp3lame.lib
+        Cflags: -I${includedir}
+        EOF
         
         echo "::group::Build FFmpeg"
         
