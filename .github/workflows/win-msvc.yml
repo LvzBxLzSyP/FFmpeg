@@ -368,6 +368,8 @@ jobs:
 
         git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
         cd vvdec
+        powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/0001-vvdec-fix-MSVC.patch' -OutFile '0001-vvdec-fix-MSVC.patch'"
+        git apply 0001-vvdec-fix-MSVC.patch
         cmake -G "Visual Studio 17 2022" ^
           -DCMAKE_C_COMPILER=cl.exe ^
           -DCMAKE_CXX_COMPILER=cl.exe ^
