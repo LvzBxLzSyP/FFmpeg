@@ -433,6 +433,11 @@ jobs:
         lib -OUT:vorbis_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/ogg.lib
         rm -f $PREFIX/lib/vorbis.lib
         cp ./vorbis_full.lib $PREFIX/lib/vorbis.lib
+        lib -OUT:vorbisenc_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/vorbisenc.lib
+        lib -OUT:vorbisfile_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/vorbisfile.lib
+        rm -f $PREFIX/lib/vorbisenc.lib $PREFIX/lib/vorbisfile.lib
+        cp ./vorbisenc_full.lib $PREFIX/lib/vorbisenc.lib
+        cp ./vorbisfile_full.lib $PREFIX/lib/vorbisfile.lib
         echo "::endgroup::"
         
         # Build opus
