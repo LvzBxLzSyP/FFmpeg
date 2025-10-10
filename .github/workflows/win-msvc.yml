@@ -224,7 +224,7 @@ jobs:
         
         # Build x264
         echo "::group::Build libx264"
-        git clone https://code.videolan.org/videolan/x264.git
+        git clone https://code.videolan.org/videolan/x264.git || git clone https://github.com/mirror/x264.git
         cd x264
         
         ./configure \
@@ -266,7 +266,7 @@ jobs:
         
         # Build dav1d
         echo "::group::Build libdav1d"
-        git clone --depth=1 https://code.videolan.org/videolan/dav1d.git
+        git clone --depth=1 https://code.videolan.org/videolan/dav1d.git || git clone https://github.com/videolan/dav1d.git
         cd dav1d
         
         meson setup build \
