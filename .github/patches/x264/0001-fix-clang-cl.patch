@@ -1,5 +1,7 @@
 diff --git a/configure b/configure
-index d1d0a471..e6a68f56 100755
+old mode 100755
+new mode 100644
+index d1d0a471..e6dbee70
 --- a/configure
 +++ b/configure
 @@ -637,6 +637,32 @@ if [[ $host_os = mingw* || $host_os = msys* || $host_os = cygwin* ]]; then
@@ -10,14 +12,14 @@ index d1d0a471..e6a68f56 100755
 +        # Intel oneAPI LLVM-based compiler (MSVC frontend)
 +        compiler=ICXCL
 +        compiler_style=MS
-+        CFLAGS="$CFLAGS -Qstd=c99 -nologo -Qms0 -DHAVE_STRING_H -I\$(SRCPATH)/extras"
++        CFLAGS="$CFLAGS -Qstd=c99 -nologo -DHAVE_STRING_H -I\$(SRCPATH)/extras"
 +        QPRE="-Q"
 +        if cpp_check '' '' 'defined(_M_AMD64) || defined(_M_X64)' ; then
 +            host_cpu=x86_64
 +        elif cpp_check '' '' 'defined(_M_IX86)' ; then
 +            host_cpu=i486
 +        fi
-+
++    
 +    elif [[ "$cc_base" = clang-cl || "$cc_base" = clang-cl[\ .]* ]]; then
 +        # LLVM clang in MSVC mode
 +        compiler=CLANGCL
@@ -35,3 +37,43 @@ index d1d0a471..e6a68f56 100755
      else
          # MinGW uses broken pre-VS2015 Microsoft printf functions unless it's told to use the POSIX ones.
          CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200112L"
+@@ -1571,6 +1597,39 @@ if [ $compiler_style = MS ]; then
+     else
+         CFLAGS="-DNDEBUG $CFLAGS"
+     fi
++elif [ "$compiler_style" = LLVMMS ]; then
++    DEPFLAGS=""
++    DEPCMD='@$(SRCPATH)/tools/msvsdepend.sh "$(CC)" "$(CFLAGS)" "$<" "$@" > $(@:.o=.d)'
++
++    AR="llvm-lib -nologo -out:"
++    LD="lld-link -out:"
++
++    if [ "$compiler" = ICL ]; then
++        AR="xi$AR"
++        LD="xi$LD"
++    else
++        lldlink="$(dirname "$(command -v clang-cl 2>/dev/null)")/lld-link.exe"
++        [ -x "$lldlink" ] && LD="\"$lldlink\" -out:"
++    fi
++
++    HAVE_GETOPT_LONG=0
++
++    LDFLAGS="-nologo -incremental:no $(cl_ldflags $LDFLAGS)"
++    LDFLAGSCLI="$(cl_ldflags $LDFLAGSCLI)"
++
++    LIBX264=libx264.lib
++    RANLIB="llvm-ranlib"  
++    STRIP="llvm-strip"
++
++    # Resource compiler
++    [ -n "$RC" ] && RCFLAGS="$RCFLAGS -nologo -I. -I\$(SRCPATH)/extras -fo"
++
++    if [ "$debug" = yes ]; then
++        LDFLAGS="-debug $LDFLAGS"
++        CFLAGS="-D_DEBUG $CFLAGS"
++    else
++        CFLAGS="-DNDEBUG $CFLAGS"
++    fi
+ else # gcc/icc
+     DEPFLAGS="${QPRE}MMD ${QPRE}MF"' $(@:.o=.d)'
+     DEPCMD=""
