@@ -596,7 +596,6 @@ jobs:
           --disable-shared \
           --enable-ffplay \
           --enable-libx264 \
-          --enable-libx264rgb \
           --enable-libx265 \
           --enable-libdav1d \
           --enable-librav1e \
