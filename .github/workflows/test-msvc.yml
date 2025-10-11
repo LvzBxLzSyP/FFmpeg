@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 env:
-  GLOBAL_PREFIX: D:\a\FFmpeg\build
+  GLOBAL_PREFIX: D:/a/FFmpeg/build
   UNIX_PREFIX: /d/a/FFmpeg/build
 
 jobs:
