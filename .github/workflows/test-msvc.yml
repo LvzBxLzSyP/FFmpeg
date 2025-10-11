@@ -21,6 +21,7 @@ jobs:
           - compiler: msvc
             cc: cl.exe
             cxx: cl.exe
+            msar: lib
             toolchain: msvc
             cflags_base: "-O2 -GL -MD"
             cxxflags_base: "-O2 -GL -MD -std:c++17"
@@ -29,6 +30,7 @@ jobs:
           - compiler: clang-cl
             cc: clang-cl.exe
             cxx: clang-cl.exe
+            msar: llvm-lib
             toolchain: msvc
             cflags_base: "-O2 -fuse-ld=lld -flto=thin -MD"
             cxxflags_base: "-O2 -fuse-ld=lld -flto=thin -MD -std:c++14"
@@ -508,11 +510,11 @@ jobs:
         ninja -j$(nproc)
         ninja install
         cd ../..
-        lib -OUT:vorbis_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/ogg.lib
+        ${{ matrix.msar }} -OUT:vorbis_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/ogg.lib
         rm -f $PREFIX/lib/vorbis.lib
         cp ./vorbis_full.lib $PREFIX/lib/vorbis.lib
-        lib -OUT:vorbisenc_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/vorbisenc.lib
-        lib -OUT:vorbisfile_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/vorbisfile.lib
+        ${{ matrix.msar }} -OUT:vorbisenc_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/vorbisenc.lib
+        ${{ matrix.msar }} -OUT:vorbisfile_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/vorbisfile.lib
         rm -f $PREFIX/lib/vorbisenc.lib $PREFIX/lib/vorbisfile.lib
         cp ./vorbisenc_full.lib $PREFIX/lib/vorbisenc.lib
         cp ./vorbisfile_full.lib $PREFIX/lib/vorbisfile.lib
