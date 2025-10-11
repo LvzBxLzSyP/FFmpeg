@@ -645,7 +645,7 @@ jobs:
         set -e
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
           EXTFLG="--ld=clang-cl --ar=llvm-lib"
-          EXTEND_LDFLG="-link -LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
+          EXTEND_LDFLG="-Xlinker -LIBPATH:D:/a/FFmpeg/build/lib -Xlinker -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         else
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         fi
