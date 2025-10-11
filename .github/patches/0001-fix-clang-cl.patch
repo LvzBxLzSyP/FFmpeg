@@ -1,0 +1,37 @@
+diff --git a/configure b/configure
+index d1d0a471..e6a68f56 100755
+--- a/configure
++++ b/configure
+@@ -637,6 +637,32 @@ if [[ $host_os = mingw* || $host_os = msys* || $host_os = cygwin* ]]; then
+         elif cpp_check '' '' 'defined(_M_ARM)' ; then
+             host_cpu=arm
+         fi
++    elif [[ "$cc_base" = icx-cl || "$cc_base" = icx-cl[\ .]* ]]; then
++        # Intel oneAPI LLVM-based compiler (MSVC frontend)
++        compiler=ICXCL
++        compiler_style=MS
++        CFLAGS="$CFLAGS -Qstd=c99 -nologo -Qms0 -DHAVE_STRING_H -I\$(SRCPATH)/extras"
++        QPRE="-Q"
++        if cpp_check '' '' 'defined(_M_AMD64) || defined(_M_X64)' ; then
++            host_cpu=x86_64
++        elif cpp_check '' '' 'defined(_M_IX86)' ; then
++            host_cpu=i486
++        fi
++
++    elif [[ "$cc_base" = clang-cl || "$cc_base" = clang-cl[\ .]* ]]; then
++        # LLVM clang in MSVC mode
++        compiler=CLANGCL
++        compiler_style=MS
++        CFLAGS="$CFLAGS -nologo -DHAVE_STRING_H -I\$(SRCPATH)/extras"
++        if cpp_check '' '' 'defined(_M_AMD64) || defined(_M_X64)' ; then
++            host_cpu=x86_64
++        elif cpp_check '' '' 'defined(_M_IX86)' ; then
++            host_cpu=i486
++        elif cpp_check '' '' 'defined(_M_ARM64)' ; then
++            host_cpu=aarch64
++        elif cpp_check '' '' 'defined(_M_ARM)' ; then
++            host_cpu=arm
++        fi
+     else
+         # MinGW uses broken pre-VS2015 Microsoft printf functions unless it's told to use the POSIX ones.
+         CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200112L"
