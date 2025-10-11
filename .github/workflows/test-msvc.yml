@@ -643,6 +643,9 @@ jobs:
       run: |
         source varset.sh
         set -e
+        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
+          EXTFLG="--ld=clang-cl --ar=llvm-lib"
+        fi
         cat > $PREFIX/lib/pkgconfig/libmp3lame.pc << 'EOF'
         prefix=D:/a/FFmpeg/build
         exec_prefix=${prefix}
@@ -708,8 +711,8 @@ jobs:
           --target-os=win64 \
           --extra-cflags="$CFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
           --extra-cxxflags="$CXXFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
-          --extra-ldflags="$LDFLAGS -LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib" || (cat ffbuild/config.log && exit 1)
-        
+          --extra-ldflags="$LDFLAGS -LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib" $EXTFLG || (cat ffbuild/config.log && exit 1)
+          
         echo "Building FFmpeg..."
         make -j$(nproc)
         make install
