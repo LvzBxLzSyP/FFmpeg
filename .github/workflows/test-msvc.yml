@@ -21,7 +21,8 @@ jobs:
           - compiler: msvc
             cc: cl.exe
             cxx: cl.exe
-            msar: lib
+            msar: lib.exe
+            msranlib: ""
             toolchain: msvc
             cflags_base: "-O2 -GL -MD"
             cxxflags_base: "-O2 -GL -MD -std:c++17"
@@ -30,7 +31,8 @@ jobs:
           - compiler: clang-cl
             cc: clang-cl.exe
             cxx: clang-cl.exe
-            msar: llvm-lib
+            msar: llvm-lib.exe
+            msranlib: llvm-ranlib.exe
             toolchain: msvc
             cflags_base: "-O2 -fuse-ld=lld -flto=thin -MD -W0"
             cxxflags_base: "-O2 -fuse-ld=lld -flto=thin -MD -std:c++14 -W0"
@@ -347,7 +349,7 @@ jobs:
         git clone --depth=1 https://code.videolan.org/videolan/dav1d.git || git clone https://github.com/videolan/dav1d.git
         cd dav1d
         
-        meson setup build \
+        AR=llvm-lib.exe meson setup build \
           --buildtype=release \
           -Db_vscrt=md \
           --prefix=$PREFIX \
@@ -439,6 +441,8 @@ jobs:
           -DCMAKE_CXX_FLAGS_RELEASE="%CXXFLAGS%" ^
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="%LDFLAGS%" ^
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
+          -DCMAKE_AR=${{ matrix.msar }} ^
+          -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
           -G "Visual Studio 17 2022" ^
           .
         "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
@@ -458,6 +462,8 @@ jobs:
           -DBUILD_SHARED_LIBS=OFF ^
           -DCMAKE_INSTALL_PREFIX="%GLOBAL_PREFIX%" ^
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
+          -DCMAKE_AR=${{ matrix.msar }} ^
+          -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
           .
         "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         cd ..
