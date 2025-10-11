@@ -30,9 +30,9 @@ jobs:
             cc: clang-cl.exe
             cxx: clang-cl.exe
             toolchain: msvc
-            cflags_base: "-O3 -flto=thin -MD"
-            cxxflags_base: "-O3 -flto=thin -MD -std:c++17"
-            ldflags_base: "-flto=thin"
+            cflags_base: "-O3 -GL -MD"
+            cxxflags_base: "-O3 -GL -MD -std:c++17"
+            ldflags_base: "-LTCG"
             artifact_name: ffmpeg-win64-clang
 
     steps:
