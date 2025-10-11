@@ -572,7 +572,7 @@ jobs:
           /p:LinkTimeCodeGeneration=true
 
         xcopy D:\a\FFmpeg\msvc\include D:\a\FFmpeg\build\include /E /I /Y
-        xcopy D:\a\FFmpeg\msvc\libmp3lame.lib D:\a\FFmpeg\build\lib\ /Y
+        xcopy D:\a\FFmpeg\msvc\lib\x64\libmp3lame.lib D:\a\FFmpeg\build\lib\ /Y
         echo::endgroup::
 
         echo ::group::Build libFLAC
