@@ -32,8 +32,8 @@ jobs:
             cxx: clang-cl.exe
             msar: llvm-lib
             toolchain: msvc
-            cflags_base: "-O2 -fuse-ld=lld -flto=thin -MD"
-            cxxflags_base: "-O2 -fuse-ld=lld -flto=thin -MD -std:c++14"
+            cflags_base: "-O2 -fuse-ld=lld -flto=thin -MD -W0"
+            cxxflags_base: "-O2 -fuse-ld=lld -flto=thin -MD -std:c++14 -W0"
             ldflags_base: "-fuse-ld=lld -flto=thin"
             artifact_name: ffmpeg-win64-clang
 
