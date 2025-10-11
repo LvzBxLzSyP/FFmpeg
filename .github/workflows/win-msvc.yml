@@ -602,7 +602,6 @@ jobs:
           --enable-libsvtav1 \
           --enable-libaom \
           --enable-libvpx \
-          --enable-vp9-highbitdepth \
           --enable-libvvenc \
           --enable-libvvdec \
           --enable-libmp3lame \
