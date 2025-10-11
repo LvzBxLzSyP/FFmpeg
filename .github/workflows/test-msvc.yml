@@ -349,7 +349,7 @@ jobs:
         git clone --depth=1 https://code.videolan.org/videolan/dav1d.git || git clone https://github.com/videolan/dav1d.git
         cd dav1d
         
-        AR=llvm-lib.exe meson setup build \
+        AR=${{ matrix.msar }} meson setup build \
           --buildtype=release \
           -Db_vscrt=md \
           --prefix=$PREFIX \
