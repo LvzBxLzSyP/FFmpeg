@@ -30,9 +30,9 @@ jobs:
             cc: clang-cl.exe
             cxx: clang-cl.exe
             toolchain: msvc
-            cflags_base: "-O3 -GL -MD"
-            cxxflags_base: "-O3 -GL -MD -std:c++17"
-            ldflags_base: "-LTCG"
+            cflags_base: "-O3 -flto=thin -MD"
+            cxxflags_base: "-O3 -flto=thin -MD -std:c++17"
+            ldflags_base: "-flto=thin"
             artifact_name: ffmpeg-win64-clang
 
     steps:
@@ -141,31 +141,7 @@ jobs:
         $output = & cmd /c "setup_env.bat"
         
         foreach ($line in $output) {
-            if ($line -match '^([^=]+)=(.*)$') {
-                $name = $matches[1]
-                $value = $matches[2]
-                
-                # Add important variables to GITHUB_ENV
-                if ($name -in @('INCLUDE', 'LIB', 'PATH', 'LIBPATH')) {
-                    "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-                }
-            }
-        }
-        
-        # Add LLVM to PATH if using Clang-CL
-        if ("${{ matrix.compiler }}" -eq "clang-cl") {
-            $llvmPath = "C:\Program Files\LLVM\bin"
-            $currentPath = $env:PATH
-            "PATH=$llvmPath;$currentPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        }
-        
-        # Add custom build flags
-        "CC=${{ matrix.cc }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "CXX=${{ matrix.cxx }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "PREFIX=$env:UNIX_PREFIX" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "CFLAGS=${{ matrix.cflags_base }} -D_WIN32_WINNT=0x0A00 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "CXXFLAGS=${{ matrix.cxxflags_base }} -D_WIN32_WINNT=0x0A00 -I$env:GLOBAL_PREFIX\include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-        "LDFLAGS=${{ matrix.ldflags_base }} -LIBPATH:$env:GLOBAL_PREFIX\lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            if ($line -match '^([^=]+)=(.*)
 
     - name: Cache Dependencies
       uses: actions/cache@v4
@@ -270,12 +246,658 @@ jobs:
         
         echo "=== Check Tools ==="
         which ${{ matrix.cc }}
-        ${{ matrix.cc }} --version 2>&1 | head -n 5
+        
+        # Show compiler version (different syntax for MSVC vs Clang)
+        if [ "${{ matrix.compiler }}" = "msvc" ]; then
+          ${{ matrix.cc }} 2>&1 | head -n 2
+        else
+          ${{ matrix.cc }} --version 2>&1 | head -n 5
+        fi
         
         echo "=== Test Compilation ==="
         echo "int main(){return 0;}" > test.c
-        ${{ matrix.cc }} test.c -Fe:test.exe
-        echo "Compilation test result: $?"
+        ${{ matrix.cc }} test.c /Fe:test.exe || ${{ matrix.cc }} test.c -Fe:test.exe
+        if [ $? -eq 0 ]; then
+          echo "Compilation test: SUCCESS"
+        else
+          echo "Compilation test: FAILED"
+          exit 1
+        fi
+        rm -f test.c test.exe test.obj
+
+    - name: Build video codec dependencies
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        set -e
+        
+        # Build x264
+        echo "::group::Build libx264"
+        git clone https://code.videolan.org/videolan/x264.git || git clone https://github.com/mirror/x264.git
+        cd x264
+        
+        ./configure \
+          --prefix=$PREFIX \
+          --enable-static \
+          --disable-opencl \
+          --disable-cli \
+          --extra-cflags="$CFLAGS" \
+          --extra-ldflags="$LDFLAGS" || (cat config.log && exit 1)
+        
+        make -j$(nproc)
+        make install
+        cd ..
+        echo "::endgroup::"
+        
+        # Build x265
+        echo "::group::Build libx265"
+        git clone https://bitbucket.org/multicoreware/x265_git.git x265
+        cd x265/build
+        
+        cmake -G Ninja \
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_CLI=OFF \
+          -DENABLE_TESTS=OFF \
+          -DENABLE_DOCS=OFF \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          ../source
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Build dav1d
+        echo "::group::Build libdav1d"
+        git clone --depth=1 https://code.videolan.org/videolan/dav1d.git || git clone https://github.com/videolan/dav1d.git
+        cd dav1d
+        
+        meson setup build \
+          --buildtype=release \
+          -Db_vscrt=md \
+          --prefix=$PREFIX \
+          -Ddefault_library=static \
+          -Denable_tools=false \
+          -Denable_tests=false \
+          -Dc_args="$CFLAGS" \
+          -Dcpp_args="$CXXFLAGS" \
+          -Dc_link_args="$LDFLAGS" \
+          -Dcpp_link_args="$LDFLAGS"
+        
+        meson compile -C build -j$(nproc)
+        meson install -C build
+        cd ..
+        echo "::endgroup::"
+        
+        # Install rav1e
+        echo "::group::Install librav1e"
+        curl -L -o rav1e-x86_64.zip https://github.com/LvzBxLzSyP/rav1e/releases/latest/download/rav1e-x86_64.zip
+        7z x rav1e-x86_64.zip -o$PREFIX -y
+        echo "::endgroup::"
+        
+        # Build SVT-AV1
+        echo "::group::Build libsvtav1"
+        git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+        cd SVT-AV1/Build
+        
+        cmake -G Ninja \
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_APPS=OFF \
+          -DBUILD_DEC=OFF \
+          -DBUILD_TESTING=OFF \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          ..
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Build libaom
+        echo "::group::Build libaom"
+        git clone --depth=1 https://aomedia.googlesource.com/aom.git
+        mkdir -p aom/build && cd aom/build
+        
+        cmake .. -G "Ninja" \
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DENABLE_SHARED=OFF \
+          -DENABLE_NASM=ON \
+          -DENABLE_TOOLS=OFF \
+          -DENABLE_EXAMPLES=OFF \
+          -DENABLE_DOCS=OFF \
+          -DENABLE_TESTS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS"
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Install libvpx via vcpkg
+        echo "::group::Install libvpx"
+        $GITHUB_WORKSPACE/vcpkg/vcpkg install libvpx[highbitdepth,realtime]:x64-windows-static-md
+        export PKG_CONFIG_PATH=$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib/pkgconfig"):$PKG_CONFIG_PATH
+        echo "::endgroup::"
+
+    - name: Build video codec libraries as cmd for VVC
+      shell: cmd
+      run: |
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
+        cd vvenc
+        "C:\Program Files\CMake\bin\cmake.exe" ^
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} ^
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DBUILD_SHARED_LIBS=OFF ^
+          -DCMAKE_INSTALL_PREFIX="%GLOBAL_PREFIX%" ^
+          -DCMAKE_C_FLAGS_RELEASE="%CFLAGS%" ^
+          -DCMAKE_CXX_FLAGS_RELEASE="%CXXFLAGS%" ^
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="%LDFLAGS%" ^
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
+          -G "Visual Studio 17 2022" ^
+          .
+        "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
+        cd ..
+
+        git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
+        cd vvdec
+        powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/0001-vvdec-fix-MSVC.patch' -OutFile '0001-vvdec-fix-MSVC.patch'"
+        git apply 0001-vvdec-fix-MSVC.patch
+        cmake -G "Visual Studio 17 2022" ^
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} ^
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ^
+          -DCMAKE_C_FLAGS_RELEASE="%CFLAGS%" ^
+          -DCMAKE_CXX_FLAGS_RELEASE="%CXXFLAGS%" ^
+          -DCMAKE_EXE_LINKER_FLAGS_RELEASE="%LDFLAGS%" ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DBUILD_SHARED_LIBS=OFF ^
+          -DCMAKE_INSTALL_PREFIX="%GLOBAL_PREFIX%" ^
+          -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
+          .
+        "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
+        cd ..
+
+    - name: Build audio & text libraries
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        set -e
+        
+        # Build libogg
+        echo "::group::Build libogg"
+        git clone https://github.com/xiph/ogg.git
+        cd ogg
+        mkdir build && cd build
+        
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS"
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+       
+        # Build libvorbis
+        echo "::group::Build libvorbis"
+        git clone https://github.com/xiph/vorbis.git
+        cd vorbis
+        mkdir build && cd build
+        
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
+          -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DINSTALL_MANPAGES=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          -DCMAKE_RC_FLAGS_INIT="" \
+          -DCMAKE_RC_FLAGS=""
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        lib -OUT:vorbis_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/ogg.lib
+        rm -f $PREFIX/lib/vorbis.lib
+        cp ./vorbis_full.lib $PREFIX/lib/vorbis.lib
+        lib -OUT:vorbisenc_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/vorbisenc.lib
+        lib -OUT:vorbisfile_full.lib $PREFIX/lib/vorbis.lib $PREFIX/lib/vorbisfile.lib
+        rm -f $PREFIX/lib/vorbisenc.lib $PREFIX/lib/vorbisfile.lib
+        cp ./vorbisenc_full.lib $PREFIX/lib/vorbisenc.lib
+        cp ./vorbisfile_full.lib $PREFIX/lib/vorbisfile.lib
+        echo "::endgroup::"
+        
+        # Build opus
+        echo "::group::Build libopus"
+        git clone --depth=1 https://github.com/xiph/opus.git
+        cd opus
+        mkdir -p build && cd build
+        
+        cmake .. -G Ninja \
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+          -DCMAKE_INSTALL_PREFIX=$PREFIX \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+        
+        ninja -j$(nproc)
+        ninja install
+        cd ../..
+        echo "::endgroup::"
+        
+        # Install NVENC headers
+        echo "::group::Install NVENC headers"
+        git clone --depth=1 https://github.com/FFmpeg/nv-codec-headers.git
+        cd nv-codec-headers
+        make PREFIX=$PREFIX install
+        cd ..
+        echo "::endgroup::"
+        
+        # Install AMF headers
+        echo "::group::Install AMF headers"
+        git clone https://github.com/GPUOpen-LibrariesAndSDKs/AMF.git
+        mkdir -p "$PREFIX/include/amd/AMF"
+        cp -r AMF/amf/public/include/* "$PREFIX/include/amd/AMF"
+        echo "::endgroup::"
+
+    - name: Build more libraries with vcpkg
+      shell: cmd
+      run: |
+        echo ::group::Build libfreetype
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install freetype[brotli,bzip2,error-strings,png,subpixel-rendering,zlib]:x64-windows-static-md
+        echo ::endgroup::
+
+        echo ::group::Build mp3lame
+        set PREFIX=%GLOBAL_PREFIX%
+        git clone https://github.com/ShiftMediaProject/lame.git
+        cd lame\SMP
+
+        msbuild libmp3lame.vcxproj ^
+          /p:Configuration=Release ^
+          /p:Platform=x64 ^
+          /p:WholeProgramOptimization=true ^
+          /p:LinkTimeCodeGeneration=true
+
+        copy D:\a\FFmpeg\build\lib\x64\libmp3lame.lib D:\a\FFmpeg\build\lib\mp3lame.lib
+        echo::endgroup::
+
+        echo ::group::Build libFLAC
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libflac:x64-windows-static-md
+        echo ::endgroup::
+
+        echo ::group::Build libass
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install libass:x64-windows-static-md
+        echo ::endgroup::
+
+        echo ::group::Build SDL2
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install sdl2:x64-windows-static-md
+        echo ::endgroup::
+
+    - name: Normalize library naming
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        
+        echo "::group::Normalize library naming for MSVC"
+        cd $PREFIX/lib
+        
+        # x264
+        [ -f libx264.lib ] && ! [ -f x264.lib ] && ln -sf libx264.lib x264.lib && echo "Created x264.lib"
+        
+        # x265
+        [ -f x265-static.lib ] && ! [ -f x265.lib ] && ln -sf x265-static.lib x265.lib && echo "Created x265.lib"
+        
+        # dav1d
+        [ -f libdav1d.a ] && ! [ -f dav1d.lib ] && cp libdav1d.a dav1d.lib && echo "Created dav1d.lib"
+        
+        # SVT-AV1
+        [ -f libSvtAv1Enc.a ] && ! [ -f SvtAv1Enc.lib ] && cp libSvtAv1Enc.a SvtAv1Enc.lib && echo "Created SvtAv1Enc.lib"
+        
+        # libaom
+        [ -f libaom.a ] && ! [ -f aom.lib ] && cp libaom.a aom.lib && echo "Created aom.lib"
+        
+        # VVenC/VVdeC
+        [ -f libvvenc.a ] && ! [ -f vvenc.lib ] && cp libvvenc.a vvenc.lib && echo "Created vvenc.lib"
+        [ -f libvvdec.a ] && ! [ -f vvdec.lib ] && cp libvvdec.a vvdec.lib && echo "Created vvdec.lib"
+        
+        # Audio libraries
+        [ -f libmp3lame.lib ] && ! [ -f mp3lame.lib ] && ln -sf libmp3lame.lib mp3lame.lib && echo "Created mp3lame.lib"
+        [ -f libogg.lib ] && ! [ -f ogg.lib ] && ln -sf libogg.lib ogg.lib && echo "Created ogg.lib"
+        [ -f libFLAC.lib ] && ! [ -f FLAC.lib ] && ln -sf libFLAC.lib FLAC.lib && echo "Created FLAC.lib"
+        [ -f libvorbis.lib ] && ! [ -f vorbis.lib ] && ln -sf libvorbis.lib vorbis.lib && echo "Created vorbis.lib"
+        [ -f libopus.lib ] && ! [ -f opus.lib ] && ln -sf libopus.lib opus.lib && echo "Created opus.lib"
+        
+        # Text libraries
+        [ -f libfreetype.lib ] && ! [ -f freetype.lib ] && ln -sf libfreetype.lib freetype.lib && echo "Created freetype.lib"
+        [ -f libfribidi.lib ] && ! [ -f fribidi.lib ] && ln -sf libfribidi.lib fribidi.lib && echo "Created fribidi.lib"
+        [ -f libharfbuzz.lib ] && ! [ -f harfbuzz.lib ] && ln -sf libharfbuzz.lib harfbuzz.lib && echo "Created harfbuzz.lib"
+        [ -f libass.lib ] && ! [ -f ass.lib ] && ln -sf libass.lib ass.lib && echo "Created ass.lib"
+        
+        echo "Library naming normalization complete"
+        echo "::endgroup::"
+
+    - name: Build FFmpeg
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        set -e
+        cat > $PREFIX/lib/pkgconfig/libmp3lame.pc << 'EOF'
+        prefix=D:/a/FFmpeg/build
+        exec_prefix=${prefix}
+        libdir=${prefix}/lib
+        includedir=${prefix}/include
+        
+        Name: libmp3lame
+        Description: MP3 encoder library
+        Version: 3.100
+        Libs: ${libdir}/mp3lame.lib
+        Cflags: -I${includedir}
+        EOF
+        
+        echo "::group::Build FFmpeg"
+        
+        # Update PKG_CONFIG_PATH to include vcpkg
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$(cygpath -u "$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib/pkgconfig"):$PKG_CONFIG_PATH"
+        
+        git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
+        cd ffmpeg
+        
+        # Apply VVC decoder patch
+        echo "Applying VVC decoder patch..."
+        wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
+        git apply --3way libvvdec.patch || echo "Patch may have already been applied"
+        
+        echo "Configuring FFmpeg with ${{ matrix.compiler }}..."
+        ./configure \
+          --prefix=$PREFIX \
+          --toolchain=${{ matrix.toolchain }} \
+          --cc=${{ matrix.cc }} \
+          --cxx=${{ matrix.cxx }} \
+          --enable-gpl \
+          --enable-version3 \
+          --disable-doc \
+          --disable-debug \
+          --enable-static \
+          --disable-shared \
+          --enable-ffplay \
+          --enable-libx264 \
+          --enable-libx265 \
+          --enable-libdav1d \
+          --enable-librav1e \
+          --enable-libsvtav1 \
+          --enable-libaom \
+          --enable-libvpx \
+          --enable-libvvenc \
+          --enable-libvvdec \
+          --enable-libmp3lame \
+          --enable-libopus \
+          --enable-libvorbis \
+          --enable-libass \
+          --enable-libfreetype \
+          --enable-nvenc \
+          --enable-nvdec \
+          --enable-cuda \
+          --enable-dxva2 \
+          --enable-d3d11va \
+          --enable-amf \
+          --enable-schannel \
+          --enable-sdl2 \
+          --arch=x86_64 \
+          --target-os=win64 \
+          --extra-cflags="$CFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
+          --extra-cxxflags="$CXXFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
+          --extra-ldflags="$LDFLAGS -LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib" || (cat ffbuild/config.log && exit 1)
+        
+        echo "Building FFmpeg..."
+        make -j$(nproc)
+        make install
+        
+        echo "::endgroup::"
+
+    - name: Package build
+      shell: msys2 {0}
+      run: |
+        cd "$PREFIX"
+        mkdir -p package-${{ matrix.compiler }}/bin
+        
+        cp bin/ffmpeg.exe package-${{ matrix.compiler }}/bin/
+        cp bin/ffprobe.exe package-${{ matrix.compiler }}/bin/
+        [ -f bin/ffplay.exe ] && cp bin/ffplay.exe package-${{ matrix.compiler }}/bin/
+        
+        # Create build info
+        cat > package-${{ matrix.compiler }}/BUILD_INFO.txt << EOF
+        FFmpeg ${{ matrix.compiler }} Static Build Information
+        ==================================
+        Build Date: $(date -u)
+        Compiler: ${{ matrix.compiler }}
+        Runtime: Universal CRT Runtime (UCRT)
+        Target: Windows 10+
+        FFmpeg Version: $(./bin/ffmpeg.exe -version | head -n1)
+        
+        Optimization Flags:
+        - CFLAGS: ${{ matrix.cflags_base }}
+        - CXXFLAGS: ${{ matrix.cxxflags_base }}
+        - LDFLAGS: ${{ matrix.ldflags_base }}
+        
+        Static Linking: Yes
+        
+        Enabled Features:
+        - Video Codecs: x264, x265, dav1d, rav1e, SVT-AV1, libaom, libvpx, VVenC, VVdeC
+        - Audio Codecs: LAME MP3, Opus, Vorbis, FLAC, Ogg
+        - Subtitle Support: libass, FreeType, Fribidi, HarfBuzz
+        - Hardware Acceleration: NVENC, NVDEC, CUDA, DXVA2, D3D11VA, AMF
+        - Network: Schannel (native Windows TLS)
+        EOF
+        
+        cd package-${{ matrix.compiler }}
+        7z a -tzip -mx=9 ../${{ matrix.artifact_name }}.zip .
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: ${{ env.GLOBAL_PREFIX }}/${{ matrix.artifact_name }}.zip
+        retention-days: 7
+
+    - name: Verify Build
+      shell: pwsh
+      run: |
+        $ffmpegExe = Join-Path $env:GLOBAL_PREFIX "bin\ffmpeg.exe"
+        
+        if (Test-Path $ffmpegExe) {
+            Write-Host "=== FFmpeg Build Verification (${{ matrix.compiler }}) ==="
+            Write-Host "FFmpeg executable found at: $ffmpegExe"
+            Write-Host ""
+            Write-Host "=== Version Information ==="
+            & $ffmpegExe -version
+            Write-Host ""
+            Write-Host "=== Available Encoders ==="
+            & $ffmpegExe -encoders | Select-String "libx264|libx265|libsvtav1|librav1e|libaom|libvpx|libvvenc|libmp3lame|libopus|libvorbis"
+            Write-Host ""
+            Write-Host "=== Available Decoders ==="
+            & $ffmpegExe -decoders | Select-String "libdav1d|libvpx|libvvdec"
+            Write-Host ""
+            Write-Host "=== Hardware Acceleration ==="
+            & $ffmpegExe -hwaccels
+        } else {
+            Write-Error "FFmpeg executable not found at: $ffmpegExe"
+            exit 1
+        }) {
+                $name = $matches[1]
+                $value = $matches[2]
+                
+                # Add important variables to GITHUB_ENV
+                if ($name -in @('INCLUDE', 'LIB', 'PATH', 'LIBPATH')) {
+                    "$name=$value" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                }
+            }
+        }
+        
+        # Add LLVM to PATH if using Clang-CL
+        if ("${{ matrix.compiler }}" -eq "clang-cl") {
+            $llvmPath = "C:\Program Files\LLVM\bin"
+            $currentPath = $env:PATH
+            "PATH=$llvmPath;$currentPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        }
+        
+        # Use forward slashes for paths in MSYS2 compatibility
+        $globalPrefix = $env:GLOBAL_PREFIX -replace '\\', '/'
+        $unixPrefix = $env:UNIX_PREFIX
+        
+        # Add custom build flags
+        "CC=${{ matrix.cc }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CXX=${{ matrix.cxx }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "PREFIX=$unixPrefix" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CFLAGS=${{ matrix.cflags_base }} -D_WIN32_WINNT=0x0A00 -I$globalPrefix/include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "CXXFLAGS=${{ matrix.cxxflags_base }} -D_WIN32_WINNT=0x0A00 -I$globalPrefix/include" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        "LDFLAGS=${{ matrix.ldflags_base }} -LIBPATH:$globalPrefix/lib" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Cache Dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.GLOBAL_PREFIX }}
+        key: ${{ matrix.compiler }}-deps-${{ runner.os }}-${{ hashFiles('.github/workflows/**') }}
+        restore-keys: |
+          ${{ matrix.compiler }}-deps-${{ runner.os }}-
+
+    - name: Setup build environment
+      shell: msys2 {0}
+      run: |
+        # Create build directory
+        mkdir -p $PREFIX
+        
+        # Backup MSYS2 link.exe to avoid conflict with MSVC link.exe
+        if [ -f /bin/link.exe ]; then
+          mv /bin/link.exe /bin/link.exe.bk
+        fi
+        
+        # Setup MSVC paths
+        MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
+        if [ ! -d "$MSVC_BASE" ]; then
+          echo "Error: MSVC not found at $MSVC_BASE"
+          exit 1
+        fi
+        
+        MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
+        MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
+        
+        # Find Windows Kits RC.exe
+        WIN_KITS_BASE="/c/Program Files (x86)/Windows Kits/10/bin"
+        RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" 2>/dev/null | sort -V | tail -n 1)/x64
+        
+        MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin"
+        
+        # Add compiler-specific paths
+        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
+          LLVM_PATH="/c/Program Files/LLVM/bin"
+          export PATH="$LLVM_PATH:$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"
+        else
+          export PATH="$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"
+        fi
+        
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+        
+        # Verify compilers are available
+        echo "Checking for ${{ matrix.cc }}..."
+        which ${{ matrix.cc }} || (echo "${{ matrix.cc }} not found in PATH"; exit 1)
+        
+        # Set compiler explicitly
+        export CC="${{ matrix.cc }}"
+        export CXX="${{ matrix.cxx }}"
+        
+        # Create varset.sh for environment variables
+        cat > varset.sh << 'EOF'
+        # Build Environment Variables
+        export PREFIX="$PREFIX"
+        export CC="${{ matrix.cc }}"
+        export CXX="${{ matrix.cxx }}"
+        export CFLAGS="$CFLAGS"
+        export CXXFLAGS="$CXXFLAGS"
+        export LDFLAGS="$LDFLAGS"
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export MAKEFLAGS="-j$(nproc)"
+        EOF
+        
+        # Compiler-specific PATH
+        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
+          echo 'export PATH="$LLVM_PATH:$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"' >> varset.sh
+          sed -i "s|\$LLVM_PATH|$LLVM_PATH|g" varset.sh
+        else
+          echo 'export PATH="$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"' >> varset.sh
+        fi
+        
+        # Make paths available in varset.sh
+        sed -i "s|\$PREFIX|$PREFIX|g" varset.sh
+        sed -i "s|\$CFLAGS|$CFLAGS|g" varset.sh
+        sed -i "s|\$CXXFLAGS|$CXXFLAGS|g" varset.sh
+        sed -i "s|\$LDFLAGS|$LDFLAGS|g" varset.sh
+        sed -i "s|\$MSVC_BIN|$MSVC_BIN|g" varset.sh
+        sed -i "s|\$MSBUILD_PATH|$MSBUILD_PATH|g" varset.sh
+        sed -i "s|\$RC_PATH|$RC_PATH|g" varset.sh
+        
+        echo "varset.sh created successfully"
+        cat varset.sh
+
+    - name: Debug toolchain
+      shell: msys2 {0}
+      run: |
+        source varset.sh
+        
+        echo "=== Debug ${{ matrix.compiler }} Toolchain ==="
+        echo "Compiler: ${{ matrix.compiler }}"
+        echo "CC: $CC"
+        echo "CXX: $CXX"
+        echo "CFLAGS: $CFLAGS"
+        echo "CXXFLAGS: $CXXFLAGS"
+        echo "LDFLAGS: $LDFLAGS"
+        echo "PATH: $PATH"
+        echo "PKG_CONFIG_PATH: $PKG_CONFIG_PATH"
+        
+        echo "=== Check Tools ==="
+        which ${{ matrix.cc }}
+        
+        # Show compiler version (different syntax for MSVC vs Clang)
+        if [ "${{ matrix.compiler }}" = "msvc" ]; then
+          ${{ matrix.cc }} 2>&1 | head -n 2
+        else
+          ${{ matrix.cc }} --version 2>&1 | head -n 5
+        fi
+        
+        echo "=== Test Compilation ==="
+        echo "int main(){return 0;}" > test.c
+        ${{ matrix.cc }} test.c /Fe:test.exe || ${{ matrix.cc }} test.c -Fe:test.exe
+        if [ $? -eq 0 ]; then
+          echo "Compilation test: SUCCESS"
+        else
+          echo "Compilation test: FAILED"
+          exit 1
+        fi
         rm -f test.c test.exe test.obj
 
     - name: Build video codec dependencies
