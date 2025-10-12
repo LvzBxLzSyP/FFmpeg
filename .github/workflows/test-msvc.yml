@@ -445,7 +445,11 @@ jobs:
           -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
           -G "Visual Studio 17 2022" ^
           .
-        "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
+        if "${{ matrix.compiler }} == "msvc" (
+          "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
+        ) else (
+          "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- /p:PlatformToolset=ClangCL
+        )
         cd ..
 
         git clone --depth=1 https://github.com/fraunhoferhhi/vvdec.git
@@ -465,7 +469,11 @@ jobs:
           -DCMAKE_AR=${{ matrix.msar }} ^
           -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
           .
-        "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
+        if "${{ matrix.compiler }} == "msvc" (
+          "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
+        ) else (
+          "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- /p:PlatformToolset=ClangCL
+        )
         cd ..
 
     - name: Build audio & text libraries
@@ -586,7 +594,7 @@ jobs:
             /p:Platform=x64 ^
             /p:ClCompileAdditionalOptions="-flto=thin" ^
             /p:LinkAdditionalOptions="-flto=thin -fuse-ld=lld"
-        l
+        )
 
         xcopy D:\a\FFmpeg\msvc\include D:\a\FFmpeg\build\include /E /I /Y
         xcopy D:\a\FFmpeg\msvc\lib\x64\libmp3lame.lib D:\a\FFmpeg\build\lib\ /Y
