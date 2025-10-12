@@ -435,6 +435,10 @@ jobs:
         )
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
         cd vvenc
+        if "${{ matrix.compiler }}" == "clang-cl" (
+          powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/vvenc/0001-disable-werror.patch' -OutFile '0001-disable-werror.patch'"
+          git apply 0001-disable-werror.patch
+        )
         "C:\Program Files\CMake\bin\cmake.exe" ^
           -DCMAKE_C_COMPILER=${{ matrix.cc }} ^
           -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ^
