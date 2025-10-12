@@ -429,6 +429,10 @@ jobs:
     - name: Build video codec libraries as cmd for VVC
       shell: cmd
       run: |
+        if "${{ matrix.compiler }}" == "clang-cl" (
+          set CFLAGS=%CFLAGS% /arch:AVX
+          set CXXFLAGS=%CXXFLAGS% /arch:AVX
+        )
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
         cd vvenc
         "C:\Program Files\CMake\bin\cmake.exe" ^
