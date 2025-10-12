@@ -1,13 +1,15 @@
 diff --git a/configure b/configure
-index 7828381b5d..1f824a8789 100755
+index 7828381b5d..d3df47005e 100755
 --- a/configure
 +++ b/configure
-@@ -6028,7 +6028,7 @@ case $target_os in
+@@ -6028,8 +6028,8 @@ case $target_os in
          SLIBSUF=".dll"
          SLIBNAME_WITH_VERSION='$(SLIBPREF)$(FULLNAME)-$(LIBVERSION)$(SLIBSUF)'
          SLIBNAME_WITH_MAJOR='$(SLIBPREF)$(FULLNAME)-$(LIBMAJOR)$(SLIBSUF)'
 -        if test_cmd lib.exe -list; then
+-            SLIB_EXTRA_CMD=-'lib.exe -nologo -machine:$(LIBTARGET) -def:$$(@:$(SLIBSUF)=.def) -out:$(SUBDIR)$(SLIBNAME:$(SLIBSUF)=.lib)'
 +        if test_cmd llvm-lib.exe -list; then
-             SLIB_EXTRA_CMD=-'lib.exe -nologo -machine:$(LIBTARGET) -def:$$(@:$(SLIBSUF)=.def) -out:$(SUBDIR)$(SLIBNAME:$(SLIBSUF)=.lib)'
++            SLIB_EXTRA_CMD=-'llvm-lib.exe -nologo -machine:$(LIBTARGET) -def:$$(@:$(SLIBSUF)=.def) -out:$(SUBDIR)$(SLIBNAME:$(SLIBSUF)=.lib)'
              if enabled x86_64; then
                  LIBTARGET=x64
+             fi
