@@ -1,7 +1,29 @@
+diff --git a/compat/windows/makedef b/compat/windows/makedef
+index add8222d13..395a395f26 100755
+--- a/compat/windows/makedef
++++ b/compat/windows/makedef
+@@ -48,7 +48,7 @@ trap 'rm -f -- $libname' EXIT
+ if [ -n "$AR" ]; then
+     $AR rcs ${libname} $@ >/dev/null
+ else
+-    lib.exe -out:${libname} $@ >/dev/null
++    llvm-lib.exe -out:${libname} $@ >/dev/null
+ fi
+ if [ $? != 0 ]; then
+     echo "Could not create temporary library." >&2
 diff --git a/configure b/configure
-index 7828381b5d..d3df47005e 100755
+index 7828381b5d..d30cd4932c 100755
 --- a/configure
 +++ b/configure
+@@ -4775,7 +4775,7 @@ case "$toolchain" in
+         ld_default="$source_path/compat/windows/mslink"
+         windres_default="$source_path/compat/windows/mswindres"
+         nm_default="dumpbin.exe -symbols"
+-        ar_default="lib.exe"
++        ar_default="llvm-lib.exe"
+         case "${arch:-$arch_default}" in
+         aarch64|arm64)
+             as_default="armasm64.exe"
 @@ -6028,8 +6028,8 @@ case $target_os in
          SLIBSUF=".dll"
          SLIBNAME_WITH_VERSION='$(SLIBPREF)$(FULLNAME)-$(LIBVERSION)$(SLIBSUF)'
