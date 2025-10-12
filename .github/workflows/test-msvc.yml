@@ -430,8 +430,8 @@ jobs:
       shell: cmd
       run: |
         if "${{ matrix.compiler }}" == "clang-cl" (
-          set CFLAGS=%CFLAGS% /arch:AVX
-          set CXXFLAGS=%CXXFLAGS% /arch:AVX
+          set CFLAGS=%CFLAGS% /arch:AVX /W0
+          set CXXFLAGS=%CXXFLAGS% /arch:AVX /W0
         )
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
         cd vvenc
@@ -699,7 +699,7 @@ jobs:
         echo "Applying VVC decoder patch..."
         wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
         git apply --3way libvvdec.patch || echo "Patch may have already been applied"
-        if [ "${{ matrix.compiler }}" = "clang-cl" ]
+        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
           wget -q https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/ffmpeg/0001-use-llvm-lib.patch
           git apply --3way 0001-use-llvm-lib.patch
         fi
