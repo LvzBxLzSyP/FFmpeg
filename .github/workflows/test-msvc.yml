@@ -698,7 +698,7 @@ jobs:
         wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
         git apply --3way libvvdec.patch || echo "Patch may have already been applied"
         RC_PATH=$(cygpath -w "$(which rc.exe)")
-        sed -i "s|rc.exe|$RC_PATH|g" compat/windows/mswindres
+        sed -i "s|rc.exe|\"$RC_PATH\"|g" compat/windows/mswindres
         echo "Configuring FFmpeg with ${{ matrix.compiler }}..."
         ./configure \
           --prefix=$PREFIX \
