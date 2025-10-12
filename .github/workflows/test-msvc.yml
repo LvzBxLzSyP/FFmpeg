@@ -749,7 +749,7 @@ jobs:
           --extra-ldflags="$LDFLAGS $EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && exit 1)
           
         echo "Building FFmpeg..."
-        make -j$(nproc) V=1
+        make -j$(nproc)
         make install
         
         echo "::endgroup::"
