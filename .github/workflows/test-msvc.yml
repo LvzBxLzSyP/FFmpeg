@@ -441,6 +441,7 @@ jobs:
           -DCMAKE_CXX_FLAGS_RELEASE="%CXXFLAGS%" ^
           -DCMAKE_EXE_LINKER_FLAGS_RELEASE="%LDFLAGS%" ^
           -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
+          -DVVENC_ENABLE_WERROR=OFF ^
           -DCMAKE_AR=${{ matrix.msar }} ^
           -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
           -G "Visual Studio 17 2022" ^
@@ -449,9 +450,7 @@ jobs:
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         ) else (
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- ^
-            /p:LinkTimeCodeGeneration=false ^
-            /p:WholeProgramOptimization=false ^
-            /p:IncrementalLink=false
+            /p:PlatformToolset=ClangCL
         )
         cd ..
 
@@ -468,7 +467,8 @@ jobs:
           -DCMAKE_BUILD_TYPE=Release ^
           -DBUILD_SHARED_LIBS=OFF ^
           -DCMAKE_INSTALL_PREFIX="%GLOBAL_PREFIX%" ^
-          -DVVENC_ENABLE_LINK_TIME_OPT=OFF ^
+          -DVVDEC_ENABLE_LINK_TIME_OPT=OFF ^
+          -DVVDEC_ENABLE_WERROR=OFF ^
           -DCMAKE_AR=${{ matrix.msar }} ^
           -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
           .
@@ -476,9 +476,7 @@ jobs:
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         ) else (
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- ^
-            /p:LinkTimeCodeGeneration=false ^
-            /p:WholeProgramOptimization=false ^
-            /p:IncrementalLink=false
+            /p:PlatformToolset=ClangCL
         )
         cd ..
 
@@ -667,7 +665,7 @@ jobs:
         source varset.sh
         set -e
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
-          EXTFLG="--ld=clang-cl --ar=llvm-lib"
+          EXTFLG="--ld=clang-cl"
           EXTEND_LDFLG="-Xlinker -LIBPATH:D:/a/FFmpeg/build/lib -Xlinker -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         else
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
