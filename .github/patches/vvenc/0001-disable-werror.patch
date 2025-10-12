@@ -1,0 +1,46 @@
+diff --git a/cmake/modules/vvencCompilerSupport.cmake b/cmake/modules/vvencCompilerSupport.cmake
+index 7e48458..77fefa6 100644
+--- a/cmake/modules/vvencCompilerSupport.cmake
++++ b/cmake/modules/vvencCompilerSupport.cmake
+@@ -5,12 +5,7 @@ include( CheckCXXSourceCompiles )
+ function( set_if_compiler_supports_flag output_var flag )
+   string( REGEX REPLACE "[-.]" "_" SUPPORTED_flag_var "SUPPORTED${flag}" )
+ 
+-  check_c_compiler_flag( -Werror=unused-command-line-argument SUPPORTED_Werror_unused_command_line_argument )
+-  if( SUPPORTED_Werror_unused_command_line_argument )
+-    set( FLAGS_CHECK_STR "${flag} -Werror=unused-command-line-argument" )
+-  else()
+-    set( FLAGS_CHECK_STR "${flag}" )
+-  endif()
++  set( FLAGS_CHECK_STR "${flag}" )
+ 
+   # if building WASM -msimd128 needs to be added to all checks for supported simd-compiler flags
+   _emscripten_enable_wasm_simd128()
+diff --git a/test/vvenc_unit_test/CMakeLists.txt b/test/vvenc_unit_test/CMakeLists.txt
+index d5f9094..c1cf9ca 100644
+--- a/test/vvenc_unit_test/CMakeLists.txt
++++ b/test/vvenc_unit_test/CMakeLists.txt
+@@ -23,8 +23,7 @@ endif()
+ 
+ target_compile_options( ${EXE_NAME} PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall>
+                                             $<$<CXX_COMPILER_ID:GNU>:-Wall -fdiagnostics-show-option -Wno-ignored-attributes -Wno-sign-compare>
+-
+-                                            $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /wd4244 /wd4251 /wd4996>)
++                                            $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4244 /wd4251 /wd4996>)
+ 
+ target_include_directories( ${EXE_NAME} PRIVATE ${VVENC_LIB_DIR} )
+ target_link_libraries( ${EXE_NAME} Threads::Threads vvenc )
+diff --git a/test/vvenclibtest/CMakeLists.txt b/test/vvenclibtest/CMakeLists.txt
+index 08fbc50..ead8cd6 100644
+--- a/test/vvenclibtest/CMakeLists.txt
++++ b/test/vvenclibtest/CMakeLists.txt
+@@ -24,7 +24,7 @@ endif()
+ 
+ target_compile_options( ${EXE_NAME} PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall>
+                                             $<$<CXX_COMPILER_ID:GNU>:-Wall -fdiagnostics-show-option>
+-                                            $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /wd4244 /wd4251 /wd4996>)
++                                            $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4244 /wd4251 /wd4996>)
+ 
+ target_link_libraries( ${EXE_NAME} Threads::Threads vvenc )
+
+ 
