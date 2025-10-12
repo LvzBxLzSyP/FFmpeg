@@ -697,8 +697,10 @@ jobs:
         echo "Applying VVC decoder patch..."
         wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
         git apply --3way libvvdec.patch || echo "Patch may have already been applied"
-        RC_PATH=$(printf '%s' "$(cygpath -w "$(which rc.exe)")" | sed 's|\\|/|g')
-        sed -i "s|rc.exe|${RC_PATH}|g" compat/windows/mswindres
+        if [ "${{ matrix.compiler }}" = "clang-cl" ]
+          wget -q https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/ffmpeg/0001-use-llvm-lib.patch
+          git apply --3way 0001-use-llvm-lib.patch
+        fi
         echo "Configuring FFmpeg with ${{ matrix.compiler }}..."
         ./configure \
           --prefix=$PREFIX \
