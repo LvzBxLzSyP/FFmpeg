@@ -667,7 +667,7 @@ jobs:
         source varset.sh
         set -e
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
-          EXTFLG="--ld=clang-cl --ar=llvm-lib --windres=$(which rc.exe)"
+          EXTFLG="--ld=clang-cl --ar=llvm-lib"
           EXTEND_LDFLG="-Xlinker -LIBPATH:D:/a/FFmpeg/build/lib -Xlinker -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         else
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
@@ -697,7 +697,8 @@ jobs:
         echo "Applying VVC decoder patch..."
         wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v7-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch
         git apply --3way libvvdec.patch || echo "Patch may have already been applied"
-        
+        RC_PATH=$(cygpath -w "$(which rc.exe)")
+        sed -i "s|rc.exe|$RC_PATH|g" compat/windows/mswindres
         echo "Configuring FFmpeg with ${{ matrix.compiler }}..."
         ./configure \
           --prefix=$PREFIX \
