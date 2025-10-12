@@ -445,7 +445,7 @@ jobs:
           -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
           -G "Visual Studio 17 2022" ^
           .
-        if "${{ matrix.compiler }} == "msvc" (
+        if "${{ matrix.compiler }}" == "msvc" (
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         ) else (
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- /p:PlatformToolset=ClangCL
@@ -469,7 +469,7 @@ jobs:
           -DCMAKE_AR=${{ matrix.msar }} ^
           -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
           .
-        if "${{ matrix.compiler }} == "msvc" (
+        if "${{ matrix.compiler }}" == "msvc" (
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         ) else (
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- /p:PlatformToolset=ClangCL
