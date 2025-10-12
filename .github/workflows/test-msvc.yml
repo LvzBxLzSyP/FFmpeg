@@ -448,7 +448,10 @@ jobs:
         if "${{ matrix.compiler }}" == "msvc" (
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         ) else (
-          "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- /p:PlatformToolset=ClangCL
+          "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- ^
+            /p:LinkTimeCodeGeneration=false ^
+            /p:WholeProgramOptimization=false ^
+            /p:IncrementalLink=false
         )
         cd ..
 
@@ -472,7 +475,10 @@ jobs:
         if "${{ matrix.compiler }}" == "msvc" (
           "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install
         ) else (
-          "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- /p:PlatformToolset=ClangCL
+          "C:\Program Files\CMake\bin\cmake.exe" --build . --config Release --target install -- ^
+            /p:LinkTimeCodeGeneration=false ^
+            /p:WholeProgramOptimization=false ^
+            /p:IncrementalLink=false
         )
         cd ..
 
