@@ -12,7 +12,7 @@ index add8222d13..395a395f26 100755
  if [ $? != 0 ]; then
      echo "Could not create temporary library." >&2
 diff --git a/configure b/configure
-index 7828381b5d..13cf5eb1f1 100755
+index 7828381b5d..f80d7a3e8e 100755
 --- a/configure
 +++ b/configure
 @@ -4775,7 +4775,7 @@ case "$toolchain" in
@@ -24,6 +24,19 @@ index 7828381b5d..13cf5eb1f1 100755
          case "${arch:-$arch_default}" in
          aarch64|arm64)
              as_default="armasm64.exe"
+@@ -5003,10 +5003,10 @@ msvc_common_flags(){
+             -mthumb)              ;;
+             -march=*)             ;;
+             -mfp16-format=*)      ;;
+-            -lz)                  echo zlib.lib ;;
++            -lz)                  echo - Xlinker zlib.lib ;;
+             -lx264)               echo libx264.lib ;;
+             -lstdc++)             ;;
+-            -l*)                  echo ${flag#-l}.lib ;;
++            -l*) [ "$_flags_type" = "link" ] && echo ${flag#-l}.lib ;;
+             -LARGEADDRESSAWARE)   echo $flag ;;
+             -L*) [ "$_flags_type" = "link" ] && echo -libpath:${flag#-L} ;;
+             -Wl,*)                ;;
 @@ -5366,6 +5366,9 @@ fi
  if VSLANG=1033 $ar 2>&1 | grep -q ^Microsoft; then
      arflags="-nologo"
@@ -45,3 +58,11 @@ index 7828381b5d..13cf5eb1f1 100755
              if enabled x86_64; then
                  LIBTARGET=x64
              fi
+@@ -8462,6 +8465,7 @@ NOREDZONE_FLAGS=$noredzone_flags
+ LIBFUZZER_PATH=$libfuzzer_path
+ IGNORE_TESTS=$ignore_tests
+ VERSION_TRACKING=$version_tracking
++LDEXEFLAGS += -wholearchive:avcodec.lib
+ EOF
+ 
+ map 'eval echo "${v}_FFLIBS=\$${v}_deps" >> ffbuild/config.mak' $LIBRARY_LIST
