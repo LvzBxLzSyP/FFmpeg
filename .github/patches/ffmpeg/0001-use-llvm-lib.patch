@@ -12,7 +12,7 @@ index add8222d13..395a395f26 100755
  if [ $? != 0 ]; then
      echo "Could not create temporary library." >&2
 diff --git a/configure b/configure
-index 7828381b5d..d026110766 100755
+index 7828381b5d..13cf5eb1f1 100755
 --- a/configure
 +++ b/configure
 @@ -4775,7 +4775,7 @@ case "$toolchain" in
@@ -24,23 +24,6 @@ index 7828381b5d..d026110766 100755
          case "${arch:-$arch_default}" in
          aarch64|arm64)
              as_default="armasm64.exe"
-@@ -5003,12 +5003,12 @@ msvc_common_flags(){
-             -mthumb)              ;;
-             -march=*)             ;;
-             -mfp16-format=*)      ;;
--            -lz)                  echo zlib.lib ;;
--            -lx264)               echo libx264.lib ;;
-+            -lz)                  echo - Xlinker zlib.lib ;;
-+            -lx264)               echo -Xlinker libx264.lib ;;
-             -lstdc++)             ;;
--            -l*)                  echo ${flag#-l}.lib ;;
-+            -l*) [ "$_flags_type" = "link" ] && echo -Xlinker ${flag#-l}.lib ;;
-             -LARGEADDRESSAWARE)   echo $flag ;;
--            -L*) [ "$_flags_type" = "link" ] && echo -libpath:${flag#-L} ;;
-+            -L*) [ "$_flags_type" = "link" ] && echo -Xlinker -libpath:${flag#-L} ;;
-             -Wl,*)                ;;
-             *)                    echo $flag ;;
-         esac
 @@ -5366,6 +5366,9 @@ fi
  if VSLANG=1033 $ar 2>&1 | grep -q ^Microsoft; then
      arflags="-nologo"
