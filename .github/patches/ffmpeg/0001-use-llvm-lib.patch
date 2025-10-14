@@ -12,7 +12,7 @@ index add8222d13..395a395f26 100755
  if [ $? != 0 ]; then
      echo "Could not create temporary library." >&2
 diff --git a/configure b/configure
-index 7828381b5d..37e0023a87 100755
+index 7828381b5d..f0f427a88c 100755
 --- a/configure
 +++ b/configure
 @@ -4775,7 +4775,7 @@ case "$toolchain" in
@@ -33,6 +33,15 @@ index 7828381b5d..37e0023a87 100755
              -Wl,*)                ;;
              *)                    echo $flag ;;
          esac
+@@ -5262,7 +5262,7 @@ probe_cc(){
+         _cflags_speed="-O2"
+         _cflags_size="-O1"
+         _cflags_noopt="-O1"
+-        if $_cc -nologo- 2>&1 | grep -q Linker; then
++        if $_cc -nologo- 2>&1 | grep -q error; then
+             _ld_o='-out:$@'
+             _flags_filter=msvc_flags_link
+         else
 @@ -5366,6 +5366,9 @@ fi
  if VSLANG=1033 $ar 2>&1 | grep -q ^Microsoft; then
      arflags="-nologo"
