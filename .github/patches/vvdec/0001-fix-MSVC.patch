@@ -1,3 +1,21 @@
+diff --git a/cmake/modules/vvdecCompilerSupport.cmake b/cmake/modules/vvdecCompilerSupport.cmake
+index e1d3a7a..dc3a882 100644
+--- a/cmake/modules/vvdecCompilerSupport.cmake
++++ b/cmake/modules/vvdecCompilerSupport.cmake
+@@ -4,12 +4,7 @@ include( CheckCSourceCompiles )
+ function( set_if_compiler_supports_flag output_var flag )
+   string( REGEX REPLACE "[-.]" "_" SUPPORTED_flag_var "SUPPORTED${flag}" )
+ 
+-  check_c_compiler_flag( -Werror=unused-command-line-argument SUPPORTED_Werror_unused_command_line_argument )
+-  if( SUPPORTED_Werror_unused_command_line_argument )
+-    set( FLAGS_CHECK_STR "${flag} -Werror=unused-command-line-argument" )
+-  else()
+-    set( FLAGS_CHECK_STR "${flag}" )
+-  endif()
++  set( FLAGS_CHECK_STR "${flag}" )
+ 
+   # if building WASM -msimd128 needs to be added to all checks for supported simd-compiler flags
+   _emscripten_enable_wasm_simd128()
 diff --git a/include/vvdec/sei.h b/include/vvdec/sei.h
 index 1117d84..e96ca08 100644
 --- a/include/vvdec/sei.h
@@ -12,3 +30,16 @@ index 1117d84..e96ca08 100644
  } vvdecSEIDependentRapIndication;
  
  typedef struct vvdecSEIEquirectangularProjection
+diff --git a/tests/vvdec_unit_test/CMakeLists.txt b/tests/vvdec_unit_test/CMakeLists.txt
+index 01a63dc..dd1b679 100644
+--- a/tests/vvdec_unit_test/CMakeLists.txt
++++ b/tests/vvdec_unit_test/CMakeLists.txt
+@@ -34,7 +34,7 @@ target_link_libraries( ${EXE_NAME} Threads::Threads vvdec )
+ 
+ target_compile_options( ${EXE_NAME} PRIVATE $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wall>
+                                             $<$<CXX_COMPILER_ID:GNU>:-Wall -fdiagnostics-show-option -Wno-ignored-attributes -Wno-sign-compare>
+-                                            $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX /wd4244 /wd4251 /wd4996>)
++                                            $<$<CXX_COMPILER_ID:MSVC>:/W4 /wd4244 /wd4251 /wd4996>)
+ 
+ # example: place header files in different folders
+ source_group( "Header Files"   FILES ${INC_FILES} )
