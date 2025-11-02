@@ -673,7 +673,8 @@ jobs:
         source varset.sh
         set -e
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
-          EXTFLG="--ld=ld.lld"
+          unset LDFLAGS
+          EXTFLG="--ld=lld-link"
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         else
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
