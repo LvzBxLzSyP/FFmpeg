@@ -673,8 +673,8 @@ jobs:
         source varset.sh
         set -e
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
-          EXTFLG="--ld=clang-cl"
-          EXTEND_LDFLG="-Xlinker -LIBPATH:D:/a/FFmpeg/build/lib -Xlinker -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
+          EXTFLG="--ld=ld.lld"
+          EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         else
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         fi
@@ -746,7 +746,7 @@ jobs:
           --target-os=win64 \
           --extra-cflags="$CFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
           --extra-cxxflags="$CXXFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
-          --extra-ldflags="$LDFLAGS $EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && exit 1)
+          --extra-ldflags="$EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && exit 1)
           
         echo "Building FFmpeg..."
         make -j$(nproc)
