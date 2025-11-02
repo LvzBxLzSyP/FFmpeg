@@ -669,6 +669,7 @@ jobs:
 
     - name: Build FFmpeg
       shell: msys2 {0}
+      continue-on-error: true
       run: |
         source varset.sh
         set -e
@@ -747,13 +748,20 @@ jobs:
           --target-os=win64 \
           --extra-cflags="$CFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
           --extra-cxxflags="$CXXFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
-          --extra-ldflags="$EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && exit 1)
+          --extra-ldflags="$EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && zip -r "$UNIX_PREFIX/all_dirs.zip" ./* && exit 1)
           
         echo "Building FFmpeg..."
         make -j$(nproc) V=1
         make install
         
         echo "::endgroup::"
+
+    - name: Upload Source
+      uses: actions/upload-artifact@v4
+      with:
+        name: source-${{ matrix.compiler }}
+        path: ${{ env.GLOBAL_PREFIX }}/all_dirs.zip
+        retention-days: 7
 
     - name: Package build
       shell: msys2 {0}
