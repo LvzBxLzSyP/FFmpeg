@@ -674,7 +674,7 @@ jobs:
         set -e
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
           unset LDFLAGS
-          EXTFLG="--ld=lld-link --host-ld=lld-link --ldexeflags=-wholearchive"
+          EXTFLG="--ld=lld-link --host-ld=lld-link --extra-ldexeflags=-wholearchive"
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         else
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
