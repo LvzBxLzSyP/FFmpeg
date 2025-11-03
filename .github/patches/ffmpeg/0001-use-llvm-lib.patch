@@ -14,7 +14,7 @@ index add8222d13..395a395f26 100755
 diff --git a/configure b/configure
 old mode 100755
 new mode 100644
-index 7828381b5d..27f00f9254
+index 7828381b5d..5ec4245a7f
 --- a/configure
 +++ b/configure
 @@ -4767,15 +4767,15 @@ case "$toolchain" in
@@ -88,7 +88,24 @@ index 7828381b5d..27f00f9254
              if enabled x86_64; then
                  LIBTARGET=x64
              fi
-@@ -8462,6 +8466,7 @@ NOREDZONE_FLAGS=$noredzone_flags
+@@ -7278,7 +7282,7 @@ enabled libvpx            && {
+         die "libvpx enabled but no supported decoders found"
+     fi
+ }
+-
++disable inline_asm_nonlocal_labels
+ enabled libvvenc          && require_pkg_config libvvenc "libvvenc >= 1.6.1" "vvenc/vvenc.h" vvenc_get_version
+ enabled libwebp           && {
+     enabled libwebp_encoder      && require_pkg_config libwebp "libwebp >= 0.2.0" webp/encode.h WebPGetEncoderVersion
+@@ -7788,6 +7792,7 @@ if [ -n "$lto" ]; then
+     test "$cc_type" != "$ld_type" && die "LTO requires same compiler and linker"
+     check_cflags  $lto
+     check_ldflags $lto $cpuflags
++    disable inline_asm_nonlocal_labels
+     disable inline_asm_direct_symbol_refs
+     if test "$cc_type" = "clang"; then
+         # Clang's LTO fails on Windows, when there are references outside
+@@ -8462,6 +8467,7 @@ NOREDZONE_FLAGS=$noredzone_flags
  LIBFUZZER_PATH=$libfuzzer_path
  IGNORE_TESTS=$ignore_tests
  VERSION_TRACKING=$version_tracking
