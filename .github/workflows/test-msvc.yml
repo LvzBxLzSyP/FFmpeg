@@ -707,7 +707,9 @@ jobs:
         git apply --3way libvvdec.patch || echo "Patch may have already been applied"
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
           wget -q https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/ffmpeg/0001-use-llvm-lib.patch
+          wget -q https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/ffmpeg/0002-i-hate-symbols.patch
           git apply --3way 0001-use-llvm-lib.patch
+          git apply --3way 0002-i-hate-symbols.patch
         fi
         echo "Configuring FFmpeg with ${{ matrix.compiler }}..."
         ./configure \
@@ -749,10 +751,6 @@ jobs:
           --extra-cflags="$CFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
           --extra-cxxflags="$CXXFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
           --extra-ldflags="$EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && zip -r "$UNIX_PREFIX/all_dirs.zip" ./* && exit 1)
-        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
-          sed -i '/^LDFLAGS[[:space:]]*=/ s/$/ -wholearchive:avcodec.lib/' ffbuild/config.mak
-          sed -i '/^LDEXEFLAGS[[:space:]]*=/ s/$/ -wholearchive:avcodec.lib/' ffbuild/config.mak
-        fi
         
         echo "Building FFmpeg..."
         make -j$(nproc)
