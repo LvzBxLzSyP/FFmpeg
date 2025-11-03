@@ -15,4 +15,5 @@ jobs:
     uses: ./.github/workflows/win-mingw.yml
 
   build-msvc:
+    needs: build-mingw
     uses: ./.github/workflows/win-msvc.yml
