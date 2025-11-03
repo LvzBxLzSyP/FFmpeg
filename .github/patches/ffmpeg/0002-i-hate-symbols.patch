@@ -1,0 +1,32 @@
+diff --git a/libavcodec/x86/mlpdsp_init.c b/libavcodec/x86/mlpdsp_init.c
+index 950f996832..5d5a761372 100644
+--- a/libavcodec/x86/mlpdsp_init.c
++++ b/libavcodec/x86/mlpdsp_init.c
+@@ -63,6 +63,26 @@ extern char ff_mlp_iirorder_2;
+ extern char ff_mlp_iirorder_1;
+ extern char ff_mlp_iirorder_0;
+ 
++void _mlp_keep_alive_9f8a3bc2(void) {
++    volatile char *p;
++
++    p = &ff_mlp_firorder_0;
++    p = &ff_mlp_firorder_1;
++    p = &ff_mlp_firorder_2;
++    p = &ff_mlp_firorder_3;
++    p = &ff_mlp_firorder_4;
++    p = &ff_mlp_firorder_5;
++    p = &ff_mlp_firorder_6;
++    p = &ff_mlp_firorder_7;
++    p = &ff_mlp_firorder_8;
++
++    p = &ff_mlp_iirorder_0;
++    p = &ff_mlp_iirorder_1;
++    p = &ff_mlp_iirorder_2;
++    p = &ff_mlp_iirorder_3;
++    p = &ff_mlp_iirorder_4;
++}
++
+ static const void * const firtable[9] = { &ff_mlp_firorder_0, &ff_mlp_firorder_1,
+                                           &ff_mlp_firorder_2, &ff_mlp_firorder_3,
+                                           &ff_mlp_firorder_4, &ff_mlp_firorder_5,
+                                           
