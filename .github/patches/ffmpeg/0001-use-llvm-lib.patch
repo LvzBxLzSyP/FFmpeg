@@ -14,7 +14,7 @@ index add8222d13..395a395f26 100755
 diff --git a/configure b/configure
 old mode 100755
 new mode 100644
-index 7828381b5d..90aaa1f15a
+index 7828381b5d..27f00f9254
 --- a/configure
 +++ b/configure
 @@ -4767,15 +4767,15 @@ case "$toolchain" in
@@ -59,7 +59,15 @@ index 7828381b5d..90aaa1f15a
              _flags_filter=msvc_flags
          fi
          _cc_o='-Fo$@'
-@@ -5366,6 +5366,9 @@ fi
+@@ -5276,6 +5276,7 @@ probe_cc(){
+         _flags='-nologo'
+         _cxxflags='-Zc:__cplusplus -EHsc'
+         disable stripping
++        disable inline_asm_nonlocal_labels
+     elif $_cc --version 2>/dev/null | grep -q ^cparser; then
+         _type=cparser
+         _ident=$($_cc --version | head -n1)
+@@ -5366,6 +5367,9 @@ fi
  if VSLANG=1033 $ar 2>&1 | grep -q ^Microsoft; then
      arflags="-nologo"
      ar_o='-out:$@'
@@ -69,7 +77,7 @@ index 7828381b5d..90aaa1f15a
  elif $ar 2>&1 | grep -q "\[D\] "; then
      arflags="rcD"
      ar_o='$@'
-@@ -6028,8 +6031,8 @@ case $target_os in
+@@ -6028,8 +6032,8 @@ case $target_os in
          SLIBSUF=".dll"
          SLIBNAME_WITH_VERSION='$(SLIBPREF)$(FULLNAME)-$(LIBVERSION)$(SLIBSUF)'
          SLIBNAME_WITH_MAJOR='$(SLIBPREF)$(FULLNAME)-$(LIBMAJOR)$(SLIBSUF)'
@@ -80,7 +88,7 @@ index 7828381b5d..90aaa1f15a
              if enabled x86_64; then
                  LIBTARGET=x64
              fi
-@@ -8462,6 +8465,7 @@ NOREDZONE_FLAGS=$noredzone_flags
+@@ -8462,6 +8466,7 @@ NOREDZONE_FLAGS=$noredzone_flags
  LIBFUZZER_PATH=$libfuzzer_path
  IGNORE_TESTS=$ignore_tests
  VERSION_TRACKING=$version_tracking
