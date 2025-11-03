@@ -675,7 +675,7 @@ jobs:
         set -e
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
           unset LDFLAGS
-          EXTFLG="--ld=lld-link --host-ld=lld-link --extra-ldexeflags=-wholearchive --extra-libs=user32.lib"
+          EXTFLG="--ld=lld-link --host-ld=lld-link"
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
         else
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
@@ -749,9 +749,13 @@ jobs:
           --extra-cflags="$CFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
           --extra-cxxflags="$CXXFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
           --extra-ldflags="$EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && zip -r "$UNIX_PREFIX/all_dirs.zip" ./* && exit 1)
-          
+        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
+          sed -i '/^LDFLAGS[[:space:]]*=/ s/$/ -wholearchive:avcodec.lib/' ffbuild/config.mak
+          sed -i '/^LDEXEFLAGS[[:space:]]*=/ s/$/ -wholearchive:avcodec.lib/' ffbuild/config.mak
+        fi
+        
         echo "Building FFmpeg..."
-        make -j$(nproc) V=1
+        make -j$(nproc)
         make install
         
         echo "::endgroup::"
