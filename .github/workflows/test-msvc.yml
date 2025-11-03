@@ -750,10 +750,10 @@ jobs:
           --target-os=win64 \
           --extra-cflags="$CFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
           --extra-cxxflags="$CXXFLAGS -D_WIN32_WINNT=0x0A00 -ID:/a/FFmpeg/build/include -I$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/include -I$PREFIX/include/amd" \
-          --extra-ldflags="$EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && zip -r "$UNIX_PREFIX/all_dirs.zip" ./* && exit 1)
+          --extra-ldflags="$EXTEND_LDFLG" $EXTFLG || (cat ffbuild/config.log && exit 1)
         
         echo "Building FFmpeg..."
-        make -j$(nproc)
+        make -j$(nproc) || zip -r "$UNIX_PREFIX/all_dirs.zip" ./*
         make install
         
         echo "::endgroup::"
