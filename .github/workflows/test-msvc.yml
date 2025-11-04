@@ -153,9 +153,16 @@ jobs:
         $ErrorActionPreference = "Stop"
         
         # Find vcvars64.bat using vswhere
-        $vsPath = vswhere -latest -property installationPath
-        $vcvarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvars64.bat"
+        # 假設這個變數是由 GitHub Actions 傳入
+        if ($compiler -eq "icx-cl") {
+          $vcvarsPath = "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat"
+        }
+        else {
+          $vsPath = vswhere -latest -property installationPath
+          $vcvarsPath = Join-Path $vsPath "VC\Auxiliary\Build\vcvars64.bat"
+        }
         
+        Write-Host "Using vcvars path: $vcvarsPath"
         # Create a batch file to capture environment
         $batchScript = @"
         @echo off
