@@ -84,7 +84,7 @@ jobs:
 
     - name: cache install
       id: cache-install
-      if: matrix.compiler != 'icx-cl'
+      if: matrix.compiler == 'icx-cl'
       uses: actions/cache@v3
       with:
         path: |
@@ -93,7 +93,7 @@ jobs:
         key: install-${{ env.CACHE_NUMBER }}-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_CPP_COMPONENTS }}-compiler-${{ hashFiles('**/scripts/cache_exclude_windows.sh') }}
    
     - name: install
-      if: steps.cache-install.outputs.cache-hit != 'true' && matrix.compiler != 'icx-cl'
+      if: steps.cache-install.outputs.cache-hit != 'true' && matrix.compiler == 'icx-cl'
       run: .github/scripts/install_windows.bat https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe intel.oneapi.win.cpp-dpcpp-common
 
     - name: Install NASM for Visual Studio
