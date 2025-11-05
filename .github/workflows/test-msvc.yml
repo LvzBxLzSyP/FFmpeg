@@ -154,7 +154,7 @@ jobs:
         
         # Find vcvars64.bat using vswhere
         # 假設這個變數是由 GitHub Actions 傳入
-        if ($compiler -eq "icx-cl") {
+        if ("${{ matrix.compiler }}" -eq "icx-cl") {
           $vcvarsPath = "C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat"
         }
         else {
@@ -176,6 +176,7 @@ jobs:
         $output = & cmd /c "setup_env.bat"
         
         foreach ($line in $output) {
+            echo $env:line
             if ($line -match '^([^=]+)=(.*)$') {
                 $name = $matches[1]
                 $value = $matches[2]
