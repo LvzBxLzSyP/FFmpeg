@@ -223,7 +223,11 @@ jobs:
         fi
         
         # Setup MSVC paths
-        MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
+        if [ "${{ matrix.compiler }}" = "icx-cl" ]; then
+          MSVC_BASE=""/c/Program Files (x86)/Intel/oneAPI/compiler/latest/bin/"
+        else
+          MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
+        fi
         if [ ! -d "$MSVC_BASE" ]; then
           echo "Error: MSVC not found at $MSVC_BASE"
           exit 1
