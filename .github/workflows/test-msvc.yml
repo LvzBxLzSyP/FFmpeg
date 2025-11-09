@@ -214,85 +214,100 @@ jobs:
     - name: Setup build environment
       shell: msys2 {0}
       run: |
-        # Create build directory
-        mkdir -p $PREFIX
-        
-        # Backup MSYS2 link.exe to avoid conflict with MSVC link.exe
+        # 建立目錄
+        mkdir -p "$PREFIX"
+    
+        # 備份 MSYS2 link.exe，避免與 MSVC 衝突
         if [ -f /bin/link.exe ]; then
           mv /bin/link.exe /bin/link.exe.bk
         fi
-        
-        # Setup MSVC paths
-        if [ "${{ matrix.compiler }}" = "icx-cl" ]; then
-          MSVC_BASE="/c/Program Files (x86)/Intel/oneAPI/compiler/latest/bin/"
-        else
-          MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
-        fi
-        if [ ! -d "$MSVC_BASE" ]; then
-          echo "Error: MSVC not found at $MSVC_BASE"
-          exit 1
-        fi
-        
-        MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
-        MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
-        
-        # Find Windows Kits RC.exe
+    
+        # 根據編譯器選擇設定環境變數和路徑
+        case "${{ matrix.compiler }}" in
+          icx-cl)
+            # Intel oneAPI Compiler 路徑
+            MSVC_BASE="/c/Program Files (x86)/Intel/oneAPI/compiler/latest/bin"
+            if [ ! -d "$MSVC_BASE" ]; then
+              echo "Error: Intel oneAPI compiler not found at $MSVC_BASE"
+              exit 1
+            fi
+            MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
+            MSVC_BIN="$MSVC_BASE/$MSVC_VER"
+            PATH_TO_ADD="$MSVC_BIN"
+            ;;
+    
+          clang-cl)
+            # ClangCL 預設路徑
+            MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
+            if [ ! -d "$MSVC_BASE" ]; then
+              echo "Error: MSVC not found at $MSVC_BASE"
+              exit 1
+            fi
+            MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
+            MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
+    
+            LLVM_PATH="/c/Program Files/LLVM/bin"
+            PATH_TO_ADD="$LLVM_PATH:$MSVC_BIN"
+            ;;
+    
+          msvc)
+            # MSVC 預設路徑
+            MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
+            if [ ! -d "$MSVC_BASE" ]; then
+              echo "Error: MSVC not found at $MSVC_BASE"
+              exit 1
+            fi
+            MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
+            MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
+            PATH_TO_ADD="$MSVC_BIN"
+            ;;
+    
+          *)
+            echo "Error: Unsupported compiler '${{ matrix.compiler }}'"
+            exit 1
+            ;;
+        esac
+    
+        # Windows Kits Resource Compiler 路徑
         WIN_KITS_BASE="/c/Program Files (x86)/Windows Kits/10/bin"
         RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" 2>/dev/null | sort -V | tail -n 1)/x64
-        
+    
+        # MSBuild 路徑
         MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin"
-        
-        # Add compiler-specific paths
-        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
-          LLVM_PATH="/c/Program Files/LLVM/bin"
-          export PATH="$LLVM_PATH:$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"
-        else
-          export PATH="$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"
-        fi
-        
+    
+        # 設定 PATH，確保順序從最重要開始
+        export PATH="$PATH_TO_ADD:$MSBUILD_PATH:$RC_PATH:$PATH"
+    
+        # 設定 PKG_CONFIG_PATH
         export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-        
-        # Verify compilers are available
+    
+        # 檢查編譯器
         echo "Checking for ${{ matrix.cc }}..."
-        which ${{ matrix.cc }} || (echo "${{ matrix.cc }} not found in PATH"; exit 1)
-        
-        # Set compiler explicitly
-        export CC="${{ matrix.cc }}"
-        export CXX="${{ matrix.cxx }}"
-        
-        # Create varset.sh for environment variables
-        cat > varset.sh << 'EOF'
-        # Build Environment Variables
-        export PREFIX="$PREFIX"
-        export CC="${{ matrix.cc }}"
-        export CXX="${{ matrix.cxx }}"
-        export CFLAGS="$CFLAGS"
-        export CXXFLAGS="$CXXFLAGS"
-        export LDFLAGS="$LDFLAGS"
-        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-        export MAKEFLAGS="-j$(nproc)"
-        EOF
-        
-        # Compiler-specific PATH
-        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
-          echo 'export PATH="$LLVM_PATH:$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"' >> varset.sh
-          sed -i "s|\$LLVM_PATH|$LLVM_PATH|g" varset.sh
-        else
-          echo 'export PATH="$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"' >> varset.sh
+        if ! which "${{ matrix.cc }}" > /dev/null; then
+          echo "Error: ${{ matrix.cc }} not found in PATH"
+          exit 1
         fi
-        
-        # Make paths available in varset.sh
-        sed -i "s|\$PREFIX|$PREFIX|g" varset.sh
-        sed -i "s|\$CFLAGS|$CFLAGS|g" varset.sh
-        sed -i "s|\$CXXFLAGS|$CXXFLAGS|g" varset.sh
-        sed -i "s|\$LDFLAGS|$LDFLAGS|g" varset.sh
-        sed -i "s|\$MSVC_BIN|$MSVC_BIN|g" varset.sh
-        sed -i "s|\$MSBUILD_PATH|$MSBUILD_PATH|g" varset.sh
-        sed -i "s|\$RC_PATH|$RC_PATH|g" varset.sh
-        
+    
+        # 設定 CC 與 CXX
+        export CC="${{ matrix.cc }}"
+        export CXX="${{ matrix.cxx }}"
+    
+        # 建立 varset.sh
+        cat > varset.sh << EOF
+    # Build Environment Variables
+    export PREFIX="$PREFIX"
+    export CC="${{ matrix.cc }}"
+    export CXX="${{ matrix.cxx }}"
+    export CFLAGS="$CFLAGS"
+    export CXXFLAGS="$CXXFLAGS"
+    export LDFLAGS="$LDFLAGS"
+    export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+    export MAKEFLAGS="-j$(nproc)"
+    export PATH="$PATH_TO_ADD:$MSBUILD_PATH:$RC_PATH:\$PATH"
+    EOF
+    
         echo "varset.sh created successfully"
         cat varset.sh
-
     - name: Debug toolchain
       shell: msys2 {0}
       run: |
