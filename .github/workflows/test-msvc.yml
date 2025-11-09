@@ -294,17 +294,17 @@ jobs:
     
         # 建立 varset.sh
         cat > varset.sh << EOF
-    # Build Environment Variables
-    export PREFIX="$PREFIX"
-    export CC="${{ matrix.cc }}"
-    export CXX="${{ matrix.cxx }}"
-    export CFLAGS="$CFLAGS"
-    export CXXFLAGS="$CXXFLAGS"
-    export LDFLAGS="$LDFLAGS"
-    export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-    export MAKEFLAGS="-j$(nproc)"
-    export PATH="$PATH_TO_ADD:$MSBUILD_PATH:$RC_PATH:\$PATH"
-    EOF
+        # Build Environment Variables
+        export PREFIX="$PREFIX"
+        export CC="${{ matrix.cc }}"
+        export CXX="${{ matrix.cxx }}"
+        export CFLAGS="$CFLAGS"
+        export CXXFLAGS="$CXXFLAGS"
+        export LDFLAGS="$LDFLAGS"
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+        export MAKEFLAGS="-j$(nproc)"
+        export PATH="$PATH_TO_ADD:$MSBUILD_PATH:$RC_PATH:\$PATH"
+        EOF
     
         echo "varset.sh created successfully"
         cat varset.sh
