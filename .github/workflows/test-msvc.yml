@@ -225,16 +225,26 @@ jobs:
         # 根據編譯器選擇設定環境變數和路徑
         case "${{ matrix.compiler }}" in
           icx-cl)
-            # Intel oneAPI Compiler 路徑
-            MSVC_BASE="/c/Program Files (x86)/Intel/oneAPI/compiler/latest/bin"
-            if [ ! -d "$MSVC_BASE" ]; then
-              echo "Error: Intel oneAPI compiler not found at $MSVC_BASE"
-              exit 1
-            fi
-            MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
-            MSVC_BIN="$MSVC_BASE/$MSVC_VER"
-            PATH_TO_ADD="$MSVC_BIN"
-            ;;
+          # Intel oneAPI Compiler 路徑
+          INTEL_BASE="/c/Program Files (x86)/Intel/oneAPI/compiler"
+          
+          # 找真實的版本目錄（跳過 latest symlink）
+          INTEL_VER=$(ls -1 "$INTEL_BASE" | grep -E '^[0-9]' | sort -V | tail -n1)
+          
+          if [ -z "$INTEL_VER" ]; then
+            # Fallback to latest symlink
+            MSVC_BIN="$INTEL_BASE/latest/bin"
+          else
+            MSVC_BIN="$INTEL_BASE/$INTEL_VER/bin"
+          fi
+          
+          if [ ! -d "$MSVC_BIN" ]; then
+            echo "Error: Intel oneAPI compiler not found at $MSVC_BIN"
+            exit 1
+          fi
+          
+          PATH_TO_ADD="$MSVC_BIN"
+          ;;
     
           clang-cl)
             # ClangCL 預設路徑
