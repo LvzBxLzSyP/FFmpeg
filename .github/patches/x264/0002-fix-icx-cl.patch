@@ -1,7 +1,7 @@
 diff --git a/configure b/configure
 old mode 100755
 new mode 100644
-index d1d0a471..09106a7c
+index d1d0a471..c1facc4d
 --- a/configure
 +++ b/configure
 @@ -88,7 +88,7 @@ cc_cflags() {
@@ -72,8 +72,8 @@ index d1d0a471..09106a7c
 +    DEPFLAGS=""
 +    DEPCMD='@$(SRCPATH)/tools/msvsdepend.sh "$(CC)" "$(CFLAGS)" "$<" "$@" > $(@:.o=.d)'
 +
-+    AR="llvm-lib -nologo -out:"
-+    LD="lld-link -out:"
++    AR="lib -nologo -out:"
++    LD="link -out:"
 +
 +    if [ "$compiler" = ICXCL ]; then
 +        AR="xi$AR"
@@ -122,4 +122,3 @@ index d1d0a471..09106a7c
              echo 'IMPLIBNAME=libx264.dll.lib' >> config.mak
              echo "SOFLAGS=-dll -implib:\$(IMPLIBNAME) $SOFLAGS" >> config.mak
          else
-         
