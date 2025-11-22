@@ -364,9 +364,12 @@ jobs:
         echo "::group::Build libx264"
         git clone https://code.videolan.org/videolan/x264.git || git clone https://github.com/mirror/x264.git
         cd x264
-        if  [ "${{ matrix.compiler }}" = "clang-cl" ]; then
+        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
           wget https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/x264/0001-fix-clang-cl.patch
           git apply 0001-fix-clang-cl.patch
+        elif [ "${{ matrix.compiler }}" = "icx-cl" ]; then
+          wget https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/x264/0002-fix-icx-cl.patch
+          git apply 0002-fix-icx-cl.patch
         fi
         ./configure \
           --prefix=$PREFIX \
