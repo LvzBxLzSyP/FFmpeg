@@ -1,0 +1,125 @@
+diff --git a/configure b/configure
+old mode 100755
+new mode 100644
+index d1d0a471..09106a7c
+--- a/configure
++++ b/configure
+@@ -88,7 +88,7 @@ cc_cflags() {
+         [[ "$arg" = -mpreferred-stack-boundary* ]] && arg=
+         [[ "$arg" = -l* ]] && arg=
+         [[ "$arg" = -L* ]] && arg=
+-        if [ $compiler_style = MS ]; then
++        if [ $compiler_style = MS ] || [ $compiler_style = LLVMMS ]; then
+             [ "$arg" = -ffast-math ] && arg="-fp:fast"
+             [ "$arg" = -Wall ] && arg=
+             [ "$arg" = -Werror ] && arg="-W3 -WX"
+@@ -161,7 +161,7 @@ cc_check() {
+         echo "$4" >> conftest.c
+     fi
+     echo "int main (void) { $3 return 0; }" >> conftest.c
+-    if [ $compiler_style = MS ]; then
++    if [ $compiler_style = MS ] || [ $compiler_style = LLVMMS ]; then
+         cc_cmd="$CC conftest.c $(cc_cflags $CFLAGS $CFLAGSCLI $CHECK_CFLAGS $2) -link $(cl_ldflags $2 $LDFLAGSCLI $LDFLAGS)"
+     else
+         cc_cmd="$CC conftest.c $CFLAGS $CFLAGSCLI $CHECK_CFLAGS $2 $LDFLAGSCLI $LDFLAGS -o conftest"
+@@ -192,7 +192,7 @@ cpp_check() {
+         echo "#include <$arg>" >> conftest.c
+     done
+     echo -e "#if !($3) \n#error $4 \n#endif " >> conftest.c
+-    if [ $compiler_style = MS ]; then
++    if [ $compiler_style = MS ] || [ $compiler_style = LLVMMS ]; then
+         cpp_cmd="$CC conftest.c $(cc_cflags $CFLAGS $2) -P"
+     else
+         cpp_cmd="$CC conftest.c $CFLAGS $2 -E -o conftest"
+@@ -637,6 +637,32 @@ if [[ $host_os = mingw* || $host_os = msys* || $host_os = cygwin* ]]; then
+         elif cpp_check '' '' 'defined(_M_ARM)' ; then
+             host_cpu=arm
+         fi
++    elif [[ "$cc_base" = icx-cl || "$cc_base" = icx-cl[\ .]* ]]; then
++        # Intel oneAPI LLVM-based compiler (MSVC frontend)
++        compiler=ICXCL
++        compiler_style=LLVMMS
++        CFLAGS="$CFLAGS -Qstd=c99 -nologo -DHAVE_STRING_H -I\$(SRCPATH)/extras"
++        QPRE="-Q"
++        if cpp_check '' '' 'defined(_M_AMD64) || defined(_M_X64)' ; then
++            host_cpu=x86_64
++        elif cpp_check '' '' 'defined(_M_IX86)' ; then
++            host_cpu=i486
++        fi
++    
++    elif [[ "$cc_base" = clang-cl || "$cc_base" = clang-cl[\ .]* ]]; then
++        # LLVM clang in MSVC mode
++        compiler=CLANGCL
++        compiler_style=LLVMMS
++        CFLAGS="$CFLAGS -nologo -DHAVE_STRING_H -I\$(SRCPATH)/extras"
++        if cpp_check '' '' 'defined(_M_AMD64) || defined(_M_X64)' ; then
++            host_cpu=x86_64
++        elif cpp_check '' '' 'defined(_M_IX86)' ; then
++            host_cpu=i486
++        elif cpp_check '' '' 'defined(_M_ARM64)' ; then
++            host_cpu=aarch64
++        elif cpp_check '' '' 'defined(_M_ARM)' ; then
++            host_cpu=arm
++        fi
+     else
+         # MinGW uses broken pre-VS2015 Microsoft printf functions unless it's told to use the POSIX ones.
+         CFLAGS="$CFLAGS -D_POSIX_C_SOURCE=200112L"
+@@ -1571,6 +1597,39 @@ if [ $compiler_style = MS ]; then
+     else
+         CFLAGS="-DNDEBUG $CFLAGS"
+     fi
++elif [ "$compiler_style" = LLVMMS ]; then
++    DEPFLAGS=""
++    DEPCMD='@$(SRCPATH)/tools/msvsdepend.sh "$(CC)" "$(CFLAGS)" "$<" "$@" > $(@:.o=.d)'
++
++    AR="llvm-lib -nologo -out:"
++    LD="lld-link -out:"
++
++    if [ "$compiler" = ICXCL ]; then
++        AR="xi$AR"
++        LD="xi$LD"
++    else
++        lldlink="$(dirname "$(command -v clang-cl 2>/dev/null)")/lld-link.exe"
++        [ -x "$lldlink" ] && LD="\"$lldlink\" -out:"
++    fi
++
++    HAVE_GETOPT_LONG=0
++
++    LDFLAGS="-nologo -incremental:no $(cl_ldflags $LDFLAGS)"
++    LDFLAGSCLI="$(cl_ldflags $LDFLAGSCLI)"
++
++    LIBX264=libx264.lib
++    RANLIB="llvm-ranlib"  
++    STRIP="llvm-strip"
++
++    # Resource compiler
++    [ -n "$RC" ] && RCFLAGS="$RCFLAGS -nologo -I. -I\$(SRCPATH)/extras -fo"
++
++    if [ "$debug" = yes ]; then
++        LDFLAGS="-debug $LDFLAGS"
++        CFLAGS="-D_DEBUG $CFLAGS"
++    else
++        CFLAGS="-DNDEBUG $CFLAGS"
++    fi
+ else # gcc/icc
+     DEPFLAGS="${QPRE}MMD ${QPRE}MF"' $(@:.o=.d)'
+     DEPCMD=""
+@@ -1651,7 +1710,7 @@ PROF_USE_LD=$PROF_USE_LD
+ HAVE_OPENCL=$opencl
+ EOF
+ 
+-if [ $compiler_style = MS ]; then
++if [ $compiler_style = MS ] || [ $compiler_style = LLVMMS ]; then
+     echo 'CC_O=-Fo$@' >> config.mak
+ else
+     echo 'CC_O=-o $@' >> config.mak
+@@ -1666,7 +1725,7 @@ if [ "$shared" = "yes" ]; then
+     API=$(grep '#define X264_BUILD' < ${SRCPATH}/x264.h | cut -f 3 -d ' ')
+     if [ "$SYS" = "WINDOWS" -o "$SYS" = "CYGWIN" ]; then
+         echo "SONAME=libx264-$API.dll" >> config.mak
+-        if [ $compiler_style = MS ]; then
++        if [ $compiler_style = MS ] || [ $compiler_style = LLVMMS ]; then
+             echo 'IMPLIBNAME=libx264.dll.lib' >> config.mak
+             echo "SOFLAGS=-dll -implib:\$(IMPLIBNAME) $SOFLAGS" >> config.mak
+         else
+         
