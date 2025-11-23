@@ -1,7 +1,7 @@
 diff --git a/configure b/configure
 old mode 100755
 new mode 100644
-index d1d0a471..b309c9a8
+index d1d0a471..149e445a
 --- a/configure
 +++ b/configure
 @@ -88,7 +88,7 @@ cc_cflags() {
@@ -35,7 +35,7 @@ index d1d0a471..b309c9a8
          elif cpp_check '' '' 'defined(_M_ARM)' ; then
              host_cpu=arm
          fi
-+    elif [[ "$cc_base" = icx-cl || "$cc_base" = icx-cl[\ .]* ]]; then
++    elif [[ "$cc_base" = icx-cl || "$cc_base" = icx-cl[\ .]* || "$cc_base" = icx.exe ]]; then
 +        # Intel oneAPI LLVM-based compiler (MSVC frontend)
 +        compiler=ICXCL
 +        compiler_style=LLVMMS
