@@ -39,8 +39,8 @@ jobs:
             ldflags_base: "-fuse-ld=lld -flto=thin"
             artifact_name: ffmpeg-win64-clang
           - compiler: icx-cl
-            cc: icx-cl.exe
-            cxx: icx-cl.exe
+            cc: icx.exe
+            cxx: icx.exe
             msar: llvm-lib.exe
             msranlib: llvm-ranlib.exe
             toolchain: msvc
