@@ -45,7 +45,7 @@ jobs:
             msranlib: llvm-ranlib.exe
             toolchain: msvc
             cflags_base: "-O2 -fuse-ld=lld -Qipo -MD -W0 -mssse3"
-            cxxflags_base: "-O2 -fuse-ld=lld -Qipo -MD -std:c++14 -W0 -mssse3"
+            cxxflags_base: "-O2 -fuse-ld=lld -Qipo -MD -std:c++14 -W0 -mssse3 -msse4.1"
             ldflags_base: "-fuse-ld=lld -Qipo"
             artifact_name: ffmpeg-win64-intel
 
@@ -85,16 +85,21 @@ jobs:
     - name: cache install
       id: cache-install
       if: matrix.compiler == 'icx-cl'
-      uses: actions/cache@v3
+      uses: actions/cache/restore@v4
       with:
-        path: |
-            C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat
-            C:\Program Files (x86)\Intel\oneAPI\compiler
-        key: install-${{ env.CACHE_NUMBER }}-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_CPP_COMPONENTS }}-compiler-${{ hashFiles('**/scripts/cache_exclude_windows.sh') }}
+        path: C:\Program Files (x86)\Intel\oneAPI\
+        key: install-BASE-TOOLKIT-compiler
    
     - name: install
       if: steps.cache-install.outputs.cache-hit != 'true' && matrix.compiler == 'icx-cl'
       run: .github/scripts/install_windows.bat https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1f18901e-877d-469d-a41a-a10f11b39336/intel-oneapi-base-toolkit-2025.3.0.372_offline.exe intel.oneapi.win.cpp-dpcpp-common
+
+    - name: cache save
+      if: steps.cache-install.outputs.cache-hit != 'true' && matrix.compiler == 'icx-cl'
+      uses: actions/cache/save@v4
+      with:
+        path: C:\Program Files (x86)\Intel\oneAPI\
+        key: install-BASE-TOOLKIT-compiler
 
     - name: Install NASM for Visual Studio
       shell: pwsh
