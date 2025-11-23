@@ -1,7 +1,7 @@
 diff --git a/configure b/configure
 old mode 100755
 new mode 100644
-index d1d0a471..c1facc4d
+index d1d0a471..b309c9a8
 --- a/configure
 +++ b/configure
 @@ -88,7 +88,7 @@ cc_cflags() {
@@ -72,10 +72,10 @@ index d1d0a471..c1facc4d
 +    DEPFLAGS=""
 +    DEPCMD='@$(SRCPATH)/tools/msvsdepend.sh "$(CC)" "$(CFLAGS)" "$<" "$@" > $(@:.o=.d)'
 +
-+    AR="lib -nologo -out:"
-+    LD="link -out:"
++    AR="llvm-lib -nologo -out:"
++    LD="lld-link -out:"
 +
-+    if [ "$compiler" = ICXCL ]; then
++    if [ "$compiler" = ICC ]; then
 +        AR="xi$AR"
 +        LD="xi$LD"
 +    else
