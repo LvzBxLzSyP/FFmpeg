@@ -669,6 +669,7 @@ jobs:
             --prefix="$PREFIX" \
             -Ddefault_library=static \
             -Dc_args="$CFLAGS" \
+            -Db_lundef=false \
             "${EXTRA_ARGS[@]}"
         
           meson compile -C builddir -j"$(nproc)"
