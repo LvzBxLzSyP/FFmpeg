@@ -656,6 +656,9 @@ jobs:
           if [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "msvcrt" ]]; then
             # 直接從環境變數中拔掉
             export LDFLAGS="${LDFLAGS//-Wl,--allow-shlib-undefined/}"
+            export lundef=true
+          else
+            export lundef=false
           fi
 
           git clone --depth=1 https://github.com/libass/libass.git
@@ -675,7 +678,7 @@ jobs:
             --prefix="$PREFIX" \
             -Ddefault_library=static \
             -Dc_args="$CFLAGS" \
-            -Db_lundef=false \
+            -Db_lundef=$lundef \
             "${EXTRA_ARGS[@]}"
         
           meson compile -C builddir -j"$(nproc)"
