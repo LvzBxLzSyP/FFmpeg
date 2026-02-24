@@ -652,6 +652,12 @@ jobs:
 
         # Build libass
         if [ ! -f "$PREFIX/lib/libass.a" ]; then
+          # 在腳本開頭或進入 libass 目錄後
+          if [[ "$COMPILER_TYPE" = "clang" && "$RUNTIME_TYPE" = "msvcrt" ]]; then
+            # 直接從環境變數中拔掉
+            export LDFLAGS="${LDFLAGS//-Wl,--allow-shlib-undefined/}"
+          fi
+
           git clone --depth=1 https://github.com/libass/libass.git
           cd libass
         
