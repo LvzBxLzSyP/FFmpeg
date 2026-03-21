@@ -2000,6 +2000,15 @@ static const AVCodecDescriptor codec_descriptors[] = {
         .props     = AV_CODEC_PROP_INTRA_ONLY | AV_CODEC_PROP_LOSSY,
         .profiles  = NULL_IF_CONFIG_SMALL(ff_prores_raw_profiles),
     },
+    {
+        .id        = AV_CODEC_ID_JPEGXS,
+        .type      = AVMEDIA_TYPE_VIDEO,
+        .name      = "jpegxs",
+        .long_name = NULL_IF_CONFIG_SMALL("JPEG XS"),
+        .props     = AV_CODEC_PROP_INTRA_ONLY | AV_CODEC_PROP_LOSSY |
+                     AV_CODEC_PROP_LOSSLESS,
+        .mime_types= MT("image/jxs"),
+    },
 
     /* various PCM "codecs" */
     {
@@ -3829,9 +3838,10 @@ static const AVCodecDescriptor codec_descriptors[] = {
     },
     {
         .id        = AV_CODEC_ID_LCEVC,
-        .type      = AVMEDIA_TYPE_DATA,
+        .type      = AVMEDIA_TYPE_VIDEO,
         .name      = "lcevc",
         .long_name = NULL_IF_CONFIG_SMALL("LCEVC (Low Complexity Enhancement Video Coding) / MPEG-5 LCEVC / MPEG-5 part 2"),
+        .props     = AV_CODEC_PROP_ENHANCEMENT,
     },
     {
         .id        = AV_CODEC_ID_SMPTE_436M_ANC,

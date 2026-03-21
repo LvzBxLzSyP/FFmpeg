@@ -53,6 +53,7 @@ configure()(
         ${cpu:+--cpu="$cpu"}                                            \
         ${toolchain:+--toolchain="$toolchain"}                          \
         ${cross_prefix:+--cross-prefix="$cross_prefix"}                 \
+        ${ar:+--ar="$ar"}                                               \
         ${as:+--as="$as"}                                               \
         ${cc:+--cc="$cc"}                                               \
         ${cxx:+--cxx="$cxx"}                                            \
@@ -95,7 +96,7 @@ fate()(
 )
 
 clean(){
-    rm -rf ${build} ${inst}
+    test "$skip_clean" = "yes" || rm -rf ${build} ${inst}
 }
 
 report(){

@@ -137,6 +137,10 @@ struc SwsOpExec
     .slice_h resd 1
     .block_size_in resd 1
     .block_size_out resd 1
+    .in_sub_y4 resb 4
+    .out_sub_y4 resb 4
+    .in_sub_x4 resb 4
+    .out_sub_x4 resb 4
 endstruc
 
 struc SwsOpImpl
@@ -244,6 +248,9 @@ endstruc
 
 %define tmp0d   r4d
 %define tmp1d   r5d
+
+%define tmp0w   r4w
+%define tmp1w   r5w
 
 ; Registers for plane pointers; put at the end (and in ascending plane order)
 ; so that we can avoid reserving them when not necessary

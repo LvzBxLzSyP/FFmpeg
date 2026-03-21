@@ -23,6 +23,7 @@
 #include "libavutil/dict.h"
 #include "libavutil/mem.h"
 #include "avformat.h"
+#include "avio_internal.h"
 #include "demux.h"
 #include "internal.h"
 #include "pcm.h"
@@ -60,7 +61,7 @@ static int64_t get_tag(AVIOContext *pb, uint32_t * tag)
     int64_t size;
 
     if (avio_feof(pb))
-        return AVERROR(EIO);
+        return AVERROR_INVALIDDATA;
 
     *tag = avio_rl32(pb);
     size = avio_rb32(pb);
@@ -368,9 +369,10 @@ static int aiff_read_header(AVFormatContext *s)
                     if (len == 11 && size > 11) {
                         uint8_t chunk[11];
 
-                        ret = avio_read(pb, chunk, 11);
-                        if (ret > 0)
-                            size -= ret;
+                        ret = ffio_read_size(pb, chunk, 11);
+                        if (ret < 0)
+                            return ret;
+                        size -= ret;
                         if (!memcmp(chunk, "VADPCMCODES", sizeof(chunk))) {
                             if ((ret = ff_get_extradata(s, st->codecpar, pb, size)) < 0)
                                 return ret;

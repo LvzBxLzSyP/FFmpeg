@@ -666,6 +666,7 @@ static int decode_vps_ext(GetBitContext *gb, AVCodecContext *avctx, HEVCVPS *vps
     if (vps->vps_num_layer_sets == 1 || default_output_layer_idc == 2)
         skip_bits1(gb);
 
+    if (nb_ptl > 1)
     for (int j = 0; j < av_popcount64(vps->ols[1]); j++) {
         int ptl_idx = get_bits(gb, av_ceil_log2(nb_ptl));
         if (ptl_idx >= nb_ptl) {
@@ -1824,6 +1825,10 @@ static int colour_mapping_table(GetBitContext *gb, AVCodecContext *avctx, HEVCPP
     pps->chroma_bit_depth_cm_input  = get_ue_golomb(gb) + 8;
     pps->luma_bit_depth_cm_output   = get_ue_golomb(gb) + 8;
     pps->chroma_bit_depth_cm_output = get_ue_golomb(gb) + 8;
+
+    if (   pps->  luma_bit_depth_cm_output < pps->  luma_bit_depth_cm_input
+        || pps->chroma_bit_depth_cm_output < pps->chroma_bit_depth_cm_input)
+            return AVERROR_INVALIDDATA;
 
     pps->cm_res_quant_bits = get_bits(gb, 2);
     pps->cm_delta_flc_bits = get_bits(gb, 2) + 1;

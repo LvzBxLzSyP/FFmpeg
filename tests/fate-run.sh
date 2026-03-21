@@ -43,8 +43,17 @@ esac
 
 
 target_path(){
-    test ${1} = ${1#/} && p=${target_path}/
-    echo ${p}${1}
+    case ${1} in
+    [a-zA-Z]:/*)
+        echo ${1}
+        ;;
+    /*)
+        echo ${1}
+        ;;
+    *)
+        echo ${target_path}/${1}
+        ;;
+    esac
 }
 
 # $1=value1, $2=value2, $3=threshold
@@ -92,6 +101,16 @@ run(){
 runecho(){
     test "${V:-0}" -gt 0 && echo "$target_exec" $target_path/"$@" >&3
     $target_exec $target_path/"$@" >&3
+}
+
+run_with_temp(){
+    create_tmp=$1
+    process_tmp=$2
+    filext=$3
+    tmpfile=${outdir}/$test.$filext
+    cleanfiles="$cleanfiles $tmpfile"
+    run $create_tmp $tmpfile || return 1
+    run $process_tmp $tmpfile
 }
 
 probefmt(){

@@ -98,6 +98,8 @@ typedef struct DecodeContext {
     struct {
         FFLCEVCContext *ctx;
         int frame;
+        int base_width;
+        int base_height;
         int width;
         int height;
     } lcevc;
@@ -218,7 +220,7 @@ fail:
 
 #if !HAVE_THREADS
 #define ff_thread_get_packet(avctx, pkt) (AVERROR_BUG)
-#define ff_thread_receive_frame(avctx, frame) (AVERROR_BUG)
+#define ff_thread_receive_frame(avctx, frame, flags) (AVERROR_BUG)
 #endif
 
 static int decode_get_packet(AVCodecContext *avctx, AVPacket *pkt)
@@ -645,14 +647,15 @@ int ff_decode_receive_frame_internal(AVCodecContext *avctx, AVFrame *frame)
     return ret;
 }
 
-static int decode_receive_frame_internal(AVCodecContext *avctx, AVFrame *frame)
+static int decode_receive_frame_internal(AVCodecContext *avctx, AVFrame *frame,
+                                         unsigned flags)
 {
     AVCodecInternal *avci = avctx->internal;
     DecodeContext     *dc = decode_ctx(avci);
     int ret, ok;
 
     if (avctx->active_thread_type & FF_THREAD_FRAME)
-        ret = ff_thread_receive_frame(avctx, frame);
+        ret = ff_thread_receive_frame(avctx, frame, flags);
     else
         ret = ff_decode_receive_frame_internal(avctx, frame);
 
@@ -730,7 +733,7 @@ int attribute_align_arg avcodec_send_packet(AVCodecContext *avctx, const AVPacke
         dc->draining_started = 1;
 
     if (!avci->buffer_frame->buf[0] && !dc->draining_started) {
-        ret = decode_receive_frame_internal(avctx, avci->buffer_frame);
+        ret = decode_receive_frame_internal(avctx, avci->buffer_frame, 0);
         if (ret < 0 && ret != AVERROR(EAGAIN) && ret != AVERROR_EOF)
             return ret;
     }
@@ -747,8 +750,8 @@ static int apply_cropping(AVCodecContext *avctx, AVFrame *frame)
         (frame->crop_top + frame->crop_bottom) >= frame->height) {
         av_log(avctx, AV_LOG_WARNING,
                "Invalid cropping information set by a decoder: "
-               "%"SIZE_SPECIFIER"/%"SIZE_SPECIFIER"/%"SIZE_SPECIFIER"/%"SIZE_SPECIFIER" "
-               "(frame size %dx%d). This is a bug, please report it\n",
+               "%zu/%zu/%zu/%zu (frame size %dx%d). "
+               "This is a bug, please report it\n",
                frame->crop_left, frame->crop_right, frame->crop_top, frame->crop_bottom,
                frame->width, frame->height);
         frame->crop_left   = 0;
@@ -792,7 +795,7 @@ fail:
     return AVERROR_BUG;
 }
 
-int ff_decode_receive_frame(AVCodecContext *avctx, AVFrame *frame)
+int ff_decode_receive_frame(AVCodecContext *avctx, AVFrame *frame, unsigned flags)
 {
     AVCodecInternal *avci = avctx->internal;
     int ret;
@@ -800,7 +803,7 @@ int ff_decode_receive_frame(AVCodecContext *avctx, AVFrame *frame)
     if (avci->buffer_frame->buf[0]) {
         av_frame_move_ref(frame, avci->buffer_frame);
     } else {
-        ret = decode_receive_frame_internal(avctx, frame);
+        ret = decode_receive_frame_internal(avctx, frame, flags);
         if (ret < 0)
             return ret;
     }
@@ -1660,7 +1663,7 @@ int ff_attach_decode_data(AVFrame *frame)
     return 0;
 }
 
-static void update_frame_props(AVCodecContext *avctx, AVFrame *frame)
+static int update_frame_props(AVCodecContext *avctx, AVFrame *frame)
 {
 #if CONFIG_LIBLCEVC_DEC
     AVCodecInternal    *avci = avctx->internal;
@@ -1670,12 +1673,23 @@ static void update_frame_props(AVCodecContext *avctx, AVFrame *frame)
                       av_frame_get_side_data(frame, AV_FRAME_DATA_LCEVC);
 
     if (dc->lcevc.frame) {
-        dc->lcevc.width  = frame->width;
-        dc->lcevc.height = frame->height;
-        frame->width  = frame->width  * 2 / FFMAX(frame->sample_aspect_ratio.den, 1);
-        frame->height = frame->height * 2 / FFMAX(frame->sample_aspect_ratio.num, 1);
+        int ret = ff_lcevc_parse_frame(dc->lcevc.ctx, frame,
+                                       &dc->lcevc.width, &dc->lcevc.height, avctx);
+        if (ret < 0)
+            return ret;
+
+        // force get_buffer2() to allocate the base frame using the same dimensions
+        // as the final enhanced frame, in order to prevent reinitializing the buffer
+        // pools unnecessarely
+        if (dc->lcevc.width && dc->lcevc.height) {
+            dc->lcevc.base_width  = frame->width;
+            dc->lcevc.base_height = frame->height;
+            frame->width  = dc->lcevc.width;
+            frame->height = dc->lcevc.height;
+        }
     }
 #endif
+    return 0;
 }
 
 static int attach_post_process_data(AVCodecContext *avctx, AVFrame *frame)
@@ -1689,6 +1703,11 @@ static int attach_post_process_data(AVCodecContext *avctx, AVFrame *frame)
         FFLCEVCFrame *frame_ctx;
         int ret;
 
+        if (!dc->lcevc.width || !dc->lcevc.height) {
+            dc->lcevc.frame = 0;
+            return 0;
+        }
+
         frame_ctx = av_mallocz(sizeof(*frame_ctx));
         if (!frame_ctx)
             return AVERROR(ENOMEM);
@@ -1700,12 +1719,12 @@ static int attach_post_process_data(AVCodecContext *avctx, AVFrame *frame)
         }
 
         frame_ctx->lcevc = av_refstruct_ref(dc->lcevc.ctx);
-        frame_ctx->frame->width  = frame->width;
-        frame_ctx->frame->height = frame->height;
+        frame_ctx->frame->width  = dc->lcevc.width;
+        frame_ctx->frame->height = dc->lcevc.height;
         frame_ctx->frame->format = frame->format;
 
-        frame->width  = dc->lcevc.width;
-        frame->height = dc->lcevc.height;
+        frame->width  = dc->lcevc.base_width;
+        frame->height = dc->lcevc.base_height;
 
         ret = avctx->get_buffer2(avctx, frame_ctx->frame, 0);
         if (ret < 0) {
@@ -1770,7 +1789,9 @@ int ff_get_buffer(AVCodecContext *avctx, AVFrame *frame, int flags)
         }
     } else {
         avctx->sw_pix_fmt = avctx->pix_fmt;
-        update_frame_props(avctx, frame);
+        ret = update_frame_props(avctx, frame);
+        if (ret < 0)
+            goto fail;
     }
 
     ret = avctx->get_buffer2(avctx, frame, flags);
@@ -2090,7 +2111,7 @@ av_cold int ff_decode_preinit(AVCodecContext *avctx)
     if (!(avctx->export_side_data & AV_CODEC_EXPORT_DATA_ENHANCEMENTS)) {
         if (avctx->codec_type == AVMEDIA_TYPE_VIDEO) {
 #if CONFIG_LIBLCEVC_DEC
-            ret = ff_lcevc_alloc(&dc->lcevc.ctx);
+            ret = ff_lcevc_alloc(&dc->lcevc.ctx, avctx);
             if (ret < 0 && (avctx->err_recognition & AV_EF_EXPLODE))
                 return ret;
 #endif
@@ -2270,7 +2291,7 @@ int ff_copy_palette(void *dst, const AVPacket *src, void *logctx)
         return 1;
     } else if (pal) {
         av_log(logctx, AV_LOG_ERROR,
-               "Palette size %"SIZE_SPECIFIER" is wrong\n", size);
+               "Palette size %zu is wrong\n", size);
     }
     return 0;
 }
@@ -2337,6 +2358,8 @@ av_cold void ff_decode_internal_sync(AVCodecContext *dst, const AVCodecContext *
     dst_dc->side_data_pref_mask = src_dc->side_data_pref_mask;
 #if CONFIG_LIBLCEVC_DEC
     av_refstruct_replace(&dst_dc->lcevc.ctx, src_dc->lcevc.ctx);
+    dst_dc->lcevc.width = src_dc->lcevc.width;
+    dst_dc->lcevc.height = src_dc->lcevc.height;
 #endif
 }
 

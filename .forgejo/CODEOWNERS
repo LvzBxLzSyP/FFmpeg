@@ -21,7 +21,7 @@ libavcodec/.*atrac9.* @lynne
 libavcodec/bink.* @pross
 libavcodec/bintext.* @pross
 libavcodec/.*bitpacked.* @lynne
-libavcodec/.*d3d12va.* @jianhuaw @tong1wu
+libavcodec/.*d3d12va.* @jianhuaw @tong1wu @younengxiao
 libavcodec/.*dirac.* @lynne
 libavcodec/.*dovi_rpu.* @haasn
 libavcodec/dpx.* @pross
@@ -40,11 +40,13 @@ libavcodec/h26x/.* @frankplow @NuoMi @jianhuaw
 libavcodec/.*h274.* @haasn
 libavcodec/iff.* @pross
 libavcodec/.*jpegxl.* @lynne @Traneptora
+libavcodec/jpeg2000htdec.* @cae
 libavcodec/jv.* @pross
 libavcodec/.*jxl.* @lynne @Traneptora
 libavcodec/.*lcms2.* @haasn
 libavcodec/lead.* @pross
 libavcodec/mediacodec* @quink
+libavcodec/mjpeg* @michaelni
 libavcodec/mmvideo.* @pross
 libavcodec/msp2.* @pross
 libavcodec/mvc.* @pross
@@ -55,6 +57,7 @@ libavcodec/.*png.* @Traneptora
 libavcodec/.*prores.* @lynne
 libavcodec/rangecoder.* @michaelni
 libavcodec/ratecontrol.* @michaelni
+libavcodec/rkmpp* @quink
 libavcodec/rv60.* @pross
 libavcodec/sgirle.* @pross
 libavcodec/.*siren.* @lynne
@@ -92,6 +95,7 @@ libavcodec/x86/vpx.* @rbultje
 
 # avfilter
 # =======
+libavfilter/af_loudnorm.* @kylophone
 libavfilter/af_whisper.* @vpalmisano
 libavfilter/.*_amf* @OvchinnikovDmitrii @ArazIusubov
 libavfilter/avfiltergraph.* @haasn
@@ -102,8 +106,10 @@ libavfilter/vf_blackdetect.* @haasn
 libavfilter/vf_colordetect.* @haasn
 libavfilter/vf_colorspace.* @rbultje
 libavfilter/.*drawvg.* @ayosec
+libavfilter/vf_find_rect.* @michaelni
 libavfilter/vf_icc.* @haasn
 libavfilter/vf_libplacebo.* @haasn
+libavfilter/vf_libvmaf.* @kylophone
 libavfilter/vf_premultiply.* @haasn
 libavfilter/vf_scale.* @haasn
 libavfilter/vf_scale_vt.* @quink
@@ -134,6 +140,7 @@ libavformat/electronicarts.* @pross
 libavformat/.*exif.* @Traneptora
 libavformat/filmstrip.* @pross
 libavformat/frm.* @pross
+libavformat/hxvs.* @quink
 libavformat/iamf.* @jamrial
 libavformat/icecast.c @ePirat
 libavformat/ico.* @pross
@@ -148,11 +155,13 @@ libavformat/mlv.* @pross
 libavformat/mm.* @pross
 libavformat/msp.* @pross
 libavformat/mv.* @pross
+libavformat/ogg* @toots
 libavformat/pp_bnk.* @zane
 libavformat/rm.* @pross
 libavformat/sauce.* @pross
 libavformat/scd.* @zane
 libavformat/tty.* @pross
+libavformat/whip.c @JackLau
 libavformat/wsd.* @pross
 libavformat/wtv.* @pross
 
@@ -160,7 +169,7 @@ libavformat/wtv.* @pross
 # ======
 libavutil/.*_amf* @OvchinnikovDmitrii @ArazIusubov
 libavutil/.*crc.* @lynne @michaelni
-libavutil/.*d3d12va.* @jianhuaw @tong1wu
+libavutil/.*d3d12va.* @jianhuaw @tong1wu @younengxiao
 libavutil/csp.* @rbultje @haasn
 libavutil/eval.* @michaelni
 libavutil/film_grain.* @haasn
@@ -187,6 +196,7 @@ libavutil/aarch64/.* @lynne @mstorsjo
 libavutil/arm/.* @mstorsjo
 libavutil/ppc/.* @sean_mcg
 libavutil/riscv/.* @Courmisch
+libavutil/wasm/.* @quink
 libavutil/x86/.* @lynne
 
 # swresample
@@ -206,6 +216,7 @@ libswscale/.* @haasn
 # tools
 # =====
 fftools/ffplay_renderer.* @haasn
+tools/target_dec_fuzzer.c @michaelni
 
 # doc
 # ===
@@ -213,7 +224,7 @@ doc/.* @GyanD
 
 # Frameworks
 # ==========
-.*d3d12va.* @jianhuaw @tong1wu
+.*d3d12va.* @jianhuaw @tong1wu @younengxiao
 .*vulkan.* @lynne @haasn
 
 # tests
@@ -221,3 +232,11 @@ doc/.* @GyanD
 tests/checkasm/riscv/.* @Courmisch
 tests/ref/.*drawvg.* @ayosec
 tests/ref/fate/sub-mcc.* @programmerjake
+
+# Forgejo
+# =======
+.forgejo/CODEOWNERS @michaelni
+
+# /
+# =
+MAINTAINERS @michaelni

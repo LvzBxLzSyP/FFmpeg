@@ -275,7 +275,7 @@ static int write_option(void *optctx, const OptionDef *po, const char *opt,
     }
 
     if (po->flags & OPT_FLAG_SPEC) {
-        char *p = strchr(opt, ':');
+        const char *p = strchr(opt, ':');
         char *str;
 
         sol = dst;
@@ -962,8 +962,7 @@ FILE *get_preset_file(char *filename, size_t filename_size,
                     datadir, desired_size, sizeof *datadir);
                 if (new_datadir) {
                     datadir = new_datadir;
-                    datadir[datadir_len] = 0;
-                    strncat(datadir, "/ffpresets",  desired_size - 1 - datadir_len);
+                    strcpy(datadir + datadir_len, "/ffpresets");
                     base[2] = datadir;
                 }
             }

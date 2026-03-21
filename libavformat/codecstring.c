@@ -29,6 +29,7 @@
 #include "avc.h"
 #include "avformat.h"
 #include "internal.h"
+#include "lcevc.h"
 #include "nal.h"
 #include "vpcc.h"
 
@@ -54,7 +55,8 @@ static void set_vp9_codec_str(void *logctx, const AVCodecParameters *par,
                    vpcc.profile, vpcc.level, vpcc.bitdepth);
     } else {
         // Default to just vp9 in case of error while finding out profile or level
-        av_log(logctx, AV_LOG_WARNING, "Could not find VP9 profile and/or level\n");
+        if (logctx)
+            av_log(logctx, AV_LOG_WARNING, "Could not find VP9 profile and/or level\n");
         av_bprintf(out, "vp9");
     }
 }
@@ -173,6 +175,14 @@ int ff_make_codec_str(void *logctx, const AVCodecParameters *par,
                        profile_compatibility, tier, level, constraints);
         } else
             return AVERROR(EINVAL);
+    } else if (par->codec_id == AV_CODEC_ID_LCEVC) {
+        LCEVCDecoderConfigurationRecord lvcc;
+        int err;
+        if (!par->extradata_size)
+            return AVERROR(EINVAL);
+        if ((err = ff_lcvec_parse_config_record(&lvcc, par->extradata, par->extradata_size)) < 0)
+            return err;
+        av_bprintf(out, "lvc1.vprf%u.vlev%u", lvcc.profile_idc, lvcc.level_idc);
     } else if (par->codec_id == AV_CODEC_ID_AV1) {
         // https://aomediacodec.github.io/av1-isobmff/#codecsparam
         AV1SequenceParameters seq;
@@ -194,7 +204,8 @@ int ff_make_codec_str(void *logctx, const AVCodecParameters *par,
         // RFC 6381
         av_bprintf(out, "mp4v.20");
         // Unimplemented, should output ProfileLevelIndication as a decimal number
-        av_log(logctx, AV_LOG_WARNING, "Incomplete RFC 6381 codec string for mp4v\n");
+        if (logctx)
+            av_log(logctx, AV_LOG_WARNING, "Incomplete RFC 6381 codec string for mp4v\n");
     } else if (par->codec_id == AV_CODEC_ID_MP2) {
         av_bprintf(out, "mp4a.40.33");
     } else if (par->codec_id == AV_CODEC_ID_MP3) {
@@ -217,4 +228,10 @@ int ff_make_codec_str(void *logctx, const AVCodecParameters *par,
         return AVERROR(EINVAL);
     }
     return 0;
+}
+
+int av_mime_codec_str(const AVCodecParameters *par,
+                      AVRational frame_rate, struct AVBPrint *out)
+{
+    return ff_make_codec_str(NULL, par, &frame_rate, out);
 }

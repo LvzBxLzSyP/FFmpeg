@@ -117,7 +117,7 @@ typedef struct MPVEncContext {
     int (*q_intra_matrix)[64];
     int (*q_chroma_intra_matrix)[64];
     int (*q_inter_matrix)[64];
-    /** identical to the above but for MMX & these are not permutated, second 64 entries are bias*/
+    /** identical to the above but for SSE & these are not permutated, second 64 entries are bias*/
     uint16_t (*q_intra_matrix16)[2][64];
     uint16_t (*q_chroma_intra_matrix16)[2][64];
     uint16_t (*q_inter_matrix16)[2][64];
@@ -192,6 +192,9 @@ typedef struct MPVEncContext {
     int (*sum_abs_dctelem)(const int16_t *block);
 
     int intra_penalty;
+
+    uint8_t permutated_intra_h_scantable[64];
+    uint8_t permutated_intra_v_scantable[64];
 
     DECLARE_ALIGNED_32(int16_t, blocks)[2][12][64]; // for HQ mode we need to keep the best block
 } MPVEncContext;

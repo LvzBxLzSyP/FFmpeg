@@ -93,10 +93,6 @@ static uint16_t get_value(GetBitContext *gb, int16_t codebook)
 
 #define TODCCODEBOOK(x) ((x + 1) >> 1)
 
-static const uint8_t align_tile_w[16] = {
-    0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4,
-};
-
 #define DC_CB_MAX 12
 const uint8_t ff_prores_raw_dc_cb[DC_CB_MAX + 1] = {
     0x010, 0x021, 0x032, 0x033, 0x033, 0x033, 0x044, 0x044, 0x044, 0x044, 0x044, 0x044, 0x076,
@@ -327,8 +323,8 @@ static int decode_frame(AVCodecContext *avctx,
                         AVFrame *frame, int *got_frame_ptr,
                         AVPacket *avpkt)
 {
-    int ret, dimensions_changed = 0;
     ProResRAWContext *s = avctx->priv_data;
+    int ret, dimensions_changed = 0, old_version = s->version;
     DECLARE_ALIGNED(32, uint8_t, qmat)[64];
     memset(qmat, 1, 64);
 
@@ -360,7 +356,7 @@ static int decode_frame(AVCodecContext *avctx,
         return AVERROR_INVALIDDATA;
 
     int header_len = bytestream2_get_be16(&gb);
-    if (header_len < 62)
+    if (header_len < 62 || bytestream2_get_bytes_left(&gb) < header_len - 2)
         return AVERROR_INVALIDDATA;
 
     GetByteContext gb_hdr;
@@ -395,7 +391,8 @@ static int decode_frame(AVCodecContext *avctx,
     avctx->coded_height = FFALIGN(h, 16);
 
     enum AVPixelFormat pix_fmt = AV_PIX_FMT_BAYER_RGGB16;
-    if (pix_fmt != s->pix_fmt || dimensions_changed) {
+    if (pix_fmt != s->pix_fmt || dimensions_changed ||
+        s->version != old_version) {
         s->pix_fmt = pix_fmt;
 
         ret = get_pixel_format(avctx, pix_fmt);
@@ -431,7 +428,7 @@ static int decode_frame(AVCodecContext *avctx,
 
     s->nb_tw = (w + 15) >> 4;
     s->nb_th = (h + 15) >> 4;
-    s->nb_tw = (s->nb_tw >> align) + align_tile_w[~(-1 * (1 << align)) & s->nb_tw];
+    s->nb_tw = (s->nb_tw >> align) + av_popcount(~(-1 * (1 << align)) & s->nb_tw);
     s->nb_tiles = s->nb_tw * s->nb_th;
     av_log(avctx, AV_LOG_DEBUG, "%dx%d | nb_tiles: %d\n", s->nb_tw, s->nb_th, s->nb_tiles);
 
@@ -463,6 +460,9 @@ static int decode_frame(AVCodecContext *avctx,
 
         tile->y = (n / s->nb_tw) * s->th;
         tile->x = (n % s->nb_tw) * s->tw;
+
+        if (avctx->width - tile->x < 16)
+            return AVERROR_PATCHWELCOME;
 
         offset += size;
     }
@@ -525,6 +525,7 @@ static int update_thread_context(AVCodecContext *dst, const AVCodecContext *src)
     ProResRAWContext *rdst = dst->priv_data;
 
     rdst->pix_fmt = rsrc->pix_fmt;
+    rdst->version = rsrc->version;
 
     return 0;
 }
