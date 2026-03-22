@@ -48,7 +48,7 @@ jobs:
             cxxflags_base: "-O2 -fuse-ld=lld -Qipo -MD -std:c++14 -W0 -mssse3 -msse4.1"
             ldflags_base: "-fuse-ld=lld -Qipo"
             artifact_name: ffmpeg-win64-intel
-
+            
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -455,7 +455,9 @@ jobs:
         echo "::group::Build libsvtav1"
         git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
         cd SVT-AV1/Build
-        
+        if [ "${{ matrix.compiler }}" = "icx-cl" ]; then
+          ICX_C_STD="-Qstd:c11"
+        fi
         cmake -G Ninja \
           -DCMAKE_C_COMPILER=${{ matrix.cc }} \
           -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
@@ -465,7 +467,7 @@ jobs:
           -DBUILD_DEC=OFF \
           -DBUILD_TESTING=OFF \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_C_FLAGS="$CFLAGS" \
+          -DCMAKE_C_FLAGS="$CFLAGS $ICX_C_STD" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
           -DHAVE_ELF_AUX_INFO=0 \
