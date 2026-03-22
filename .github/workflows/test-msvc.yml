@@ -468,6 +468,9 @@ jobs:
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_CXX_FLAGS="$CXXFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+          -DHAVE_ELF_AUX_INFO=0 \
+          -DHAVE_VALGRIND_H=0 \
+          -DCMAKE_HAVE_LIBC_PTHREAD=0 \
           ..
         
         ninja -j$(nproc)
