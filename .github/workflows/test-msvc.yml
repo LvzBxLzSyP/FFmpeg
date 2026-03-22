@@ -457,6 +457,8 @@ jobs:
         cd SVT-AV1/Build
         if [ "${{ matrix.compiler }}" = "icx-cl" ]; then
           ICX_FLAG="-DCMAKE_C_STANDARD=11"
+          wget -q https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/svt-av1/0001-fix-icx-cl.patch
+          git --3way apply 0001-fix-icx-cl.patch
         fi
         cmake -G Ninja \
           -DCMAKE_C_COMPILER=${{ matrix.cc }} \
