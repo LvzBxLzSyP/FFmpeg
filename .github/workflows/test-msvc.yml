@@ -638,6 +638,10 @@ jobs:
         echo "::group::Build libopus"
         git clone --depth=1 https://github.com/xiph/opus.git
         cd opus
+        if [ "${{ matrix.compiler }}" = "icx-cl" ]; then
+          wget -q https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/opus/0001-fix-icx-cl.patch
+          git apply --3way 0001-fix-icx-cl.patch
+        fi
         mkdir -p build && cd build
         
         cmake .. -G Ninja \
