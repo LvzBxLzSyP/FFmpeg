@@ -454,12 +454,13 @@ jobs:
         # Build SVT-AV1
         echo "::group::Build libsvtav1"
         git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
-        cd SVT-AV1/Build
+        cd SVT-AV1
         if [ "${{ matrix.compiler }}" = "icx-cl" ]; then
           ICX_FLAG="-DCMAKE_C_STANDARD=11"
           wget -q https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/svt-av1/0001-fix-icx-cl.patch
           git apply --3way 0001-fix-icx-cl.patch
         fi
+        cd Build
         cmake -G Ninja \
           -DCMAKE_C_COMPILER=${{ matrix.cc }} \
           -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
