@@ -456,7 +456,7 @@ jobs:
         git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
         cd SVT-AV1/Build
         if [ "${{ matrix.compiler }}" = "icx-cl" ]; then
-          ICX_FLAG="-CMAKE_C_STANDARD=11"
+          ICX_FLAG="-DCMAKE_C_STANDARD=11"
         fi
         cmake -G Ninja \
           -DCMAKE_C_COMPILER=${{ matrix.cc }} \
