@@ -1,0 +1,13 @@
+diff --git a/silk/x86/NSQ_del_dec_avx2.c b/silk/x86/NSQ_del_dec_avx2.c
+index 02038fce..0925e18c 100644
+--- a/silk/x86/NSQ_del_dec_avx2.c
++++ b/silk/x86/NSQ_del_dec_avx2.c
+@@ -71,7 +71,7 @@ static OPUS_INLINE int verify_assumptions(const silk_encoder_state *psEncC)
+ }
+
+ /* Intrinsics not defined on MSVC */
+-#ifdef _MSC_VER
++#if defined(_MSC_VER) && !defined(__INTEL_LLVM_COMPILER)
+ #include <intsafe.h>
+ static inline int __builtin_sadd_overflow(opus_int32 a, opus_int32 b, opus_int32* res)
+ {
