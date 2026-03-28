@@ -1,0 +1,40 @@
+diff --git a/cmake/modules/vvencCompilerSupport.cmake b/cmake/modules/vvencCompilerSupport.cmake
+index 77fefa6..df27ea4 100644
+--- a/cmake/modules/vvencCompilerSupport.cmake
++++ b/cmake/modules/vvencCompilerSupport.cmake
+@@ -25,7 +25,7 @@ function( check_missing_intrinsics )
+     set_if_compiler_supports_flag( FLAG_msse41 -msse4.1 )
+     set_if_compiler_supports_flag( FLAG_mavx   -mavx  )
+   else()
+-    set_if_compiler_supports_flag( FLAG_mavx   /arch:AVX2  )
++    set( FLAG_mavx /arch:AVX2 )
+   endif()
+ 
+   # SSE2
+diff --git a/source/Lib/CommonLib/LoopFilter.cpp b/source/Lib/CommonLib/LoopFilter.cpp
+index 67eb310..da0b754 100644
+--- a/source/Lib/CommonLib/LoopFilter.cpp
++++ b/source/Lib/CommonLib/LoopFilter.cpp
+@@ -1629,6 +1629,7 @@ void LoopFilter::xEdgeFilterChroma( const CodingStructure &cs, const Position &p
+   }
+ }
+ 
+-}
++template void LoopFilter::xDeblockArea<EDGE_VER>( const CodingStructure& cs, const UnitArea& area, const ChannelType chType, PelUnitBuf& picRecoBuf ) const;
++template void LoopFilter::xDeblockArea<EDGE_HOR>( const CodingStructure& cs, const UnitArea& area, const ChannelType chType, PelUnitBuf& picRecoBuf ) const;
+ 
+-//! \}
++} // namespace vvenc
+diff --git a/source/Lib/vvenc/CMakeLists.txt b/source/Lib/vvenc/CMakeLists.txt
+index 5a8f4a0..0dcdd90 100644
+--- a/source/Lib/vvenc/CMakeLists.txt
++++ b/source/Lib/vvenc/CMakeLists.txt
+@@ -102,6 +102,8 @@ if( VVENC_ENABLE_X86_SIMD )
+   set_property( SOURCE ${AVX2_SRC_FILES}  APPEND PROPERTY COMPILE_DEFINITIONS USE_AVX2 )
+   # set needed compile flags
+   if( MSVC )
++    set_property( SOURCE ${SSE41_SRC_FILES} APPEND PROPERTY COMPILE_FLAGS "/arch:SSE4.1" )
++    set_property( SOURCE ${SSE42_SRC_FILES} APPEND PROPERTY COMPILE_FLAGS "/arch:SSE4.2" )
+     set_property( SOURCE ${AVX_SRC_FILES}   APPEND PROPERTY COMPILE_FLAGS "/arch:AVX" )
+     set_property( SOURCE ${AVX2_SRC_FILES}  APPEND PROPERTY COMPILE_FLAGS "/arch:AVX2" )
+   elseif( UNIX OR MINGW )
