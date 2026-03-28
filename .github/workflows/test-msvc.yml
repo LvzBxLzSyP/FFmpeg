@@ -557,8 +557,7 @@ jobs:
           -DVVENC_ENABLE_WERROR=OFF ^
           -DCMAKE_AR=${{ matrix.msar }} ^
           -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
-          -G "Visual Studio 17 2022" ^
-          -T "${{ matrix.platformToolset }}" ^
+          -G Ninja ^
           .
         cmake --build . --config Release --target install
         cd ..
@@ -567,7 +566,7 @@ jobs:
         cd vvdec
         powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/vvdec/0001-fix-MSVC.patch' -OutFile '0001-vvdec-fix-MSVC.patch'"
         git apply 0001-vvdec-fix-MSVC.patch
-        cmake -G "Visual Studio 17 2022" ^
+        cmake -G Ninja ^
           -DCMAKE_C_COMPILER=${{ matrix.cc }} ^
           -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ^
           -DCMAKE_C_FLAGS_RELEASE="%CFLAGS%" ^
@@ -580,7 +579,6 @@ jobs:
           -DVVDEC_ENABLE_WERROR=OFF ^
           -DCMAKE_AR=${{ matrix.msar }} ^
           -DCMAKE_RANLIB=${{ matrix.msranlib }} ^
-          -T "${{ matrix.platformToolset }}" ^
           .
         
         cmake --build . --config Release --target install
