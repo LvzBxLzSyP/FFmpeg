@@ -1,11 +1,11 @@
 diff --git a/configure b/configure
-index 91241f1ce7..8a992f05b5 100644
+index fb1baf2eac..70e30d124a 100755
 --- a/configure
 +++ b/configure
 @@ -5170,6 +5170,17 @@ msvc_flags_link(){
      unset _flags_type
  }
- 
+
 +icx_flags(){
 +    msvc_common_flags "$@"
 +    for flag; do
@@ -30,12 +30,12 @@ index 91241f1ce7..8a992f05b5 100644
 +        _depflags='-QMD -QMT $@ -QMF $(@:.o=.d)'
 +        _cflags_speed='-O2'
 +        _cflags_size='-O1'
-+        _ld_o='-out:$@'
++        _ld_o='-o$@'
 +        _cc_o='-Fo$@'
 +        _cc_e='-P'
 +        _flags_filter=icx_flags
 +        _ld_lib='%.lib'
-+        _ld_path='-libpath:'
++        _ld_path='-L:'
 +        _flags='-nologo'
 +        _cflags='-GS -fp:precise'
 +        _cxxflags='-Zc:__cplusplus -EHsc'
