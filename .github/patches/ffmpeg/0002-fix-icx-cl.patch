@@ -1,8 +1,16 @@
 diff --git a/configure b/configure
-index fb1baf2eac..70e30d124a 100755
+index fb1baf2eac..9ef8ec73eb 100755
 --- a/configure
 +++ b/configure
-@@ -5170,6 +5170,17 @@ msvc_flags_link(){
+@@ -5142,7 +5142,6 @@ msvc_common_flags(){
+             -lstdc++)             ;;
+             -l*)                  echo ${flag#-l}.lib ;;
+             -LARGEADDRESSAWARE)   echo $flag ;;
+-            -L*) [ "$_flags_type" = "link" ] && echo -libpath:${flag#-L} ;;
+             -Wl,*)                ;;
+             *)                    echo $flag ;;
+         esac
+@@ -5170,6 +5169,17 @@ msvc_flags_link(){
      unset _flags_type
  }
 
@@ -20,7 +28,7 @@ index fb1baf2eac..70e30d124a 100755
  icl_flags(){
      msvc_common_flags "$@"
      for flag; do
-@@ -5338,6 +5349,24 @@ probe_cc(){
+@@ -5338,6 +5348,24 @@ probe_cc(){
          # 4509: "This form of conditional instruction is deprecated"
          _flags="-nologo -ignore 4509"
          _flags_filter=armasm_flags
