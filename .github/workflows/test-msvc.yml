@@ -47,8 +47,8 @@ jobs:
             msranlib: llvm-ranlib.exe
             toolchain: msvc
             platformToolset: "Intel C++ Compiler 2025"
-            cflags_base: "-O2 -fuse-ld=lld -Qipo -MD -W0 -mssse3"
-            cxxflags_base: "-O2 -fuse-ld=lld -Qipo -MD -std:c++14 -W0 -mssse3 -msse4.1"
+            cflags_base: "-O2 -fuse-ld=lld -Qipo -MT -W0 -mssse3"
+            cxxflags_base: "-O2 -fuse-ld=lld -Qipo -MT -std:c++14 -W0 -mssse3 -msse4.1"
             ldflags_base: "-fuse-ld=lld -Qipo"
             artifact_name: ffmpeg-win64-intel
             
