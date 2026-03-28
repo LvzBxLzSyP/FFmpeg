@@ -773,7 +773,12 @@ jobs:
       run: |
         source varset.sh
         set -e
-        if [ "${{ matrix.compiler }}" = "clang-cl" ] || [ "${{ matrix.compiler }}" = "icx-cl" ]; then
+        if [ "${{ matrix.compiler }}" = "icx-cl" ]; then
+          # 重要：不要 unset LDFLAGS，保留 strategy 中的 -Qipo
+          # 將 ld 指向 icx，讓它處理 Intel 專有符號
+          EXTFLG="--ld=icx --host-ld=icx"
+          EXTEND_LDFLG="$LDFLAGS -LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
+        elif [ "${{ matrix.compiler }}" = "clang-cl" ]; then
           unset LDFLAGS
           EXTFLG="--ld=lld-link --host-ld=lld-link"
           EXTEND_LDFLG="-LIBPATH:D:/a/FFmpeg/build/lib -LIBPATH:$GITHUB_WORKSPACE/vcpkg/installed/x64-windows-static-md/lib"
