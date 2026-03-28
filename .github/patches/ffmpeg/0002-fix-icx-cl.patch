@@ -1,0 +1,47 @@
+diff --git a/configure b/configure
+index 91241f1ce7..8a992f05b5 100644
+--- a/configure
++++ b/configure
+@@ -5170,6 +5170,17 @@ msvc_flags_link(){
+     unset _flags_type
+ }
+ 
++icx_flags(){
++    msvc_common_flags "$@"
++    for flag; do
++        case $flag in
++            -Wall)                echo $flag -Qdiag-disable:remark ;;
++            -std=c*)              echo -Qstd:${flag#-std=} ;;
++            -flto*)               echo -Qipo ;;
++        esac
++    done
++}
++
+ icl_flags(){
+     msvc_common_flags "$@"
+     for flag; do
+@@ -5338,6 +5349,24 @@ probe_cc(){
+         # 4509: "This form of conditional instruction is deprecated"
+         _flags="-nologo -ignore 4509"
+         _flags_filter=armasm_flags
++    elif $_cc --version 2>/dev/null | grep -q "Intel(R) oneAPI"; then
++        _type=icx
++        _ident=$($_cc --version 2>/dev/null | head -n1)
++        _depflags='-QMD -QMT $@ -QMF $(@:.o=.d)'
++        _cflags_speed='-O2'
++        _cflags_size='-O1'
++        _ld_o='-out:$@'
++        _cc_o='-Fo$@'
++        _cc_e='-P'
++        _flags_filter=icx_flags
++        _ld_lib='%.lib'
++        _ld_path='-libpath:'
++        _flags='-nologo'
++        _cflags='-GS -fp:precise'
++        _cxxflags='-Zc:__cplusplus -EHsc'
++        ar_default='llvm-lib.exe'
++        disable stripping
++        disable inline_asm_nonlocal_labels
+     elif $_cc 2>&1 | grep -q Intel; then
+         _type=icl
+         _ident=$($_cc 2>&1 | head -n1)
