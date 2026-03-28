@@ -1,21 +1,43 @@
 diff --git a/configure b/configure
-index fb1baf2eac..9ef8ec73eb 100755
+index fb1baf2eac..38e05d0999 100755
 --- a/configure
 +++ b/configure
-@@ -5142,7 +5142,6 @@ msvc_common_flags(){
-             -lstdc++)             ;;
-             -l*)                  echo ${flag#-l}.lib ;;
-             -LARGEADDRESSAWARE)   echo $flag ;;
--            -L*) [ "$_flags_type" = "link" ] && echo -libpath:${flag#-L} ;;
-             -Wl,*)                ;;
-             *)                    echo $flag ;;
-         esac
-@@ -5170,6 +5169,17 @@ msvc_flags_link(){
+@@ -5170,6 +5170,47 @@ msvc_flags_link(){
      unset _flags_type
  }
-
+ 
++icx_common_flags(){
++    for flag; do
++        case $flag in
++            # In addition to specifying certain flags under the compiler
++            # specific filters, they must be specified here as well or else the
++            # generic catch all at the bottom will print the original flag.
++            -Wall)                ;;
++            -Wextra)              ;;
++            -std=c*)              echo /std:${flag#-std=};;
++            # Common flags
++            -fomit-frame-pointer) ;;
++            -g)                   echo -Z7 ;;
++            -fno-math-errno)      ;;
++            -fno-common)          ;;
++            -fno-signed-zeros)    ;;
++            -fPIC)                ;;
++            -mthumb)              ;;
++            -march=*)             ;;
++            -mfp16-format=*)      ;;
++            -lz)                  echo zlib.lib ;;
++            -lx264)               echo libx264.lib ;;
++            -lstdc++)             ;;
++            -l*)                  echo ${flag#-l}.lib ;;
++            -LARGEADDRESSAWARE)   echo $flag ;;
++            -Wl,*)                ;;
++            *)                    echo $flag ;;
++        esac
++    done
++}
++
 +icx_flags(){
-+    msvc_common_flags "$@"
++    icx_common_flags "$@"
 +    for flag; do
 +        case $flag in
 +            -Wall)                echo $flag -Qdiag-disable:remark ;;
@@ -28,7 +50,7 @@ index fb1baf2eac..9ef8ec73eb 100755
  icl_flags(){
      msvc_common_flags "$@"
      for flag; do
-@@ -5338,6 +5348,24 @@ probe_cc(){
+@@ -5338,6 +5379,24 @@ probe_cc(){
          # 4509: "This form of conditional instruction is deprecated"
          _flags="-nologo -ignore 4509"
          _flags_filter=armasm_flags
