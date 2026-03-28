@@ -528,9 +528,17 @@ jobs:
           set CFLAGS=%CFLAGS% /arch:AVX /W0
           set CXXFLAGS=%CXXFLAGS% /arch:AVX /W0
         )
+        if "${{ matrix.compiler }}"=="icx-cl" (
+          set CFLAGS=%CFLAGS% /arch:AVX /W0
+          set CXXFLAGS=%CXXFLAGS% /arch:AVX /W0
+        )
         git clone --depth=1 https://github.com/fraunhoferhhi/vvenc.git
         cd vvenc
         if "${{ matrix.compiler }}" == "clang-cl" (
+          powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/vvenc/0001-disable-werror.patch' -OutFile '0001-disable-werror.patch'"
+          git apply 0001-disable-werror.patch
+        )
+        if "${{ matrix.compiler }}" == "icx-cl" (
           powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/vvenc/0001-disable-werror.patch' -OutFile '0001-disable-werror.patch'"
           git apply 0001-disable-werror.patch
         )
