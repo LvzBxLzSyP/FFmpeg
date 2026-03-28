@@ -540,7 +540,9 @@ jobs:
         )
         if "${{ matrix.compiler }}" == "icx-cl" (
           powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/vvenc/0001-disable-werror.patch' -OutFile '0001-disable-werror.patch'"
+          powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/vvenc/0002-fix-icx-cl.patch' -OutFile '0002-fix-icx-cl.patch'"
           git apply 0001-disable-werror.patch
+          git apply 0002-fix-icx-cl.patch
         )
         "C:\Program Files\CMake\bin\cmake.exe" ^
           -DCMAKE_C_COMPILER=${{ matrix.cc }} ^
