@@ -92,7 +92,7 @@ jobs:
       with:
         path: |
           C:\Program Files (x86)\Intel\oneAPI\
-          C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\Platforms\x64\PlatformToolsets\Intel*
+          C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v170\Platforms\x64\PlatformToolsets\Intel*
         key: install-BASE-TOOLKIT-compiler-v1  # 建議更新 key 以強制觸存新路徑
    
     - name: install
@@ -105,7 +105,7 @@ jobs:
       with:
         path: |
           C:\Program Files (x86)\Intel\oneAPI\
-          C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Microsoft\VC\v170\Platforms\x64\PlatformToolsets\Intel*
+          C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Microsoft\VC\v170\Platforms\x64\PlatformToolsets\Intel*
         key: install-BASE-TOOLKIT-compiler-v1
 
     - name: Install NASM for Visual Studio
