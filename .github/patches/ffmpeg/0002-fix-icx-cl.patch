@@ -1,5 +1,5 @@
 diff --git a/configure b/configure
-index fb1baf2eac..38e05d0999 100755
+index fb1baf2eac..1f7ea1d2f0 100755
 --- a/configure
 +++ b/configure
 @@ -5170,6 +5170,47 @@ msvc_flags_link(){
@@ -65,7 +65,7 @@ index fb1baf2eac..38e05d0999 100755
 +        _cc_e='-P'
 +        _flags_filter=icx_flags
 +        _ld_lib='%.lib'
-+        _ld_path='-L:'
++        _ld_path='-Wl,-LIBPATH:'
 +        _flags='-nologo'
 +        _cflags='-GS -fp:precise'
 +        _cxxflags='-Zc:__cplusplus -EHsc'
