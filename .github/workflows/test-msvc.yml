@@ -659,7 +659,7 @@ jobs:
           -DCMAKE_C_FLAGS="$CFLAGS" \
           -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
           -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
         
         ninja -j$(nproc)
         ninja install
