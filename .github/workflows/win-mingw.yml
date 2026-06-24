@@ -744,7 +744,7 @@ jobs:
 
         # Apply VVC decoder patch
         # wget -q -O libvvdec.patch https://raw.githubusercontent.com/wiki/fraunhoferhhi/vvdec/data/patch/v8-0001-avcodec-add-external-dec-libvvdec-for-H266-VVC.patch # don't use this currently, they didn't update!
-        wget -q -O libvvdec.patch https://github.com/LvzBxLzSyP/FFmpeg/blob/master/.github/patches/vvdec/0002-fraunhofer-didnt-update-their-patch.patch
+        wget -q -O libvvdec.patch https://raw.githubusercontent.com/LvzBxLzSyP/FFmpeg/refs/heads/master/.github/patches/vvdec/0002-fraunhofer-didnt-update-their-patch.patch
         git apply --3way libvvdec.patch || echo "Patch may have already been applied"
 
         # Set compiler-specific configuration
