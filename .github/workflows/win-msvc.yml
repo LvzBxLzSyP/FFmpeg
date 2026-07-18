@@ -81,7 +81,7 @@ jobs:
         Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/2.16.03/win64/nasm-2.16.03-win64.zip" -OutFile "NASM.zip"
         
         Write-Host "Downloading VSNASM..."
-        Invoke-WebRequest -Uri "https://github.com/ShiftMediaProject/VSNASM/releases/download/1.0/VSNASM.zip" -OutFile "VSNASM.zip"
+        Invoke-WebRequest -Uri "https://github.com/ShiftMediaProject/VSNASM/releases/download/2.0/VSNASM.zip" -OutFile "VSNASM.zip"
         
         Write-Host "Extracting NASM..."
         Expand-Archive -Path "NASM.zip" -DestinationPath ".\NASM" -Force
