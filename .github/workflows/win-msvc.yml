@@ -646,27 +646,7 @@ jobs:
         echo ::endgroup::
 
         echo ::group::Build mp3lame
-        set PREFIX=%GLOBAL_PREFIX%
-        git clone https://github.com/ShiftMediaProject/lame.git
-        cd lame\SMP
-
-        if "${{ matrix.compiler }}" == "msvc" (
-          msbuild libmp3lame.vcxproj ^
-            /p:Configuration=Release ^
-            /p:Platform=x64 ^
-            /p:WholeProgramOptimization=true ^
-            /p:LinkTimeCodeGeneration=true
-        ) else (
-          msbuild libmp3lame.vcxproj ^
-            /p:PlatformToolset=ClangCL ^
-            /p:Configuration=Release ^
-            /p:Platform=x64 ^
-            /p:ClCompileAdditionalOptions="-flto=thin" ^
-            /p:LinkAdditionalOptions="-flto=thin -fuse-ld=lld"
-        )
-
-        xcopy D:\a\FFmpeg\msvc\include D:\a\FFmpeg\build\include /E /I /Y
-        xcopy D:\a\FFmpeg\msvc\lib\x64\libmp3lame.lib D:\a\FFmpeg\build\lib\ /Y
+        %GITHUB_WORKSPACE%\vcpkg\vcpkg install mp3lame:x64-windows-static-md
         echo::endgroup::
 
         echo ::group::Build libFLAC
