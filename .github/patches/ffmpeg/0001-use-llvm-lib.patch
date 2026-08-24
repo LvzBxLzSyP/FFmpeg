@@ -1,8 +1,8 @@
 diff --git a/compat/windows/makedef b/compat/windows/makedef
-index af42f08fd5..aea742c8e2 100755
+index c5755d6cca..2ff643f9ea 100755
 --- a/compat/windows/makedef
 +++ b/compat/windows/makedef
-@@ -48,13 +48,7 @@ trap 'rm -f -- $libname' EXIT
+@@ -53,13 +53,7 @@ trap 'rm -f -- $libname' EXIT
  if [ -n "$AR" ]; then
      $AR rcs ${libname} $@ >/dev/null
  else
@@ -20,10 +20,10 @@ index af42f08fd5..aea742c8e2 100755
 diff --git a/configure b/configure
 old mode 100755
 new mode 100644
-index 8f9fb04115..91241f1ce7
+index 21128a80a0..cd6ebe6f9b
 --- a/configure
 +++ b/configure
-@@ -4899,15 +4899,15 @@ case "$toolchain" in
+@@ -4991,15 +4991,15 @@ case "$toolchain" in
      msvc)
          cl_major_ver=$(cl.exe 2>&1 | sed -n 's/.*Version \([[:digit:]]\{1,\}\)\..*/\1/p')
          if [ -z "$cl_major_ver" ] || [ $cl_major_ver -ge 18 ]; then
@@ -42,16 +42,21 @@ index 8f9fb04115..91241f1ce7
          case "${arch:-$arch_default}" in
          aarch64|arm64)
              as_default="armasm64.exe"
-@@ -5142,7 +5142,7 @@ msvc_common_flags(){
+@@ -5236,9 +5236,13 @@ msvc_common_flags(){
              -lstdc++)             ;;
              -l*)                  echo ${flag#-l}.lib ;;
              -LARGEADDRESSAWARE)   echo $flag ;;
--            -L*) [ "$_flags_type" = "link" ] && echo -libpath:${flag#-L} ;;
++<<<<<<< ours
+             -L*) [ "$_flags_type" != "link" ] || echo -libpath:${flag#-L} ;;
+             -I*) [ "$_flags_type" = "link" ] || echo $flag ;;
+             -D*) [ "$_flags_type" = "link" ] || echo $flag ;;
++=======
 +            -L*) [ "$_flags_type" = "link" ] && echo "-libpath:${flag#-L}" ;;
++>>>>>>> theirs
              -Wl,*)                ;;
              *)                    echo $flag ;;
          esac
-@@ -5394,11 +5394,12 @@ probe_cc(){
+@@ -5490,11 +5494,12 @@ probe_cc(){
          _DEPCXXFLAGS='$(CXXFLAGS)'
          _cflags_speed="-O2"
          _cflags_size="-O1"
@@ -66,7 +71,7 @@ index 8f9fb04115..91241f1ce7
              _flags_filter=msvc_flags
          fi
          _cc_o='-Fo$@'
-@@ -5408,6 +5409,7 @@ probe_cc(){
+@@ -5504,6 +5509,7 @@ probe_cc(){
          _flags='-nologo'
          _cxxflags='-Zc:__cplusplus -EHsc'
          disable stripping
@@ -74,7 +79,7 @@ index 8f9fb04115..91241f1ce7
      elif $_cc --version 2>/dev/null | grep -q ^cparser; then
          _type=cparser
          _ident=$($_cc --version | head -n1)
-@@ -5498,6 +5500,9 @@ fi
+@@ -5594,6 +5600,9 @@ fi
  if VSLANG=1033 $ar 2>&1 | grep -q ^Microsoft; then
      arflags="-nologo"
      ar_o='-out:$@'
@@ -84,7 +89,7 @@ index 8f9fb04115..91241f1ce7
  elif $ar 2>&1 | grep -q "\[D\] "; then
      arflags="rcD"
      ar_o='$@'
-@@ -6160,8 +6165,8 @@ case $target_os in
+@@ -6263,8 +6272,8 @@ case $target_os in
          SLIBSUF=".dll"
          SLIBNAME_WITH_VERSION='$(SLIBPREF)$(FULLNAME)-$(LIBVERSION)$(SLIBSUF)'
          SLIBNAME_WITH_MAJOR='$(SLIBPREF)$(FULLNAME)-$(LIBMAJOR)$(SLIBSUF)'
@@ -95,7 +100,7 @@ index 8f9fb04115..91241f1ce7
              if enabled x86_64; then
                  LIBTARGET=x64
              fi
-@@ -7429,7 +7434,7 @@ enabled libvpx            && {
+@@ -7492,7 +7501,7 @@ enabled libvpx            && {
          die "libvpx enabled but no supported decoders found"
      fi
  }
@@ -104,7 +109,7 @@ index 8f9fb04115..91241f1ce7
  enabled libvvenc          && require_pkg_config libvvenc "libvvenc >= 1.6.1" "vvenc/vvenc.h" vvenc_get_version
  enabled libwebp           && {
      enabled libwebp_encoder      && require_pkg_config libwebp "libwebp >= 0.2.0" webp/encode.h WebPGetEncoderVersion
-@@ -8000,6 +8005,7 @@ if [ -n "$lto" ]; then
+@@ -8074,6 +8083,7 @@ if [ -n "$lto" ]; then
      test "$cc_type" != "$ld_type" && die "LTO requires same compiler and linker"
      check_cflags  $lto
      check_ldflags $lto $cpuflags
@@ -112,7 +117,7 @@ index 8f9fb04115..91241f1ce7
      disable inline_asm_direct_symbol_refs
      if test "$cc_type" = "clang"; then
          # Clang's LTO fails on Windows, when there are references outside
-@@ -8677,6 +8683,7 @@ SAMPLES:=${samples:-\$(FATE_SAMPLES)}
+@@ -8757,6 +8767,7 @@ SAMPLES:=${samples:-\$(FATE_SAMPLES)}
  LIBFUZZER_PATH=$libfuzzer_path
  IGNORE_TESTS=$ignore_tests
  VERSION_TRACKING=$version_tracking
