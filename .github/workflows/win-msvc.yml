@@ -179,6 +179,23 @@ jobs:
         restore-keys: |
           ${{ matrix.compiler }}-deps-${{ runner.os }}-
 
+    - name: Diagnose Visual Studio and MSVC
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+        if (-not (Test-Path $vswhere)) {
+          throw "vswhere.exe not found: $vswhere"
+        }
+    
+        & $vswhere -products '*' `
+          -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+          -property installationPath
+    
+        Write-Host "--- cl.exe candidates ---"
+        Get-ChildItem "C:\Program Files\Microsoft Visual Studio" -Filter cl.exe -Recurse -ErrorAction SilentlyContinue |
+          Select-Object -First 10 -ExpandProperty FullName
+
     - name: Setup build environment
       shell: msys2 {0}
       run: |
@@ -190,52 +207,92 @@ jobs:
           mv /bin/link.exe /bin/link.exe.bk
         fi
         
-        # Setup MSVC paths
-        MSVC_BASE="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC"
-        if [ ! -d "$MSVC_BASE" ]; then
-          echo "Error: MSVC not found at $MSVC_BASE"
+        # Discover Visual Studio/MSVC instead of assuming 2022/Enterprise.
+        set -euo pipefail
+        
+        VSWHERE="/c/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe"
+        if [ ! -f "$VSWHERE" ]; then
+          echo "Error: vswhere.exe not found at $VSWHERE"
           exit 1
         fi
         
-        MSVC_VER=$(ls "$MSVC_BASE" | sort -V | tail -n1)
-        MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
+        VS_PATH_WIN=$("$VSWHERE" \
+          -latest \
+          -products '*' \
+          -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 \
+          -property installationPath | tr -d '\r' | head -n 1)
         
-        # Find Windows Kits RC.exe
-        WIN_KITS_BASE="/c/Program Files (x86)/Windows Kits/10/bin"
-        RC_PATH=$(find "$WIN_KITS_BASE" -maxdepth 2 -type d -name "10.*" 2>/dev/null | sort -V | tail -n 1)/x64
-        
-        MSBUILD_PATH="/c/Program Files/Microsoft Visual Studio/2022/Enterprise/MSBuild/Current/Bin"
-        
-        # Add compiler-specific paths
-        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
-          LLVM_PATH="/c/Program Files/LLVM/bin"
-          export PATH="$LLVM_PATH:$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"
-        else
-          export PATH="$MSVC_BIN:$MSBUILD_PATH:$RC_PATH:$PATH"
+        if [ -z "$VS_PATH_WIN" ]; then
+          echo "Error: Visual Studio installation with MSVC toolset was not found"
+          "$VSWHERE" -products '*' -format json || true
+          exit 1
         fi
         
-        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
+        VS_PATH=$(cygpath -u "$VS_PATH_WIN")
+        MSVC_BASE="$VS_PATH/VC/Tools/MSVC"
+        if [ ! -d "$MSVC_BASE" ]; then
+          echo "Error: MSVC directory not found at $MSVC_BASE"
+          echo "Visual Studio installation: $VS_PATH_WIN"
+          exit 1
+        fi
         
-        # Verify compilers are available
-        echo "Checking for ${{ matrix.cc }}..."
-        which ${{ matrix.cc }} || (echo "${{ matrix.cc }} not found in PATH"; exit 1)
+        MSVC_VER=$(find "$MSVC_BASE" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -V | tail -n 1)
+        MSVC_BIN="$MSVC_BASE/$MSVC_VER/bin/HostX64/x64"
+        if [ ! -x "$MSVC_BIN/cl.exe" ]; then
+          echo "Error: cl.exe not found at $MSVC_BIN"
+          exit 1
+        fi
         
-        # Set compiler explicitly
-        export CC="${{ matrix.cc }}"
-        export CXX="${{ matrix.cxx }}"
+        # Locate the newest Windows SDK resource compiler.
+        RC_EXE=$(find "/c/Program Files (x86)/Windows Kits/10/bin" \
+          -type f -path '*/x64/rc.exe' 2>/dev/null | sort -V | tail -n 1)
+        if [ -z "$RC_EXE" ]; then
+          echo "Error: Windows SDK rc.exe was not found"
+          exit 1
+        fi
+        RC_PATH=$(dirname "$RC_EXE")
+        
+        # setup-msbuild normally exposes msbuild; derive its directory if available.
+        MSBUILD_EXE=$(where.exe msbuild.exe 2>/dev/null | tr -d '\r' | head -n 1 || true)
+        if [ -n "$MSBUILD_EXE" ]; then
+          MSBUILD_PATH=$(dirname "$(cygpath -u "$MSBUILD_EXE")")
+        else
+          MSBUILD_PATH=""
+        fi
+        
+        if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
+          LLVM_PATH="/c/Program Files/LLVM/bin"
+          export PATH="$LLVM_PATH:$MSVC_BIN:$RC_PATH${MSBUILD_PATH:+:$MSBUILD_PATH}:$PATH"
+        else
+          export PATH="$MSVC_BIN:$RC_PATH${MSBUILD_PATH:+:$MSBUILD_PATH}:$PATH"
+        fi
+                
+        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+
+        if [ "${{ matrix.compiler }}" = "msvc" ]; then
+          command -v cl.exe
+          cl.exe 2>&1 | head -n 2 || true
+        else
+          command -v clang-cl.exe
+          clang-cl.exe --version | head -n 5
+        fi
         
         # Create varset.sh for environment variables
-        cat > varset.sh << 'EOF'
-        # Build Environment Variables
-        export PREFIX="$PREFIX"
-        export CC="${{ matrix.cc }}"
-        export CXX="${{ matrix.cxx }}"
-        export CFLAGS="$CFLAGS"
-        export CXXFLAGS="$CXXFLAGS"
-        export LDFLAGS="$LDFLAGS"
-        export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"
-        export MAKEFLAGS="-j$(nproc)"
-        EOF
+        {
+          printf 'export PREFIX=%q\n' "$PREFIX"
+          printf 'export CC=%q\n' "$CC"
+          printf 'export CXX=%q\n' "$CXX"
+          printf 'export CFLAGS=%q\n' "$CFLAGS"
+          printf 'export CXXFLAGS=%q\n' "$CXXFLAGS"
+          printf 'export LDFLAGS=%q\n' "$LDFLAGS"
+          printf 'export PKG_CONFIG_PATH=%q\n' "$PKG_CONFIG_PATH"
+          printf 'export MAKEFLAGS=%q\n' "-j$(nproc)"
+          printf 'export PATH=%q\n' "$PATH"
+        } > varset.sh
+        
+        chmod +x varset.sh
+        echo "varset.sh created successfully"
+        cat varset.sh
         
         # Compiler-specific PATH
         if [ "${{ matrix.compiler }}" = "clang-cl" ]; then
